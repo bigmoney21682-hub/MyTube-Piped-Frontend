@@ -19,9 +19,9 @@ export default function Home() {
     setVideos([]);
 
     try {
-      const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(q.trim())}`);
+      const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`);
       const data = await res.json();
-      setVideos((data || []).filter(v => v?.id && v?.duration));
+      setVideos(data.items || []);
     } catch {
       setVideos([]);
     } finally {
@@ -33,9 +33,9 @@ export default function Home() {
     (async () => {
       setLoadingTrending(true);
       try {
-        const res = await fetch(`${API_BASE}/trending`);
+        const res = await fetch(`${API_BASE}/trending?region=US`);
         const data = await res.json();
-        setTrending((data || []).filter(v => v?.id && v?.duration));
+        setTrending(data);
       } catch {
         setTrending([]);
       } finally {
@@ -48,7 +48,7 @@ export default function Home() {
 
   return (
     <div>
-      {(loadingSearch || loadingTrending) && <Spinner message={loadingSearch ? "Searching… If your lucky you might get results in a few hours" : "Loading MyTube… Go have a cup of coffee, I'll still be here loading"} />}
+      {(loadingSearch || loadingTrending) && <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />}
 
       <Header onSearch={search} />
 
@@ -58,7 +58,17 @@ export default function Home() {
 
       <div className="grid">
         {list.map(v => (
-          <VideoCard key={v.id} video={v} />
+          <VideoCard
+            key={v.url?.split("v=")[1] || Math.random()}
+            video={{
+              id: v.url?.split("v=")[1],
+              title: v.title,
+              thumbnail: v.thumbnail,
+              author: v.uploaderName,
+              views: v.views,
+              duration: v.duration > 0 ? v.duration : null,
+            }}
+          />
         ))}
       </div>
 
