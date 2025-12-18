@@ -1,37 +1,16 @@
+// src/pages/Home.jsx
+
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
 import { API_BASE } from "../config";
 
-/**
- * Normalize Piped thumbnails so they ALWAYS work on GitHub Pages
- */
-function resolveThumbnail(video, id) {
-  if (video.thumbnail) {
-    // protocol-relative → force https
-    if (video.thumbnail.startsWith("//")) {
-      return "https:" + video.thumbnail;
-    }
-
-    // relative path → use YouTube CDN
-    if (video.thumbnail.startsWith("/")) {
-      return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-    }
-
-    // already valid
-    return video.thumbnail;
-  }
-
-  // absolute fallback
-  return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-}
-
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [trending, setTrending] = useState([]);
-  const [loadingTrending, setLoadingTrending] = useState(true);
   const [loadingSearch, setLoadingSearch] = useState(false);
+  const [loadingTrending, setLoadingTrending] = useState(true);
 
   async function search(q) {
     if (!q.trim()) return;
@@ -41,11 +20,12 @@ export default function Home() {
 
     try {
       const res = await fetch(
-        `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
+        `${API_BASE}/search?q=${encodeURIComponent(q)}&filter=videos`
       );
       const data = await res.json();
-      setVideos(Array.isArray(data.items) ? data.items : []);
-    } catch {
+      setVideos(data.items || []);
+    } catch (err) {
+      console.error("Search failed", err);
       setVideos([]);
     } finally {
       setLoadingSearch(false);
@@ -54,12 +34,12 @@ export default function Home() {
 
   useEffect(() => {
     (async () => {
-      setLoadingTrending(true);
       try {
         const res = await fetch(`${API_BASE}/trending?region=US`);
         const data = await res.json();
-        setTrending(Array.isArray(data) ? data : []);
-      } catch {
+        setTrending(data || []);
+      } catch (err) {
+        console.error("Trending failed", err);
         setTrending([]);
       } finally {
         setLoadingTrending(false);
@@ -72,9 +52,7 @@ export default function Home() {
   return (
     <div>
       {(loadingSearch || loadingTrending) && (
-        <Spinner
-          message={loadingSearch ? "Searching…" : "Loading trending…"}
-        />
+        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
       )}
 
       <Header onSearch={search} />
@@ -84,33 +62,30 @@ export default function Home() {
       )}
 
       <div className="grid">
-        {list.map((v, i) => {
+        {list.map((v) => {
           const id =
-            v.videoId ||
             v.id ||
             v.url?.split("v=")[1] ||
             v.url?.split("/").pop();
 
-          if (!id) return null;
-
           return (
             <VideoCard
-              key={id + i}
+              key={id}
               video={{
                 id,
-                title: v.title || "Untitled",
-                thumbnail: resolveThumbnail(v, id),
-                author: v.uploaderName || "Unknown",
+                title: v.title,
+                thumbnail: v.thumbnail,
+                author: v.uploaderName,
                 views: v.views,
-                duration: v.duration > 0 ? v.duration : null,
+                duration: v.duration || null,
               }}
             />
           );
         })}
       </div>
 
-      {!loadingTrending && !loadingSearch && list.length === 0 && (
-        <p style={{ textAlign: "center", padding: "4rem", opacity: 0.7 }}>
+      {!loadingSearch && !loadingTrending && list.length === 0 && (
+        <p style={{ textAlign: "center", padding: "3rem", opacity: 0.7 }}>
           No videos found.
         </p>
       )}
