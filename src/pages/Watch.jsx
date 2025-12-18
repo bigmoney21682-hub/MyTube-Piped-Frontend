@@ -28,8 +28,15 @@ export default function Watch() {
 
         const data = await res.json();
         setVideo(data);
-        setHlsUrl(data.hls || null);
-        setRelated(data.relatedStreams || []);
+
+        // FIX: Make HLS URL absolute using your backend base
+        if (data.hls) {
+          setHlsUrl(`${API_BASE}${data.hls}`);
+        } else {
+          throw new Error("No playable stream available");
+        }
+
+        setRelated((data.relatedStreams || []).filter(s => s.type === "stream"));
       } catch (err) {
         setError(err.message);
       } finally {
