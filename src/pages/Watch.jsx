@@ -29,21 +29,20 @@ export default function Watch() {
         const data = await res.json();
         setVideo(data);
 
-        // Use highest quality progressive MP4 (absolute URL, video + audio)
-        const mp4Streams = data.videoStreams.filter(s => s.format === "MP4" && !s.videoOnly);
-        if (mp4Streams.length > 0) {
-          // Sort by quality string (e.g., "1080p", "720p")
-          mp4Streams.sort((a, b) => {
-            const qa = parseInt(a.quality) || 0;
-            const qb = parseInt(b.quality) || 0;
-            return qb - qa;
-          });
-          setStreamUrl(mp4Streams[0].url);
+        // Prefer progressive MP4 (video + audio, full absolute pipedproxy URL)
+        const progressive = data.videoStreams.filter(s => !s.videoOnly);
+        if (progressive.length > 0) {
+          // Sort by quality (higher first)
+          progressive.sort((a, b) => b.bitrate - a.bitrate);
+          setStreamUrl(progressive[0].url);
+        } else if (data.hls) {
+          // Fallback to HLS (prepend base if relative)
+          setStreamUrl(data.hls.startsWith("http") ? data.hls : `${API_BASE}${data.hls}`);
         } else {
-          throw new Error("No MP4 stream available");
+          throw new Error("No playable stream");
         }
 
-        setRelated((data.relatedStreams || []).filter(s => s.type === "stream"));
+        setRelated(data.relatedStreams.filter(s => s.type === "stream"));
       } catch (err) {
         setError(err.message || "Failed to load video");
       } finally {
@@ -56,8 +55,7 @@ export default function Watch() {
 
   const playNext = () => {
     if (related.length > 0) {
-      const nextId = related[0].url.split("v=")[1];
-      navigate(`/watch/${nextId}`);
+      navigate(`/watch/${related[0].url.split("v=")[1]}`);
     }
   };
 
