@@ -29,17 +29,18 @@ export default function Watch() {
         const data = await res.json();
         setVideo(data);
 
-        // Select highest quality progressive mp4 (video + audio)
-        const playableStreams = data.videoStreams
+        // Prefer progressive MP4 (full absolute URL, video + audio)
+        const progressive = data.videoStreams
           .filter(s => s.format === "MP4" && !s.videoOnly)
-          .sort((a, b) => b.bitrate - a.bitrate);
+          .sort((a, b) => b.quality.localeCompare(a.quality, undefined, {numeric: true}));
 
-        if (playableStreams.length > 0) {
-          setStreamUrl(playableStreams[0].url);
+        if (progressive.length > 0) {
+          setStreamUrl(progressive[0].url);
         } else if (data.hls) {
+          // Fallback to HLS (with absolute base)
           setStreamUrl(`${API_BASE}${data.hls}`);
         } else {
-          throw new Error("No playable stream");
+          throw new Error("No playable stream found");
         }
 
         setRelated((data.relatedStreams || []).filter(s => s.type === "stream"));
