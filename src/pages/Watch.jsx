@@ -12,7 +12,7 @@ export default function Watch() {
   const navigate = useNavigate();
 
   const [video, setVideo] = useState(null);
-  const [hlsUrl, setHlsUrl] = useState(null);
+  const [streamUrl, setStreamUrl] = useState(null);
   const [related, setRelated] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,16 +29,22 @@ export default function Watch() {
         const data = await res.json();
         setVideo(data);
 
-        // FINAL FIX: Prepend backend base to relative HLS path
-        if (data.hls) {
-          setHlsUrl(`${API_BASE}${data.hls}`);
+        // Select highest quality progressive mp4 (video + audio)
+        const playableStreams = data.videoStreams
+          .filter(s => s.format === "MP4" && !s.videoOnly)
+          .sort((a, b) => b.bitrate - a.bitrate);
+
+        if (playableStreams.length > 0) {
+          setStreamUrl(playableStreams[0].url);
+        } else if (data.hls) {
+          setStreamUrl(`${API_BASE}${data.hls}`);
         } else {
-          throw new Error("No playable HLS stream");
+          throw new Error("No playable stream");
         }
 
         setRelated((data.relatedStreams || []).filter(s => s.type === "stream"));
       } catch (err) {
-        setError(err.message || "Failed to load video");
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -60,9 +66,9 @@ export default function Watch() {
 
       {error && <div style={{ padding: "2rem", textAlign: "center", color: "#ff4444" }}>⚠️ {error}</div>}
 
-      {hlsUrl && (
+      {streamUrl && (
         <>
-          <Player src={hlsUrl} onEnded={playNext} />
+          <Player src={streamUrl} onEnded={playNext} />
 
           {video && (
             <div style={{ padding: "12px 16px", background: "#000", color: "#fff" }}>
