@@ -29,11 +29,11 @@ export default function Watch() {
         const data = await res.json();
         setVideo(data);
 
-        // CRITICAL FIX: Prepend backend base to relative HLS path
+        // FINAL FIX: Prepend backend base to relative HLS path
         if (data.hls) {
           setHlsUrl(`${API_BASE}${data.hls}`);
         } else {
-          throw new Error("No HLS stream available");
+          throw new Error("No playable HLS stream");
         }
 
         setRelated((data.relatedStreams || []).filter(s => s.type === "stream"));
