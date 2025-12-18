@@ -1,5 +1,3 @@
-// src/components/VideoCard.jsx
-
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "./PlaylistContext";
 
@@ -62,7 +60,7 @@ export default function VideoCard({ video, onClick }) {
       onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
     >
       <img
-        src={video.thumbnail}
+        src={video.thumbnail || "/fallback.jpg"}
         alt={video.title}
         style={{
           width: "100%",
@@ -71,7 +69,7 @@ export default function VideoCard({ video, onClick }) {
           borderRadius: "12px 12px 0 0",
         }}
         onError={(e) => {
-          e.currentTarget.src = "/fallback.jpg"; // Local fallback in public/
+          e.currentTarget.src = "/fallback.jpg";
         }}
       />
 
