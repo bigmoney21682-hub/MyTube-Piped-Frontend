@@ -29,23 +29,23 @@ export default function Watch() {
         const data = await res.json();
         setVideo(data);
 
-        // Prefer progressive MP4 (full absolute URL, video + audio)
-        const progressive = data.videoStreams
-          .filter(s => s.format === "MP4" && !s.videoOnly)
-          .sort((a, b) => b.quality.localeCompare(a.quality, undefined, {numeric: true}));
-
-        if (progressive.length > 0) {
-          setStreamUrl(progressive[0].url);
-        } else if (data.hls) {
-          // Fallback to HLS (with absolute base)
-          setStreamUrl(`${API_BASE}${data.hls}`);
+        // Use highest quality progressive MP4 (absolute URL, video + audio)
+        const mp4Streams = data.videoStreams.filter(s => s.format === "MP4" && !s.videoOnly);
+        if (mp4Streams.length > 0) {
+          // Sort by quality string (e.g., "1080p", "720p")
+          mp4Streams.sort((a, b) => {
+            const qa = parseInt(a.quality) || 0;
+            const qb = parseInt(b.quality) || 0;
+            return qb - qa;
+          });
+          setStreamUrl(mp4Streams[0].url);
         } else {
-          throw new Error("No playable stream found");
+          throw new Error("No MP4 stream available");
         }
 
         setRelated((data.relatedStreams || []).filter(s => s.type === "stream"));
       } catch (err) {
-        setError(err.message);
+        setError(err.message || "Failed to load video");
       } finally {
         setLoading(false);
       }
