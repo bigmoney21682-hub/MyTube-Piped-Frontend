@@ -40,7 +40,7 @@ export default function Home() {
         const res = await fetch(`${API_BASE}/trending?region=US`);
         if (!res.ok) throw new Error("Trending failed");
         const data = await res.json();
-        // Piped trending returns direct array of videos
+        // Trending is direct array in Piped
         setTrending(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Trending failed", err);
