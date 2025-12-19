@@ -29,20 +29,21 @@ export default function Watch() {
         const data = await res.json();
         setVideo(data);
 
-        // Prefer progressive MP4 (video + audio, full absolute pipedproxy URL)
-        const progressive = data.videoStreams.filter(s => !s.videoOnly);
+        // Prefer highest quality progressive MP4 (video + audio)
+        const progressive = data.videoStreams
+          .filter(s => s.format === "MP4" && !s.videoOnly)
+          .sort((a, b) => b.bitrate - a.bitrate);
+
         if (progressive.length > 0) {
-          // Sort by quality (higher first)
-          progressive.sort((a, b) => b.bitrate - a.bitrate);
           setStreamUrl(progressive[0].url);
         } else if (data.hls) {
-          // Fallback to HLS (prepend base if relative)
+          // Fallback to HLS (absolute if needed)
           setStreamUrl(data.hls.startsWith("http") ? data.hls : `${API_BASE}${data.hls}`);
         } else {
-          throw new Error("No playable stream");
+          throw new Error("No playable stream found");
         }
 
-        setRelated(data.relatedStreams.filter(s => s.type === "stream"));
+        setRelated((data.relatedStreams || []).filter(s => s.type === "stream"));
       } catch (err) {
         setError(err.message || "Failed to load video");
       } finally {
@@ -55,7 +56,8 @@ export default function Watch() {
 
   const playNext = () => {
     if (related.length > 0) {
-      navigate(`/watch/${related[0].url.split("v=")[1]}`);
+      const nextId = related[0].url.split("v=")[1];
+      navigate(`/watch/${nextId}`);
     }
   };
 
@@ -63,7 +65,11 @@ export default function Watch() {
     <div style={{ minHeight: "100vh" }}>
       {loading && <Spinner message="Loading video…" />}
 
-      {error && <div style={{ padding: "2rem", textAlign: "center", color: "#ff4444" }}>⚠️ {error}</div>}
+      {error && (
+        <div style={{ padding: "2rem", textAlign: "center", color: "#ff4444", fontSize: "1.2rem" }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       {streamUrl && (
         <>
@@ -72,7 +78,9 @@ export default function Watch() {
           {video && (
             <div style={{ padding: "12px 16px", background: "#000", color: "#fff" }}>
               <h2 style={{ margin: "8px 0", fontSize: "1.3rem" }}>{video.title}</h2>
-              <p style={{ margin: 0, opacity: 0.8 }}>{video.uploaderName} • {video.views} views</p>
+              <p style={{ margin: 0, opacity: 0.8 }}>
+                {video.uploaderName} • {video.views?.toLocaleString() || "—"} views
+              </p>
             </div>
           )}
         </>
