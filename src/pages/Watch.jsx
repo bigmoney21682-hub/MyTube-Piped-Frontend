@@ -12,7 +12,7 @@ export default function Watch() {
   const [error, setError] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [title, setTitle] = useState("");
-  const [debugStreams, setDebugStreams] = useState(null);
+  const [debugStreams, setDebugStreams] = useState(null); // For debug/testing
 
   useEffect(() => {
     if (!id) return;
@@ -32,15 +32,14 @@ export default function Watch() {
         }
 
         setTitle(data.title || "Untitled");
+
+        // Save full stream info for debug
         setDebugStreams(data);
 
-        // Prefer first playable stream
-        if (
-          Array.isArray(data.videoStreams) &&
-          data.videoStreams.length > 0 &&
-          data.videoStreams[0].url
-        ) {
-          setVideoUrl(data.videoStreams[0].url);
+        // Piped backend may return 'streams' or 'videoStreams'
+        const streams = data.videoStreams || data.streams || [];
+        if (streams.length > 0 && streams[0].url) {
+          setVideoUrl(streams[0].url);
         } else {
           throw new Error("No playable streams found");
         }
@@ -82,7 +81,7 @@ export default function Watch() {
 
       <p style={{ marginTop: "0.5rem", opacity: 0.6 }}>Video ID: {id}</p>
 
-      {/* 🔹 Debug section */}
+      {/* Debug Streams */}
       {debugStreams && (
         <div style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#aaa" }}>
           <h4>Debug Streams Info</h4>
