@@ -23,7 +23,10 @@ export default function Home() {
         `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
       );
       const data = await res.json();
-      setVideos(data.items || []);
+
+      console.log("SEARCH RAW ITEM:", data.items?.[0]);
+
+      setVideos(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
       console.error("Search failed", err);
       setVideos([]);
@@ -38,6 +41,9 @@ export default function Home() {
       try {
         const res = await fetch(`${API_BASE}/trending?region=US`);
         const data = await res.json();
+
+        console.log("TRENDING RAW ITEM:", data?.[0]);
+
         setTrending(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Trending failed", err);
@@ -63,8 +69,17 @@ export default function Home() {
       )}
 
       <div className="grid">
-        {list.map((v) => {
-          const id = v.url?.split("v=")[1] || v.id || "unknown";
+        {list.map((v, idx) => {
+          const id =
+            v.id ||
+            v.url?.split("v=")[1] ||
+            `video-${idx}`;
+
+          // ✅ CORRECT PIPED THUMBNAIL SOURCE
+          const thumbnail =
+            v.thumbnails?.length > 0
+              ? v.thumbnails[v.thumbnails.length - 1].url
+              : "/fallback.jpg";
 
           return (
             <VideoCard
@@ -72,7 +87,7 @@ export default function Home() {
               video={{
                 id,
                 title: v.title || "Untitled",
-                thumbnail: v.thumbnail || "/fallback.jpg",
+                thumbnail,
                 author: v.uploaderName || "Unknown",
                 views: v.views,
                 duration: v.duration > 0 ? v.duration : null,
