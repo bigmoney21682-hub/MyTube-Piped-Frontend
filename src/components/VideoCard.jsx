@@ -1,5 +1,4 @@
-// src/components/VideoCard.jsx
-
+// File: src/components/VideoCard.jsx
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "./PlaylistContext";
 import { API_BASE } from "../config";
@@ -27,10 +26,7 @@ export default function VideoCard({ video, onClick }) {
       return;
     }
 
-    const list = playlists
-      .map((p, i) => `${i + 1}. ${p.name}`)
-      .join("\n");
-
+    const list = playlists.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
     const choice = prompt(`Choose playlist:\n\n${list}`);
     const index = parseInt(choice, 10) - 1;
 
@@ -40,12 +36,11 @@ export default function VideoCard({ video, onClick }) {
     }
   };
 
-  /** 🔧 THUMBNAIL NORMALIZATION (CRITICAL FIX) */
-  const resolvedThumbnail = (() => {
-    if (!video.thumbnail) return "/fallback.jpg";
-    if (video.thumbnail.startsWith("http")) return video.thumbnail;
-    return `${API_BASE}${video.thumbnail}`;
-  })();
+  const resolvedThumbnail = video.thumbnail
+    ? video.thumbnail.startsWith("http")
+      ? video.thumbnail
+      : `${API_BASE}${video.thumbnail}`
+    : "https://i.ytimg.com/vi/default/hqdefault.jpg";
 
   return (
     <div
@@ -63,15 +58,12 @@ export default function VideoCard({ video, onClick }) {
         alt={video.title}
         style={{ width: "100%", display: "block" }}
         onError={(e) => {
-          const resolvedThumbnail = "https://i.ytimg.com/vi/${video.id}/hqdefault.jpg";
+          e.currentTarget.src = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
         }}
       />
 
       <div style={{ padding: 12 }}>
-        <h4 style={{ margin: "0 0 6px", color: "#fff" }}>
-          {video.title}
-        </h4>
-
+        <h4 style={{ margin: "0 0 6px", color: "#fff" }}>{video.title}</h4>
         <p style={{ opacity: 0.7, fontSize: "0.85rem" }}>
           {video.author || "Unknown"} • {video.views || "—"}
         </p>
