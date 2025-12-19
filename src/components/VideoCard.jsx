@@ -63,7 +63,7 @@ export default function VideoCard({ video, onClick }) {
         alt={video.title}
         style={{ width: "100%", display: "block" }}
         onError={(e) => {
-          e.currentTarget.src = "/fallback.jpg";
+          e.currentTarget.src = "/MyTube-Piped-Frontend/fallback.jpg";
         }}
       />
 
