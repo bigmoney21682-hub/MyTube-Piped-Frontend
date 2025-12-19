@@ -1,1 +1,3 @@
-export const API_BASE = "https://pipedapi.kavin.rocks";
+// File: src/config.js
+
+export const API_BASE = "https://mytube-python-backend.onrender.com";
