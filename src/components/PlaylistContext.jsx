@@ -35,41 +35,52 @@ export function PlaylistProvider({ children }) {
   };
 
   const deletePlaylist = (id) => {
-    setPlaylists(prev => prev.filter(p => p.id !== id));
-    if (currentPlaylistId === id) {
-      setCurrentPlaylistId(playlists[0]?.id || null);
-    }
+    setPlaylists(prev => {
+      const updated = prev.filter(p => p.id !== id);
+
+      // ✅ FIX: safely update current playlist
+      if (currentPlaylistId === id) {
+        setCurrentPlaylistId(updated[0]?.id || null);
+      }
+
+      return updated;
+    });
   };
 
   const addToPlaylist = (playlistId, video) => {
-    setPlaylists(prev => {
-      return prev.map(p => {
+    setPlaylists(prev =>
+      prev.map(p => {
         if (p.id === playlistId) {
           if (!p.videos.some(v => v.id === video.id)) {
             return { ...p, videos: [...p.videos, video] };
           }
         }
         return p;
-      });
-    });
+      })
+    );
   };
 
   const setCurrentPlaylist = (playlist) => {
-    setCurrentPlaylistId(playlist.id);
+    if (playlist?.id) setCurrentPlaylistId(playlist.id);
   };
 
-  const currentPlaylist = playlists.find(p => p.id === currentPlaylistId) || playlists[0] || { name: "", videos: [] };
+  const currentPlaylist =
+    playlists.find(p => p.id === currentPlaylistId) ||
+    playlists[0] ||
+    { id: null, name: "", videos: [] };
 
   return (
-    <PlaylistContext.Provider value={{
-      playlists,
-      currentPlaylist,
-      setCurrentPlaylist,
-      addPlaylist,
-      renamePlaylist,
-      deletePlaylist,
-      addToPlaylist,
-    }}>
+    <PlaylistContext.Provider
+      value={{
+        playlists,
+        currentPlaylist,
+        setCurrentPlaylist,
+        addPlaylist,
+        renamePlaylist,
+        deletePlaylist,
+        addToPlaylist,
+      }}
+    >
       {children}
     </PlaylistContext.Provider>
   );
