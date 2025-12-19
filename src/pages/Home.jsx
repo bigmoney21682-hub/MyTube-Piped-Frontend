@@ -6,6 +6,38 @@ import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
 import { API_BASE } from "../config";
 
+/**
+ * Normalize thumbnail URLs coming from Piped.
+ * - Removes /proxy/ prefixes
+ * - Removes pipedproxy-*.kavin.rocks wrappers
+ * - Falls back safely
+ */
+function normalizeThumbnail(url) {
+  if (!url || typeof url !== "string") {
+    return "/fallback.jpg";
+  }
+
+  // Case 1: /proxy/https://i.ytimg.com/...
+  if (url.includes("/proxy/")) {
+    const clean = url.split("/proxy/")[1];
+    try {
+      return decodeURIComponent(clean);
+    } catch {
+      return clean;
+    }
+  }
+
+  // Case 2: https://pipedproxy-xx.kavin.rocks/https://i.ytimg.com/...
+  if (url.includes("pipedproxy")) {
+    const match = url.match(/(https:\/\/i\.ytimg\.com\/.+)$/);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+
+  return url;
+}
+
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [trending, setTrending] = useState([]);
@@ -23,12 +55,9 @@ export default function Home() {
         `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
       );
       const data = await res.json();
-
-      console.log("SEARCH RAW ITEM:", data.items?.[0]);
-
       setVideos(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
-      console.error("Search failed", err);
+      console.error("❌ Search failed:", err);
       setVideos([]);
     } finally {
       setLoadingSearch(false);
@@ -41,12 +70,9 @@ export default function Home() {
       try {
         const res = await fetch(`${API_BASE}/trending?region=US`);
         const data = await res.json();
-
-        console.log("TRENDING RAW ITEM:", data?.[0]);
-
         setTrending(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error("Trending failed", err);
+        console.error("❌ Trending failed:", err);
         setTrending([]);
       } finally {
         setLoadingTrending(false);
@@ -59,7 +85,9 @@ export default function Home() {
   return (
     <div>
       {(loadingSearch || loadingTrending) && (
-        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
+        <Spinner
+          message={loadingSearch ? "Searching…" : "Loading trending…"}
+        />
       )}
 
       <Header onSearch={search} />
@@ -69,17 +97,24 @@ export default function Home() {
       )}
 
       <div className="grid">
-        {list.map((v, idx) => {
+        {list.map((v, index) => {
           const id =
-            v.id ||
-            v.url?.split("v=")[1] ||
-            `video-${idx}`;
+            v.url?.includes("v=")
+              ? v.url.split("v=")[1]
+              : v.id || `video-${index}`;
 
-          // ✅ CORRECT PIPED THUMBNAIL SOURCE
-          const thumbnail =
-            v.thumbnails?.length > 0
+          const rawThumb =
+            v.thumbnail ||
+            (Array.isArray(v.thumbnails) && v.thumbnails.length > 0
               ? v.thumbnails[v.thumbnails.length - 1].url
-              : "/fallback.jpg";
+              : null);
+
+          const finalThumb = normalizeThumbnail(rawThumb);
+
+          // 🔍 DEBUG — remove once verified
+          console.log("VIDEO RAW:", v);
+          console.log("THUMB RAW:", rawThumb);
+          console.log("THUMB FINAL:", finalThumb);
 
           return (
             <VideoCard
@@ -87,7 +122,7 @@ export default function Home() {
               video={{
                 id,
                 title: v.title || "Untitled",
-                thumbnail,
+                thumbnail: finalThumb,
                 author: v.uploaderName || "Unknown",
                 views: v.views,
                 duration: v.duration > 0 ? v.duration : null,
