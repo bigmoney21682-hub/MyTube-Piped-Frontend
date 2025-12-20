@@ -1,7 +1,7 @@
 // File: src/pages/Playlists.jsx
 
 import { useNavigate } from "react-router-dom";
-import { usePlaylists } from "../components/PlaylistContext";
+import { usePlaylists } from "../contexts/PlaylistContext";
 import Header from "../components/Header";
 
 export default function Playlists() {
