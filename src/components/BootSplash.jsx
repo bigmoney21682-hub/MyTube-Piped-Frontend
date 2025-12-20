@@ -8,7 +8,7 @@ export default function BootSplash({ ready }) {
 
   useEffect(() => {
     if (index < text.length) {
-      const t = setTimeout(() => setIndex(i => i + 1), 400); // slower
+      const t = setTimeout(() => setIndex(i => i + 1), 300); // slower
       return () => clearTimeout(t);
     }
   }, [index]);
