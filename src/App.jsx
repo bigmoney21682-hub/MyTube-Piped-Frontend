@@ -17,16 +17,9 @@ export default function App({ apiKey }) {
 
   return (
     <Routes>
-      {/* ✅ Home page with apiKey passed */}
       <Route path="/" element={<Home apiKey={apiKey} />} />
-
-      {/* ✅ Watch video page */}
       <Route path="/watch/:id" element={<Watch apiKey={apiKey} />} />
-
-      {/* ✅ Local playlists/favorites */}
       <Route path="/playlists" element={<Playlists />} />
-
-      {/* Optional fallback */}
       <Route
         path="*"
         element={
