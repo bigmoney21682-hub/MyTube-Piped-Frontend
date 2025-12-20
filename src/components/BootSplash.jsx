@@ -3,22 +3,25 @@ import { useEffect, useState } from "react";
 
 const text = "MyTube";
 
-export default function BootSplash({ ready }) {
+export default function BootSplash({ onFinish }) {
   const [index, setIndex] = useState(0);
   const [flicker, setFlicker] = useState(1);
 
   // Typing animation
   useEffect(() => {
     if (index < text.length) {
-      const t = setTimeout(() => setIndex(i => i + 1), 450); // 1s longer total
+      const t = setTimeout(() => setIndex(i => i + 1), 450); // slower typing
       return () => clearTimeout(t);
+    } else {
+      // Animation complete, signal parent
+      if (onFinish) setTimeout(() => onFinish(), 500); // slight pause
     }
   }, [index]);
 
-  // Flame flicker animation
+  // Flame top flicker
   useEffect(() => {
     const interval = setInterval(() => {
-      setFlicker(0.9 + Math.random() * 0.2); // scale flicker
+      setFlicker(0.8 + Math.random() * 0.4); // flicker top only
     }, 100);
     return () => clearInterval(interval);
   }, []);
@@ -39,14 +42,16 @@ export default function BootSplash({ ready }) {
       <div style={{ textAlign: "center" }}>
         <div
           style={{
-            fontSize: 80,
-            transform: `scale(${flicker})`,
+            fontSize: 100,
+            display: "inline-block",
+            transformOrigin: "top",
+            transform: `scaleY(${flicker})`,
             transition: "transform 0.1s",
           }}
         >
           🔥
         </div>
-        <div style={{ fontSize: 48, color: "#fff", letterSpacing: 3 }}>
+        <div style={{ fontSize: 48, color: "#fff", letterSpacing: 3, marginTop: 12 }}>
           {text.slice(0, index)}
         </div>
       </div>
