@@ -3,6 +3,7 @@
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext";
 import Header from "../components/Header";
+import { useState } from "react";
 
 export default function Playlists() {
   const navigate = useNavigate();
@@ -12,22 +13,14 @@ export default function Playlists() {
     addPlaylist,
     renamePlaylist,
     deletePlaylist,
+    movePlaylist,
   } = usePlaylists();
+
+  const [dragIndex, setDragIndex] = useState(null);
 
   const handleAddPlaylist = () => {
     const name = prompt("Enter playlist name:");
     if (name) addPlaylist(name);
-  };
-
-  const handleRename = (id, currentName) => {
-    const newName = prompt("Enter new name:", currentName);
-    if (newName) renamePlaylist(id, newName);
-  };
-
-  const handleDelete = (id, name) => {
-    if (window.confirm(`Delete playlist "${name}"? This cannot be undone.`)) {
-      deletePlaylist(id);
-    }
   };
 
   return (
@@ -53,25 +46,30 @@ export default function Playlists() {
             color: "white",
             border: "none",
             borderRadius: 8,
-            fontSize: "1rem",
             marginBottom: 24,
-            cursor: "pointer",
           }}
         >
           ➕ New Playlist
         </button>
 
-        {playlists.map((p) => (
+        {playlists.map((p, index) => (
           <div
             key={p.id}
+            draggable
+            onDragStart={() => setDragIndex(index)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => {
+              movePlaylist(dragIndex, index);
+              setDragIndex(null);
+            }}
             style={{
               padding: 16,
               marginBottom: 12,
               background: "#111",
               borderRadius: 12,
               display: "flex",
-              alignItems: "center",
               justifyContent: "space-between",
+              alignItems: "center",
             }}
           >
             <strong
@@ -79,23 +77,18 @@ export default function Playlists() {
                 setCurrentPlaylist(p);
                 navigate(`/playlist/${p.id}`);
               }}
-              style={{ cursor: "pointer", fontSize: "1.1rem" }}
+              style={{ cursor: "pointer" }}
             >
-              {p.name} ({p.videos.length} videos)
+              {p.name} ({p.videos.length})
             </strong>
 
             <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => handleRename(p.id, p.name)}>✏️</button>
-              <button onClick={() => handleDelete(p.id, p.name)}>🗑️</button>
+              <button onClick={() => renamePlaylist(p.id, p.name)}>✏️</button>
+              <button onClick={() => deletePlaylist(p.id)}>🗑️</button>
+              <span style={{ cursor: "grab" }}>☰</span>
             </div>
           </div>
         ))}
-
-        {playlists.length === 0 && (
-          <p style={{ opacity: 0.7, textAlign: "center" }}>
-            No playlists yet. Create one!
-          </p>
-        )}
       </div>
     </div>
   );
