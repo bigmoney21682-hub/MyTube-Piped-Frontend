@@ -1,32 +1,38 @@
 // File: src/components/VideoCard.jsx
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext";
-import { usePlayer } from "../contexts/PlayerContext";
 
-export default function VideoCard({ video }) {
+export default function VideoCard({ video, onClick }) {
   const navigate = useNavigate();
-  const { toggleFavorite, isFavorite } = usePlaylists();
-  const { playVideo, currentVideo, playing } = usePlayer();
+  const { addToPlaylist } = usePlaylists();
 
   function handleClick() {
-    // Play video in global player
-    playVideo(video);
+    if (typeof onClick === "function") {
+      onClick(video.id);
+      return;
+    }
     navigate(`/watch/${video.id}`);
   }
 
   return (
     <div className="video-card" onClick={handleClick}>
-      <img src={video.thumbnail} alt={video.title} loading="lazy" />
+      <img
+        src={video.thumbnail}
+        alt={video.title}
+        loading="lazy"
+      />
+
       <div className="video-info">
         <h4>{video.title}</h4>
         <p>{video.author}</p>
+
         <button
-          onClick={e => {
+          onClick={(e) => {
             e.stopPropagation();
-            toggleFavorite(video);
+            addToPlaylist(video);
           }}
         >
-          {isFavorite(video.id) ? "★" : "☆"}
+          + Playlist
         </button>
       </div>
     </div>
