@@ -61,12 +61,12 @@ export default function Header({ onSearch }) {
               WebkitTextFillColor: "transparent",
             }}
           >
-            MyTube
+            🔥 MyTube 🔥
           </h1>
         </div>
 
         <button
-          onClick={() => navigate("/playlists")}
+          onClick={() => navigate("/subs")}
           style={{
             background: "none",
             border: "none",
@@ -75,8 +75,8 @@ export default function Header({ onSearch }) {
             textAlign: "center",
           }}
         >
-          ▶︎
-          <div style={{ fontSize: 11, opacity: 0.7 }}>Playlists</div>
+          📺
+          <div style={{ fontSize: 11, opacity: 0.7 }}>Subs</div>
         </button>
       </div>
 
