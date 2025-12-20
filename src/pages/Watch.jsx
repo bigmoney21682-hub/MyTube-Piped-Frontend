@@ -14,7 +14,6 @@ export default function Watch() {
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const playerRef = useRef(null);
-  const overlayAudioRef = useRef(null);
 
   // Load video metadata
   useEffect(() => {
@@ -38,10 +37,10 @@ export default function Watch() {
     })();
   }, [id]);
 
-  // Simulate a playlist (for testing continuous playback)
+  // Setup playlist
   useEffect(() => {
     if (video) {
-      setPlaylist([video]); // Minimal starting playlist
+      setPlaylist([video]);
       setCurrentIndex(0);
     }
   }, [video]);
@@ -91,6 +90,7 @@ export default function Watch() {
     );
 
   const { snippet } = video;
+  const embedUrl = `https://www.youtube.com/embed/${id}?autoplay=1&controls=1`;
 
   return (
     <div
@@ -107,31 +107,18 @@ export default function Watch() {
       <h2>{snippet.title}</h2>
       <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
-      {/* Hidden iframe for visual ad (muted) */}
-      <iframe
-        title={snippet.title}
-        width="0"
-        height="0"
-        src={`https://www.youtube.com/embed/${id}?controls=0&autoplay=1&mute=1`}
-        style={{ border: "none", display: "none" }}
-      />
-
-      {/* Overlay audio Player */}
+      {/* Player with embed URL */}
       <Player
         ref={playerRef}
-        src={`https://www.youtube.com/watch?v=${id}`}
+        embedUrl={embedUrl}
         playing={true}
         onEnded={handleEnded}
         pipMode={true}
-        overlayAudio={overlayAudioRef.current}
         trackTitle={snippet.title}
       />
 
       {/* Related videos */}
-      <div style={{ marginTop: 32 }}>
-        <h3>Related Videos</h3>
-        <RelatedVideos videoId={id} apiKey={API_KEY} />
-      </div>
+      {video.id && <RelatedVideos videoId={id} apiKey={API_KEY} />}
 
       <Footer />
     </div>
