@@ -1,87 +1,72 @@
 // File: src/components/VideoCard.jsx
+
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "./PlaylistContext";
-import { API_BASE } from "../config";
 
 export default function VideoCard({ video, onClick }) {
   const navigate = useNavigate();
-  const { addToPlaylist, playlists } = usePlaylists();
+  const { addToPlaylist, removeFromPlaylist, isInPlaylist } = usePlaylists();
 
-  const handleCardClick = () => {
-    if (onClick) onClick();
-    else navigate(`/watch/${video.id}`);
+  const handleClick = () => {
+    if (onClick) {
+      onClick(video);
+    } else {
+      navigate(`/watch/${video.id}`);
+    }
   };
 
-  const handleAddClick = (e) => {
+  const handlePlaylistToggle = (e) => {
     e.stopPropagation();
-
-    if (playlists.length === 0) {
-      alert("No playlists available. Create one first!");
-      return;
-    }
-
-    if (playlists.length === 1) {
-      addToPlaylist(playlists[0].id, video);
-      alert(`Added "${video.title}" to ${playlists[0].name}`);
-      return;
-    }
-
-    const list = playlists.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
-    const choice = prompt(`Choose playlist:\n\n${list}`);
-    const index = parseInt(choice, 10) - 1;
-
-    if (index >= 0 && index < playlists.length) {
-      addToPlaylist(playlists[index].id, video);
-      alert(`Added to ${playlists[index].name}`);
+    if (isInPlaylist(video.id)) {
+      removeFromPlaylist(video.id);
+    } else {
+      addToPlaylist(video);
     }
   };
-
-  const resolvedThumbnail = video.thumbnail
-    ? video.thumbnail.startsWith("http")
-      ? video.thumbnail
-      : `${API_BASE}${video.thumbnail}`
-    : "https://i.ytimg.com/vi/default/hqdefault.jpg";
 
   return (
     <div
-      onClick={handleCardClick}
+      className="video-card"
+      onClick={handleClick}
       style={{
         cursor: "pointer",
-        borderRadius: 12,
+        display: "flex",
+        flexDirection: "column",
+        borderRadius: 8,
         overflow: "hidden",
-        background: "#111",
-        marginBottom: 24,
+        backgroundColor: "#111",
+        color: "#fff",
       }}
     >
-      <img
-        src={resolvedThumbnail}
-        alt={video.title}
-        style={{ width: "100%", display: "block" }}
-        onError={(e) => {
-          e.currentTarget.src = `https://i.ytimg.com/vi/${video.id}/hqdefault.jpg`;
-        }}
-      />
-
-      <div style={{ padding: 12 }}>
-        <h4 style={{ margin: "0 0 6px", color: "#fff" }}>{video.title}</h4>
-        <p style={{ opacity: 0.7, fontSize: "0.85rem" }}>
-          {video.author || "Unknown"} • {video.views || "—"}
-        </p>
-
+      <div style={{ position: "relative" }}>
+        <img
+          src={video.thumbnail}
+          alt={video.title}
+          style={{ width: "100%", display: "block" }}
+        />
         <button
-          onClick={handleAddClick}
+          onClick={handlePlaylistToggle}
           style={{
-            marginTop: 8,
-            background: "#ff0000",
-            color: "#fff",
+            position: "absolute",
+            top: 8,
+            right: 8,
+            background: "rgba(0,0,0,0.6)",
             border: "none",
-            borderRadius: 6,
-            padding: "6px 10px",
+            borderRadius: "50%",
+            color: "#fff",
+            width: 32,
+            height: 32,
             cursor: "pointer",
           }}
         >
-          ➕ Add to Playlist
+          {isInPlaylist(video.id) ? "✓" : "+"}
         </button>
+      </div>
+      <div style={{ padding: "0.5rem" }}>
+        <h4 style={{ margin: 0, fontSize: "0.9rem" }}>{video.title}</h4>
+        <p style={{ margin: 0, fontSize: "0.75rem", opacity: 0.7 }}>
+          {video.author}
+        </p>
       </div>
     </div>
   );
