@@ -1,31 +1,26 @@
 // File: src/components/BootSplash.jsx
 import { useEffect, useState } from "react";
 
-const text = "MyTube";
-
 export default function BootSplash({ onFinish }) {
-  const [index, setIndex] = useState(0);
-  const [flicker, setFlicker] = useState(1);
+  const [progress, setProgress] = useState(0); // 0 → 100% letters revealed
 
-  // Typing animation
   useEffect(() => {
-    if (index < text.length) {
-      const t = setTimeout(() => setIndex(i => i + 1), 450); // slower typing
-      return () => clearTimeout(t);
-    } else {
-      // Animation complete, signal parent
-      if (onFinish) setTimeout(() => onFinish(), 500); // slight pause
-    }
-  }, [index]);
+    const letters = "MyTube";
+    let i = 0;
 
-  // Flame top flicker
-  useEffect(() => {
+    // Full duration = 2s
     const interval = setInterval(() => {
-      setFlicker(0.8 + Math.random() * 0.4); // flicker top only
-    }, 100);
-    return () => clearInterval(interval);
-  }, []);
+      i++;
+      setProgress(i);
+      if (i >= letters.length) {
+        clearInterval(interval);
+        // Wait an extra 0.5s for flame flicker
+        setTimeout(() => onFinish?.(), 500);
+      }
+    }, 300); // 0.3s per letter → 2.1s total
+  }, [onFinish]);
 
+  const letters = "MyTube".split("");
   return (
     <div
       style={{
@@ -33,27 +28,27 @@ export default function BootSplash({ onFinish }) {
         inset: 0,
         background: "#000",
         display: "flex",
-        alignItems: "center",
         justifyContent: "center",
+        alignItems: "center",
         zIndex: 9999,
-        pointerEvents: "none",
+        flexDirection: "column",
       }}
     >
-      <div style={{ textAlign: "center" }}>
-        <div
-          style={{
-            fontSize: 100,
-            display: "inline-block",
-            transformOrigin: "top",
-            transform: `scaleY(${flicker})`,
-            transition: "transform 0.1s",
-          }}
-        >
-          🔥
-        </div>
-        <div style={{ fontSize: 48, color: "#fff", letterSpacing: 3, marginTop: 12 }}>
-          {text.slice(0, index)}
-        </div>
+      <div style={{ fontSize: 64, fontWeight: "bold", color: "#ff4500" }}>
+        🔥
+      </div>
+      <div style={{ fontSize: 48, color: "#fff", marginTop: 16 }}>
+        {letters.map((l, idx) =>
+          idx < progress ? (
+            <span key={idx} style={{ opacity: 1, transition: "opacity 0.3s" }}>
+              {l}
+            </span>
+          ) : (
+            <span key={idx} style={{ opacity: 0 }}>
+              {l}
+            </span>
+          )
+        )}
       </div>
     </div>
   );
