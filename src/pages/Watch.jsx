@@ -1,95 +1,77 @@
 // File: src/pages/Watch.jsx
 
 import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { API_BASE } from "../config";
+import { useEffect, useRef, useState } from "react";
 import Spinner from "../components/Spinner";
 
 export default function Watch() {
   const { id } = useParams();
-
+  const playerRef = useRef(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [title, setTitle] = useState("");
-  const [debugStreams, setDebugStreams] = useState(null); // For debug/testing
 
   useEffect(() => {
     if (!id) return;
 
-    (async () => {
-      setLoading(true);
-      setError("");
-      setVideoUrl("");
-      setDebugStreams(null);
+    // Load YouTube IFrame API once
+    if (!window.YT) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.body.appendChild(tag);
+    }
 
-      try {
-        const res = await fetch(`${API_BASE}/streams/${id}`);
-        const data = await res.json();
+    // Create player when API is ready
+    window.onYouTubeIframeAPIReady = () => {
+      if (playerRef.current) return;
 
-        if (!res.ok) {
-          throw new Error(data?.detail || "Failed to load stream");
-        }
+      playerRef.current = new window.YT.Player("yt-player", {
+        videoId: id,
+        width: "100%",
+        height: "100%",
+        playerVars: {
+          autoplay: 1,
+          playsinline: 1,
+          controls: 1,
+          modestbranding: 1,
+          rel: 0,
+          fs: 1,
+        },
+        events: {
+          onReady: () => {
+            setLoading(false);
+          },
+        },
+      });
+    };
 
-        setTitle(data.title || "Untitled");
-
-        // Save full stream info for debug
-        setDebugStreams(data);
-
-        // Piped backend may return 'streams' or 'videoStreams'
-        const streams = data.videoStreams || data.streams || [];
-        if (streams.length > 0 && streams[0].url) {
-          setVideoUrl(streams[0].url);
-        } else {
-          throw new Error("No playable streams found");
-        }
-      } catch (err) {
-        console.error(err);
-        setError(err.message || "Playback failed");
-      } finally {
-        setLoading(false);
+    // Cleanup on unmount
+    return () => {
+      if (playerRef.current?.destroy) {
+        playerRef.current.destroy();
+        playerRef.current = null;
       }
-    })();
+    };
   }, [id]);
-
-  if (loading) return <Spinner message="Loading video…" />;
-
-  if (error)
-    return (
-      <div style={{ padding: "2rem", color: "#fff" }}>
-        <h3>Playback error</h3>
-        <p style={{ opacity: 0.8 }}>{error}</p>
-      </div>
-    );
 
   return (
     <div style={{ padding: "1rem" }}>
-      <h2 style={{ color: "#fff", marginBottom: "1rem" }}>{title}</h2>
+      {loading && <Spinner message="Loading audio…" />}
 
-      <video
-        src={videoUrl}
-        controls
-        autoPlay
-        playsInline
+      {/* Player container */}
+      <div
         style={{
           width: "100%",
-          maxHeight: "70vh",
+          aspectRatio: "16 / 9",
           background: "#000",
           borderRadius: 12,
+          overflow: "hidden",
         }}
-      />
+      >
+        <div id="yt-player" />
+      </div>
 
-      <p style={{ marginTop: "0.5rem", opacity: 0.6 }}>Video ID: {id}</p>
-
-      {/* Debug Streams */}
-      {debugStreams && (
-        <div style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#aaa" }}>
-          <h4>Debug Streams Info</h4>
-          <pre style={{ whiteSpace: "pre-wrap" }}>
-            {JSON.stringify(debugStreams, null, 2)}
-          </pre>
-        </div>
-      )}
+      <p style={{ marginTop: "0.75rem", opacity: 0.6 }}>
+        Video ID: {id}
+      </p>
     </div>
   );
 }
