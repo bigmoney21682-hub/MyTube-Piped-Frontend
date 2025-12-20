@@ -1,11 +1,11 @@
 // File: src/pages/Watch.jsx
-
+import React, { useState, useEffect } from "react"; // ✅ import React & hooks
 import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
 import Spinner from "../components/Spinner";
-import { API_KEY } from "../config"; // ✅ Use the env-configured key
+import { API_KEY } from "../config"; // ✅ env-configured key
 
-export default function Watch({ apiKey }) {
+export default function Watch() {
   const { id } = useParams();
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +60,7 @@ export default function Watch({ apiKey }) {
         allow="autoplay; encrypted-media"
         allowFullScreen
         style={{ border: "none", marginTop: 16 }}
-      ></iframe>
+      />
 
       {/* Related videos */}
       <div style={{ marginTop: 32 }}>
