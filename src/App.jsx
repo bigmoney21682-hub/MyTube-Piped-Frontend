@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 
 import Home from "./pages/Home";
 import Playlists from "./pages/Playlists";
+import Watch from "./pages/Watch"; // ✅ REQUIRED — was missing
 import BootSplash from "./components/BootSplash";
 import Footer from "./components/Footer";
 
-// ✅ ADD THIS IMPORT
 import { PlaylistProvider } from "./contexts/PlaylistContext";
 
 export default function App() {
@@ -27,6 +27,7 @@ export default function App() {
         <>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/watch/:id" element={<Watch />} /> {/* ✅ FIX */}
             <Route path="/playlists" element={<Playlists />} />
           </Routes>
 
