@@ -4,39 +4,33 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
-import { API_BASE } from "../config";
 
 /**
- * Safely extract a YouTube video ID from Piped backend objects
+ * ⚡ Replace this with your actual YouTube Data API v3 key
+ */
+const YT_API_KEY = "YOUR_YOUTUBE_API_KEY_HERE";
+
+/**
+ * Safely extract YouTube video ID
  */
 function extractVideoId(v) {
   if (!v) return null;
-
-  if (typeof v.id === "string" && v.id.length > 5) {
-    return v.id;
-  }
-
+  if (typeof v.id === "string" && v.id.length > 5) return v.id;
+  if (v.id && v.id.videoId) return v.id.videoId;
   if (typeof v.url === "string") {
     const match = v.url.match(/[?&]v=([^&]+)/);
     if (match) return match[1];
   }
-
   return null;
 }
 
 /**
- * Build a thumbnail URL.
- * Prefer backend thumbnail, fallback to YouTube CDN.
+ * Build thumbnail URL
  */
 function getThumbnail(v, id) {
-  if (typeof v.thumbnail === "string" && v.thumbnail.length > 0) {
-    return v.thumbnail;
-  }
-
-  if (id) {
-    return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-  }
-
+  if (typeof v.thumbnail === "string" && v.thumbnail.length > 0) return v.thumbnail;
+  if (v.snippet?.thumbnails?.high?.url) return v.snippet.thumbnails.high.url;
+  if (id) return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
   return null;
 }
 
@@ -54,7 +48,9 @@ export default function Home() {
 
     try {
       const res = await fetch(
-        `${API_BASE}/search?q=${encodeURIComponent(q.trim())}&filter=videos`
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=25&q=${encodeURIComponent(
+          q.trim()
+        )}&key=${YT_API_KEY}`
       );
       const data = await res.json();
       setVideos(Array.isArray(data.items) ? data.items : []);
@@ -70,9 +66,11 @@ export default function Home() {
     (async () => {
       setLoadingTrending(true);
       try {
-        const res = await fetch(`${API_BASE}/trending?region=US`);
+        const res = await fetch(
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&chart=mostPopular&regionCode=US&maxResults=25&key=${YT_API_KEY}`
+        );
         const data = await res.json();
-        setTrending(Array.isArray(data) ? data : []);
+        setTrending(Array.isArray(data.items) ? data.items : []);
       } catch (err) {
         console.error("Trending failed:", err);
         setTrending([]);
@@ -87,15 +85,11 @@ export default function Home() {
   return (
     <div>
       {(loadingSearch || loadingTrending) && (
-        <Spinner
-          message={loadingSearch ? "Searching…" : "Loading trending…"}
-        />
+        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
       )}
 
-      {/* Header with search */}
       <Header onSearch={search} />
 
-      {/* Trending label */}
       {videos.length === 0 && !loadingTrending && list.length > 0 && (
         <h3 style={{ padding: "1rem", opacity: 0.8 }}>👀 Trending</h3>
       )}
@@ -110,14 +104,11 @@ export default function Home() {
               key={`${id}-${index}`}
               video={{
                 id,
-                title: v.title || "Untitled",
+                title: v.snippet?.title || v.title || "Untitled",
                 thumbnail: getThumbnail(v, id),
-                author: v.uploaderName || v.author || "Unknown",
-                views: v.views,
-                duration:
-                  typeof v.duration === "number" && v.duration > 0
-                    ? v.duration
-                    : null,
+                author: v.snippet?.channelTitle || v.uploaderName || "Unknown",
+                views: v.statistics?.viewCount || v.views,
+                duration: v.contentDetails?.duration || null,
               }}
             />
           );
