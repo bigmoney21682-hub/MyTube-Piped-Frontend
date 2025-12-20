@@ -7,13 +7,16 @@ export default function BootSplash({ onFinish }) {
   useEffect(() => {
     let i = 0;
     const interval = setInterval(() => {
-      setDisplayed((prev) => [...prev, letters[i]]);
-      i++;
+      if (i < letters.length) {
+        setDisplayed((prev) => [...prev, letters[i]]);
+        i++;
+      }
       if (i >= letters.length) {
         clearInterval(interval);
-        setTimeout(() => onFinish(), 800); // small delay before showing home
+        setTimeout(() => onFinish(), 800);
       }
-    }, 300); // adjust speed here
+    }, 300);
+    
     return () => clearInterval(interval);
   }, [onFinish]);
 
