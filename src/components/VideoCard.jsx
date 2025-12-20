@@ -5,17 +5,34 @@ import { usePlaylists } from "./PlaylistContext";
 
 export default function VideoCard({ video, onClick }) {
   const navigate = useNavigate();
-  const { toggleFavorite, isFavorite } = usePlaylists();
+
+  // 🛡️ Defensive: playlists may not be initialized yet
+  let toggleFavorite = null;
+  let isFavorite = () => false;
+
+  try {
+    const playlists = usePlaylists();
+    if (playlists) {
+      toggleFavorite = playlists.toggleFavorite;
+      isFavorite = playlists.isFavorite || (() => false);
+    }
+  } catch {
+    // playlists not ready — Musi-style fallback
+  }
 
   function handleClick() {
-    // ✅ If parent provided a click handler, use it
     if (typeof onClick === "function") {
       onClick(video.id);
       return;
     }
-
-    // ✅ Default Musi-style behavior: navigate to watch page
     navigate(`/watch/${video.id}`);
+  }
+
+  function handleFavorite(e) {
+    e.stopPropagation();
+    if (typeof toggleFavorite === "function") {
+      toggleFavorite(video);
+    }
   }
 
   return (
@@ -30,14 +47,12 @@ export default function VideoCard({ video, onClick }) {
         <h4>{video.title}</h4>
         <p>{video.author}</p>
 
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // prevent navigation
-            toggleFavorite(video);
-          }}
-        >
-          {isFavorite(video.id) ? "★" : "☆"}
-        </button>
+        {/* ⭐ Favorites are optional — never crash */}
+        {toggleFavorite && (
+          <button onClick={handleFavorite}>
+            {isFavorite(video.id) ? "★" : "☆"}
+          </button>
+        )}
       </div>
     </div>
   );
