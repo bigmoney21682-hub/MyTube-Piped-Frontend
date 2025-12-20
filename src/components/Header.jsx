@@ -27,7 +27,7 @@ export default function Header({ onSearch }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        {/* Menu */}
+        {/* Menu dropdown */}
         <div style={{ position: "relative" }}>
           <button
             onClick={() => setOpen(v => !v)}
@@ -98,7 +98,7 @@ export default function Header({ onSearch }) {
           </h1>
         </div>
 
-        {/* Subs button */}
+        {/* Subs button restored */}
         <div style={{ textAlign: "center" }}>
           <button
             onClick={() => navigate("/subs")}
