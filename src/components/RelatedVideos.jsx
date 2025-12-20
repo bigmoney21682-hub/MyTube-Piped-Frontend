@@ -1,3 +1,5 @@
+// File: src/components/RelatedVideos.jsx
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -6,16 +8,20 @@ export default function RelatedVideos({ videoId, apiKey }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!videoId || !apiKey) return;
+
     const fetchRelated = async () => {
       try {
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${videoId}&type=video&maxResults=5&key=${apiKey}`
         );
         const data = await res.json();
+
         if (data.error) {
           setError(data.error.message);
           return;
         }
+
         setVideos(data.items || []);
         setError(null);
       } catch (err) {
@@ -23,7 +29,7 @@ export default function RelatedVideos({ videoId, apiKey }) {
       }
     };
 
-    if (videoId && apiKey) fetchRelated();
+    fetchRelated();
   }, [videoId, apiKey]);
 
   if (error) return <p style={{ color: "red" }}>Error loading related videos: {error}</p>;
