@@ -5,33 +5,19 @@ import Header from "../components/Header";
 import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
 
-/**
- * ⚡ Replace this with your actual YouTube Data API v3 key
- */
-const YT_API_KEY = "YOUR_YOUTUBE_API_KEY_HERE";
+// 🔐 YouTube Data API key (frontend for now)
+const YT_API_KEY = import.meta.env.VITE_YT_API_KEY;
 
 /**
- * Safely extract YouTube video ID
+ * Build thumbnail safely
  */
-function extractVideoId(v) {
-  if (!v) return null;
-  if (typeof v.id === "string" && v.id.length > 5) return v.id;
-  if (v.id && v.id.videoId) return v.id.videoId;
-  if (typeof v.url === "string") {
-    const match = v.url.match(/[?&]v=([^&]+)/);
-    if (match) return match[1];
-  }
-  return null;
-}
-
-/**
- * Build thumbnail URL
- */
-function getThumbnail(v, id) {
-  if (typeof v.thumbnail === "string" && v.thumbnail.length > 0) return v.thumbnail;
-  if (v.snippet?.thumbnails?.high?.url) return v.snippet.thumbnails.high.url;
-  if (id) return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-  return null;
+function getThumbnail(item) {
+  return (
+    item?.snippet?.thumbnails?.high?.url ||
+    item?.snippet?.thumbnails?.medium?.url ||
+    item?.snippet?.thumbnails?.default?.url ||
+    null
+  );
 }
 
 export default function Home() {
@@ -39,6 +25,8 @@ export default function Home() {
   const [trending, setTrending] = useState([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingTrending, setLoadingTrending] = useState(true);
+
+  /* ================= SEARCH ================= */
 
   async function search(q) {
     if (!q.trim()) return;
@@ -48,10 +36,16 @@ export default function Home() {
 
     try {
       const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=25&q=${encodeURIComponent(
-          q.trim()
-        )}&key=${YT_API_KEY}`
+        `https://www.googleapis.com/youtube/v3/search?` +
+          new URLSearchParams({
+            part: "snippet",
+            q: q.trim(),
+            type: "video",
+            maxResults: 25,
+            key: YT_API_KEY,
+          })
       );
+
       const data = await res.json();
       setVideos(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
@@ -62,13 +56,23 @@ export default function Home() {
     }
   }
 
+  /* ================= TRENDING ================= */
+
   useEffect(() => {
     (async () => {
       setLoadingTrending(true);
       try {
         const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&chart=mostPopular&regionCode=US&maxResults=25&key=${YT_API_KEY}`
+          `https://www.googleapis.com/youtube/v3/videos?` +
+            new URLSearchParams({
+              part: "snippet,statistics,contentDetails",
+              chart: "mostPopular",
+              regionCode: "US",
+              maxResults: 25,
+              key: YT_API_KEY,
+            })
         );
+
         const data = await res.json();
         setTrending(Array.isArray(data.items) ? data.items : []);
       } catch (err) {
@@ -85,7 +89,9 @@ export default function Home() {
   return (
     <div>
       {(loadingSearch || loadingTrending) && (
-        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
+        <Spinner
+          message={loadingSearch ? "Searching…" : "Loading trending…"}
+        />
       )}
 
       <Header onSearch={search} />
@@ -95,20 +101,21 @@ export default function Home() {
       )}
 
       <div className="grid">
-        {list.map((v, index) => {
-          const id = extractVideoId(v);
+        {list.map((item) => {
+          const id =
+            item.id?.videoId || item.id;
+
           if (!id) return null;
 
           return (
             <VideoCard
-              key={`${id}-${index}`}
+              key={id}
               video={{
                 id,
-                title: v.snippet?.title || v.title || "Untitled",
-                thumbnail: getThumbnail(v, id),
-                author: v.snippet?.channelTitle || v.uploaderName || "Unknown",
-                views: v.statistics?.viewCount || v.views,
-                duration: v.contentDetails?.duration || null,
+                title: item.snippet?.title || "Untitled",
+                thumbnail: getThumbnail(item),
+                author: item.snippet?.channelTitle || "Unknown",
+                views: item.statistics?.viewCount,
               }}
             />
           );
