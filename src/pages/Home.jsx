@@ -4,21 +4,33 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
-import { YOUTUBE_API_KEY } from "../config";
+import { API_KEY } from "../config"; // ✅ Correct import from config
 
 /**
- * Build thumbnail URL from video object
+ * Safely extract a YouTube video ID from API objects
  */
-function getThumbnail(video) {
-  return video.snippet?.thumbnails?.high?.url || video.snippet?.thumbnails?.default?.url;
+function extractVideoId(v) {
+  if (!v) return null;
+
+  if (v.id?.videoId) return v.id.videoId; // API v3 search result
+  if (typeof v.id === "string" && v.id.length > 5) return v.id;
+
+  if (v.url) {
+    const match = v.url.match(/[?&]v=([^&]+)/);
+    if (match) return match[1];
+  }
+
+  return null;
 }
 
 /**
- * Extract video ID
+ * Build a thumbnail URL
  */
-function getVideoId(video) {
-  if (!video) return null;
-  return video.id?.videoId || video.id;
+function getThumbnail(v, id) {
+  if (v.snippet?.thumbnails?.high?.url) return v.snippet.thumbnails.high.url;
+  if (v.thumbnail) return v.thumbnail;
+  if (id) return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+  return null;
 }
 
 export default function Home() {
@@ -34,10 +46,12 @@ export default function Home() {
 
     try {
       const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(q)}&key=${YOUTUBE_API_KEY}`
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(
+          q.trim()
+        )}&key=${API_KEY}`
       );
       const data = await res.json();
-      setVideos(data.items || []);
+      setVideos(Array.isArray(data.items) ? data.items : []);
     } catch (err) {
       console.error("Search failed:", err);
       setVideos([]);
@@ -47,22 +61,21 @@ export default function Home() {
   }
 
   useEffect(() => {
-    async function fetchTrending() {
+    (async () => {
       setLoadingTrending(true);
       try {
         const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&regionCode=US&maxResults=20&key=${YOUTUBE_API_KEY}`
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=${API_KEY}`
         );
         const data = await res.json();
-        setTrending(data.items || []);
+        setTrending(Array.isArray(data.items) ? data.items : []);
       } catch (err) {
-        console.error("Trending fetch failed:", err);
+        console.error("Trending failed:", err);
         setTrending([]);
       } finally {
         setLoadingTrending(false);
       }
-    }
-    fetchTrending();
+    })();
   }, []);
 
   const list = videos.length > 0 ? videos : trending;
@@ -73,25 +86,29 @@ export default function Home() {
         <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
       )}
 
+      {/* Header with search */}
       <Header onSearch={search} />
 
+      {/* Trending label */}
       {videos.length === 0 && !loadingTrending && list.length > 0 && (
         <h3 style={{ padding: "1rem", opacity: 0.8 }}>👀 Trending</h3>
       )}
 
       <div className="grid">
-        {list.map((v, idx) => {
-          const id = getVideoId(v);
+        {list.map((v, index) => {
+          const id = extractVideoId(v);
           if (!id) return null;
 
           return (
             <VideoCard
-              key={`${id}-${idx}`}
+              key={`${id}-${index}`}
               video={{
                 id,
-                title: v.snippet?.title || "Untitled",
-                thumbnail: getThumbnail(v),
-                author: v.snippet?.channelTitle || "Unknown",
+                title: v.snippet?.title || v.title || "Untitled",
+                thumbnail: getThumbnail(v, id),
+                author: v.snippet?.channelTitle || v.author || "Unknown",
+                views: v.statistics?.viewCount || null,
+                duration: v.contentDetails?.duration || null,
               }}
             />
           );
