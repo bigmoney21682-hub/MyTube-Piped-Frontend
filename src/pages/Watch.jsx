@@ -1,8 +1,9 @@
-// File: src/pages/Watch.jsx
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
 import Spinner from "../components/Spinner";
+import Header from "../components/Header"; // ✅ added
+import Footer from "../components/Footer"; // ✅ added
 import { API_KEY } from "../config";
 
 export default function Watch() {
@@ -34,12 +35,39 @@ export default function Watch() {
     })();
   }, [id]);
 
-  if (loading) return <Spinner message="Loading video…" />;
+  if (loading)
+    return (
+      <div
+        style={{
+          paddingTop: "var(--header-height)",
+          paddingBottom: "var(--footer-height)",
+          minHeight: "100vh",
+          background: "var(--app-bg)",
+          color: "#fff",
+        }}
+      >
+        <Header />
+        <Spinner message="Loading video…" />
+        <Footer />
+      </div>
+    );
 
   if (!video) {
     return (
-      <div style={{ padding: 16, color: "#fff" }}>
-        <p>Video not found or unavailable.</p>
+      <div
+        style={{
+          paddingTop: "var(--header-height)",
+          paddingBottom: "var(--footer-height)",
+          minHeight: "100vh",
+          background: "var(--app-bg)",
+          color: "#fff",
+        }}
+      >
+        <Header />
+        <div style={{ padding: 16 }}>
+          <p>Video not found or unavailable.</p>
+        </div>
+        <Footer />
       </div>
     );
   }
@@ -47,7 +75,17 @@ export default function Watch() {
   const { snippet } = video;
 
   return (
-    <div style={{ padding: 16 }}>
+    <div
+      style={{
+        paddingTop: "var(--header-height)",
+        paddingBottom: "var(--footer-height)",
+        minHeight: "100vh",
+        background: "var(--app-bg)",
+        color: "#fff",
+      }}
+    >
+      <Header />
+
       <h2>{snippet.title}</h2>
       <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
@@ -67,6 +105,8 @@ export default function Watch() {
         <h3>Related Videos</h3>
         <RelatedVideos videoId={id} apiKey={API_KEY} />
       </div>
+
+      <Footer />
     </div>
   );
 }
