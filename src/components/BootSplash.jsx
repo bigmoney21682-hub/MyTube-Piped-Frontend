@@ -2,36 +2,29 @@
 import { useEffect, useState } from "react";
 
 export default function BootSplash({ onFinish }) {
-  const [progress, setProgress] = useState(0);
+  const [displayText, setDisplayText] = useState("");
+
+  const fullText = "MyTube";
 
   useEffect(() => {
-    const letters = "MyTube".split("");
     let i = 0;
 
-    const interval = setInterval(() => {
-      i++;
-      setProgress(i);
-      if (i >= letters.length) {
-        clearInterval(interval);
-        // Guarantee callback fires even if animation logic lags
+    function typeNext() {
+      if (i < fullText.length) {
+        setDisplayText((prev) => prev + fullText[i]);
+        i++;
+        setTimeout(typeNext, 250); // 250ms per letter
+      } else {
+        // Finish splash after short pause
         setTimeout(() => {
           if (typeof onFinish === "function") onFinish();
-        }, 500);
+        }, 500); // half-second hold
       }
-    }, 300);
-    
-    // Safety: call onFinish after max timeout (fallback)
-    const fallback = setTimeout(() => {
-      if (typeof onFinish === "function") onFinish();
-    }, 4000);
+    }
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(fallback);
-    };
+    typeNext();
   }, [onFinish]);
 
-  const letters = "MyTube".split("");
   return (
     <div
       style={{
@@ -47,17 +40,7 @@ export default function BootSplash({ onFinish }) {
     >
       <div style={{ fontSize: 64, color: "#ff4500" }}>🔥</div>
       <div style={{ fontSize: 48, color: "#fff", marginTop: 16 }}>
-        {letters.map((l, idx) => (
-          <span
-            key={idx}
-            style={{
-              opacity: idx < progress ? 1 : 0,
-              transition: "opacity 0.3s",
-            }}
-          >
-            {l}
-          </span>
-        ))}
+        {displayText}
       </div>
     </div>
   );
