@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
-import { API_KEY } from "../config";
 
 function extractVideoId(v) {
   if (!v) return null;
@@ -22,7 +21,7 @@ function getThumbnail(v, id) {
   return null;
 }
 
-export default function Home() {
+export default function Home({ apiKey }) {
   const [videos, setVideos] = useState([]);
   const [trending, setTrending] = useState([]);
   const [loadingSearch, setLoadingSearch] = useState(false);
@@ -36,7 +35,7 @@ export default function Home() {
       const res = await fetch(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(
           q.trim()
-        )}&key=${API_KEY}`
+        )}&key=${apiKey}`
       );
       const data = await res.json();
       setVideos(Array.isArray(data.items) ? data.items : []);
@@ -53,7 +52,7 @@ export default function Home() {
       setLoadingTrending(true);
       try {
         const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=${API_KEY}`
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=${apiKey}`
         );
         const data = await res.json();
         setTrending(Array.isArray(data.items) ? data.items : []);
@@ -64,7 +63,7 @@ export default function Home() {
         setLoadingTrending(false);
       }
     })();
-  }, []);
+  }, [apiKey]); // added apiKey as dependency in case it changes
 
   const list = videos.length > 0 ? videos : trending;
 
