@@ -1,5 +1,4 @@
 // File: src/components/Header.jsx
-
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import SearchBar from "./SearchBar";
@@ -27,7 +26,7 @@ export default function Header({ onSearch }) {
         padding: "10px 12px",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         {/* Menu */}
         <div style={{ position: "relative" }}>
           <button
@@ -37,9 +36,11 @@ export default function Header({ onSearch }) {
               border: "none",
               color: "#fff",
               cursor: "pointer",
+              textAlign: "center",
             }}
           >
             ☰
+            <div style={{ fontSize: 11, opacity: 0.7 }}>Menu</div>
           </button>
 
           {open && (
@@ -95,6 +96,22 @@ export default function Header({ onSearch }) {
           >
             🔥 MyTube 🔥
           </h1>
+        </div>
+
+        {/* Subs button */}
+        <div style={{ textAlign: "center" }}>
+          <button
+            onClick={() => navigate("/subs")}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            ▶︎
+            <div style={{ fontSize: 11, opacity: 0.7 }}>Subs</div>
+          </button>
         </div>
       </div>
 
