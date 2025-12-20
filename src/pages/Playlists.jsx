@@ -1,9 +1,8 @@
 // File: src/pages/Playlists.jsx
-
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext";
 import Header from "../components/Header";
-import { useState } from "react";
+import { useState, useRef } from "react";
 
 export default function Playlists() {
   const navigate = useNavigate();
@@ -13,14 +12,42 @@ export default function Playlists() {
     addPlaylist,
     renamePlaylist,
     deletePlaylist,
-    movePlaylist,
+    reorderPlaylists,
   } = usePlaylists();
 
-  const [dragIndex, setDragIndex] = useState(null);
+  const [draggingId, setDraggingId] = useState(null);
+  const dragStartIndex = useRef(null);
 
   const handleAddPlaylist = () => {
     const name = prompt("Enter playlist name:");
     if (name) addPlaylist(name);
+  };
+
+  const handleRename = (id, currentName) => {
+    const newName = prompt("Enter new name:", currentName);
+    if (newName) renamePlaylist(id, newName);
+  };
+
+  const handleDelete = (id, name) => {
+    if (window.confirm(`Delete playlist "${name}"? This cannot be undone.`)) {
+      deletePlaylist(id);
+    }
+  };
+
+  const handleDragStart = (id, index) => {
+    setDraggingId(id);
+    dragStartIndex.current = index;
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault(); // allow drop
+  };
+
+  const handleDrop = (index) => {
+    if (dragStartIndex.current === null) return;
+    reorderPlaylists(dragStartIndex.current, index);
+    setDraggingId(null);
+    dragStartIndex.current = null;
   };
 
   return (
@@ -46,7 +73,9 @@ export default function Playlists() {
             color: "white",
             border: "none",
             borderRadius: 8,
+            fontSize: "1rem",
             marginBottom: 24,
+            cursor: "pointer",
           }}
         >
           ➕ New Playlist
@@ -56,20 +85,18 @@ export default function Playlists() {
           <div
             key={p.id}
             draggable
-            onDragStart={() => setDragIndex(index)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={() => {
-              movePlaylist(dragIndex, index);
-              setDragIndex(null);
-            }}
+            onDragStart={() => handleDragStart(p.id, index)}
+            onDragOver={handleDragOver}
+            onDrop={() => handleDrop(index)}
             style={{
               padding: 16,
               marginBottom: 12,
-              background: "#111",
+              background: draggingId === p.id ? "#222" : "#111",
               borderRadius: 12,
               display: "flex",
-              justifyContent: "space-between",
               alignItems: "center",
+              justifyContent: "space-between",
+              touchAction: "none",
             }}
           >
             <strong
@@ -77,18 +104,36 @@ export default function Playlists() {
                 setCurrentPlaylist(p);
                 navigate(`/playlist/${p.id}`);
               }}
-              style={{ cursor: "pointer" }}
+              style={{ cursor: "pointer", fontSize: "1.1rem" }}
             >
-              {p.name} ({p.videos.length})
+              {p.name} ({p.videos.length} videos)
             </strong>
 
-            <div style={{ display: "flex", gap: 12 }}>
-              <button onClick={() => renamePlaylist(p.id, p.name)}>✏️</button>
-              <button onClick={() => deletePlaylist(p.id)}>🗑️</button>
-              <span style={{ cursor: "grab" }}>☰</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {/* Edit/Delete buttons moved left */}
+              <button onClick={() => handleRename(p.id, p.name)}>✏️</button>
+              <button onClick={() => handleDelete(p.id, p.name)}>🗑️</button>
+
+              {/* Drag handle on right */}
+              <span
+                style={{
+                  cursor: "grab",
+                  fontSize: 20,
+                  padding: "0 6px",
+                  userSelect: "none",
+                }}
+              >
+                ☰
+              </span>
             </div>
           </div>
         ))}
+
+        {playlists.length === 0 && (
+          <p style={{ opacity: 0.7, textAlign: "center" }}>
+            No playlists yet. Create one!
+          </p>
+        )}
       </div>
     </div>
   );
