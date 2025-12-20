@@ -6,6 +6,7 @@ import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Player from "../components/Player";
 import { API_KEY } from "../config";
+import DebugOverlay from "../components/DebugOverlay";
 
 export default function Watch() {
   const { id } = useParams();
@@ -74,44 +75,11 @@ export default function Watch() {
     }
   };
 
-  if (loading)
-    return (
-      <div
-        style={{
-          paddingTop: "var(--header-height)",
-          paddingBottom: "var(--footer-height)",
-          minHeight: "100vh",
-          background: "var(--app-bg)",
-          color: "#fff",
-        }}
-      >
-        <Header />
-        <Spinner message="Loading video…" />
-        <Footer />
-      </div>
-    );
-
-  if (!video)
-    return (
-      <div
-        style={{
-          paddingTop: "var(--header-height)",
-          paddingBottom: "var(--footer-height)",
-          minHeight: "100vh",
-          background: "var(--app-bg)",
-          color: "#fff",
-        }}
-      >
-        <Header />
-        <div style={{ padding: 16 }}>
-          <p>Video not found or unavailable.</p>
-        </div>
-        <Footer />
-      </div>
-    );
-
-  const { snippet } = playlist[currentIndex];
-  const embedUrl = `https://www.youtube.com/embed/${playlist[currentIndex].id}?autoplay=1&controls=1`;
+  const currentTrack = playlist[currentIndex];
+  const snippet = currentTrack?.snippet || {};
+  const embedUrl = currentTrack?.id
+    ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1`
+    : "";
 
   return (
     <div
@@ -125,25 +93,40 @@ export default function Watch() {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
     >
+      {/* Debug overlay always mounted */}
+      <DebugOverlay />
+
       <Header />
 
-      <h2>{snippet.title}</h2>
-      <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
+      {loading && <Spinner message="Loading video…" />}
 
-      {pipVisible && (
-        <Player
-          ref={playerRef}
-          embedUrl={embedUrl}
-          playing={true}
-          onEnded={handleEnded}
-          pipMode={true}
-          draggable={true}
-          trackTitle={snippet.title}
-        />
+      {!loading && !currentTrack && (
+        <div style={{ padding: 16 }}>
+          <p>Video not found or unavailable.</p>
+        </div>
       )}
 
-      {playlist[currentIndex].id && (
-        <RelatedVideos videoId={playlist[currentIndex].id} apiKey={API_KEY} />
+      {!loading && currentTrack && (
+        <>
+          <h2>{snippet.title}</h2>
+          <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
+
+          {pipVisible && embedUrl && (
+            <Player
+              ref={playerRef}
+              embedUrl={embedUrl}
+              playing={true}
+              onEnded={handleEnded}
+              pipMode={true}
+              draggable={true}
+              trackTitle={snippet.title}
+            />
+          )}
+
+          {currentTrack.id && (
+            <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
+          )}
+        </>
       )}
 
       <Footer />
