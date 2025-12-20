@@ -1,9 +1,9 @@
 // File: src/pages/Watch.jsx
-import React, { useState, useEffect } from "react"; // ✅ import React & hooks
+import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
 import Spinner from "../components/Spinner";
-import { API_KEY } from "../config"; // ✅ env-configured key
+import { API_KEY } from "../config";
 
 export default function Watch() {
   const { id } = useParams();
@@ -56,8 +56,8 @@ export default function Watch() {
         title={snippet.title}
         width="100%"
         height="400"
-        src={`https://www.youtube.com/embed/${id}?autoplay=1&controls=1`}
-        allow="autoplay; encrypted-media"
+        src={`https://www.youtube.com/embed/${id}?controls=1`}
+        allow="encrypted-media"
         allowFullScreen
         style={{ border: "none", marginTop: 16 }}
       />
