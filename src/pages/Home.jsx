@@ -63,7 +63,7 @@ export default function Home({ apiKey }) {
         setLoadingTrending(false);
       }
     })();
-  }, [apiKey]); // added apiKey as dependency in case it changes
+  }, [apiKey]);
 
   const list = videos.length > 0 ? videos : trending;
 
