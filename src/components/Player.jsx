@@ -1,4 +1,4 @@
-// src/components/Player.jsx
+// File: src/components/Player.jsx
 
 import ReactPlayer from "react-player";
 
@@ -12,6 +12,8 @@ export default function Player({ src, onEnded }) {
         style={{ position: "absolute", top: 0, left: 0 }}
         controls
         playing
+        autoPlay
+        playsinline
         onEnded={onEnded}
       />
     </div>
