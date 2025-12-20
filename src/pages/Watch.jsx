@@ -1,51 +1,52 @@
 // File: src/pages/Watch.jsx
 
 import { useParams } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
-import Spinner from "../components/Spinner";
+import { useEffect, useRef } from "react";
 
 export default function Watch() {
   const { id } = useParams();
   const playerRef = useRef(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!id) return;
 
-    // Load YouTube IFrame API once
+    // Load YouTube IFrame API if not already present
     if (!window.YT) {
       const tag = document.createElement("script");
       tag.src = "https://www.youtube.com/iframe_api";
       document.body.appendChild(tag);
     }
 
-    // Create player when API is ready
+    // Called automatically by YouTube API
     window.onYouTubeIframeAPIReady = () => {
-      if (playerRef.current) return;
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
 
       playerRef.current = new window.YT.Player("yt-player", {
         videoId: id,
-        width: "100%",
-        height: "100%",
         playerVars: {
           autoplay: 1,
           playsinline: 1,
-          controls: 1,
-          modestbranding: 1,
           rel: 0,
-          fs: 1,
+          modestbranding: 1,
+          controls: 1,
         },
         events: {
-          onReady: () => {
-            setLoading(false);
+          onReady: (event) => {
+            event.target.playVideo();
           },
         },
       });
     };
 
-    // Cleanup on unmount
+    // If API already loaded
+    if (window.YT && window.YT.Player) {
+      window.onYouTubeIframeAPIReady();
+    }
+
     return () => {
-      if (playerRef.current?.destroy) {
+      if (playerRef.current) {
         playerRef.current.destroy();
         playerRef.current = null;
       }
@@ -54,22 +55,17 @@ export default function Watch() {
 
   return (
     <div style={{ padding: "1rem" }}>
-      {loading && <Spinner message="Loading audio…" />}
-
-      {/* Player container */}
       <div
+        id="yt-player"
         style={{
           width: "100%",
-          aspectRatio: "16 / 9",
-          background: "#000",
+          height: "70vh",
+          backgroundColor: "#000",
           borderRadius: 12,
-          overflow: "hidden",
         }}
-      >
-        <div id="yt-player" />
-      </div>
+      />
 
-      <p style={{ marginTop: "0.75rem", opacity: 0.6 }}>
+      <p style={{ marginTop: "0.5rem", opacity: 0.6 }}>
         Video ID: {id}
       </p>
     </div>
