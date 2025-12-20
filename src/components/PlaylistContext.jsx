@@ -1,89 +1,42 @@
-// src/components/PlaylistContext.jsx
+// File: src/components/PlayerContext.jsx
+import React, { createContext, useContext, useState, useRef } from "react";
 
-import { createContext, useContext, useState, useEffect } from "react";
+const PlayerContext = createContext();
 
-const PlaylistContext = createContext();
+export function PlayerProvider({ children }) {
+  const [currentVideo, setCurrentVideo] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const playerRef = useRef(null);
 
-export function PlaylistProvider({ children }) {
-  const [playlists, setPlaylists] = useState(() => {
-    const saved = localStorage.getItem("mytube_playlists");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {}
-    }
-    return [{ id: "0", name: "Favorites", videos: [] }];
-  });
-
-  const [currentPlaylistId, setCurrentPlaylistId] = useState("0");
-
-  useEffect(() => {
-    localStorage.setItem("mytube_playlists", JSON.stringify(playlists));
-  }, [playlists]);
-
-  const addPlaylist = (name) => {
-    if (!name?.trim()) return;
-    const newPl = { id: Date.now().toString(), name: name.trim(), videos: [] };
-    setPlaylists(prev => [...prev, newPl]);
+  const playVideo = (video) => {
+    setCurrentVideo(video);
+    setPlaying(true);
   };
 
-  const renamePlaylist = (id, newName) => {
-    if (!newName?.trim()) return;
-    setPlaylists(prev =>
-      prev.map(p => (p.id === id ? { ...p, name: newName.trim() } : p))
-    );
+  const pauseVideo = () => setPlaying(false);
+  const resumeVideo = () => setPlaying(true);
+  const stopVideo = () => {
+    setCurrentVideo(null);
+    setPlaying(false);
   };
-
-  const deletePlaylist = (id) => {
-    setPlaylists(prev => {
-      const updated = prev.filter(p => p.id !== id);
-
-      // ✅ FIX: safely update current playlist
-      if (currentPlaylistId === id) {
-        setCurrentPlaylistId(updated[0]?.id || null);
-      }
-
-      return updated;
-    });
-  };
-
-  const addToPlaylist = (playlistId, video) => {
-    setPlaylists(prev =>
-      prev.map(p => {
-        if (p.id === playlistId) {
-          if (!p.videos.some(v => v.id === video.id)) {
-            return { ...p, videos: [...p.videos, video] };
-          }
-        }
-        return p;
-      })
-    );
-  };
-
-  const setCurrentPlaylist = (playlist) => {
-    if (playlist?.id) setCurrentPlaylistId(playlist.id);
-  };
-
-  const currentPlaylist =
-    playlists.find(p => p.id === currentPlaylistId) ||
-    playlists[0] ||
-    { id: null, name: "", videos: [] };
 
   return (
-    <PlaylistContext.Provider
+    <PlayerContext.Provider
       value={{
-        playlists,
-        currentPlaylist,
-        setCurrentPlaylist,
-        addPlaylist,
-        renamePlaylist,
-        deletePlaylist,
-        addToPlaylist,
+        currentVideo,
+        playing,
+        playerRef,
+        playVideo,
+        pauseVideo,
+        resumeVideo,
+        stopVideo,
       }}
     >
       {children}
-    </PlaylistContext.Provider>
+    </PlayerContext.Provider>
   );
 }
 
-export const usePlaylists = () => useContext(PlaylistContext);
+export function usePlayer() {
+  return useContext(PlayerContext);
+}
