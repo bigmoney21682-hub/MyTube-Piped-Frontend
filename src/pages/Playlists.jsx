@@ -1,4 +1,6 @@
 // File: src/pages/Playlists.jsx
+// PCC v1.0 — Preservation-First Mode
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext";
@@ -55,7 +57,7 @@ export default function Playlists() {
               border: "1px solid #222",
             }}
           >
-            <div style={{ fontSize: "1.1rem", fontWeight: "600" }}>
+            <div style={{ fontSize: "1.1rem", fontWeight: 600 }}>
               📁 {p.name}
             </div>
             <div style={{ opacity: 0.6, marginTop: 6 }}>
