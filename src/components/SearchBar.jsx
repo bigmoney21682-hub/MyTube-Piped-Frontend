@@ -1,38 +1,83 @@
 // File: src/components/SearchBar.jsx
+// PCC v1.0 — Preservation-First Mode
 
 import { useState } from "react";
 
 export default function SearchBar({ onSearch }) {
-  const [q, setQ] = useState("");
+  const [query, setQuery] = useState("");
 
-  function submit(e) {
-    e.preventDefault();
-    onSearch(q.trim());
-  }
+  const handleChange = (e) => setQuery(e.target.value);
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && query.trim()) onSearch(query.trim());
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (onSearch) {
+      onSearch(value);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && onSearch) {
+      onSearch(query);
+    }
+  };
 
   return (
-    <form
-      onSubmit={submit}
+    <input
+      type="text"
+      value={query}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      placeholder="Search videos..."
+    <div
       style={{
-        width: "75%",
-        maxWidth: 520,
+        display: "flex",
+        alignItems: "center",
+        width: "100%",
+        maxWidth: 400,
+        maxWidth: 600,
+        background: "#222",
+        padding: "6px 12px",
+        borderRadius: 6,
+        border: "1px solid #555",
+        background: "#111",
+        color: "#fff",
+        borderRadius: 8,
+        margin: "0 auto",
       }}
+    />
     >
       <input
-        value={q}
-        onChange={e => setQ(e.target.value)}
-        placeholder="Search YouTube"
+        type="text"
+        value={query}
+        onChange={handleChange}
+        onKeyPress={handleKeyPress}
+        placeholder="Search videos, playlists..."
         style={{
-          width: "100%",
-          padding: "10px 14px",
-          borderRadius: 999,
-          border: "1px solid #333",
-          background: "#000",
+          flex: 1,
+          background: "transparent",
+          border: "none",
           color: "#fff",
-          textAlign: "center",
-          fontSize: "1rem",
+          outline: "none",
+          fontSize: 14,
         }}
       />
-    </form>
+      <button
+        onClick={() => onSearch && onSearch(query)}
+        style={{
+          background: "#ff4500",
+          border: "none",
+          color: "#fff",
+          padding: "6px 10px",
+          borderRadius: 6,
+          cursor: "pointer",
+          marginLeft: 6,
+        }}
+      >
+        🔍
+      </button>
+    </div>
   );
 }
