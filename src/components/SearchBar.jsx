@@ -6,9 +6,6 @@ import { useState } from "react";
 export default function SearchBar({ onSearch }) {
   const [query, setQuery] = useState("");
 
-  const handleChange = (e) => setQuery(e.target.value);
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter" && query.trim()) onSearch(query.trim());
   const handleChange = (e) => {
     const value = e.target.value;
     setQuery(value);
@@ -20,34 +17,23 @@ export default function SearchBar({ onSearch }) {
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && onSearch) {
-      onSearch(query);
+      onSearch(query.trim());
     }
   };
 
   return (
-    <input
-      type="text"
-      value={query}
-      onChange={handleChange}
-      onKeyDown={handleKeyDown}
-      placeholder="Search videos..."
     <div
       style={{
         display: "flex",
         alignItems: "center",
         width: "100%",
-        maxWidth: 400,
         maxWidth: 600,
-        background: "#222",
-        padding: "6px 12px",
-        borderRadius: 6,
-        border: "1px solid #555",
         background: "#111",
-        color: "#fff",
+        padding: "6px 12px",
         borderRadius: 8,
+        border: "1px solid #555",
         margin: "0 auto",
       }}
-    />
     >
       <input
         type="text"
@@ -65,7 +51,7 @@ export default function SearchBar({ onSearch }) {
         }}
       />
       <button
-        onClick={() => onSearch && onSearch(query)}
+        onClick={() => onSearch && onSearch(query.trim())}
         style={{
           background: "#ff4500",
           border: "none",
