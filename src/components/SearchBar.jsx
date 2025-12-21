@@ -1,55 +1,82 @@
 // File: src/components/SearchBar.jsx
+// PCC v1.0 — Preservation-First Mode
 
 import { useState } from "react";
 
 export default function SearchBar({ onSearch }) {
-  const [q, setQ] = useState("");
+  const [query, setQuery] = useState("");
 
-  function submit(e) {
-    e.preventDefault();
-    onSearch(q.trim());
-  }
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    if (onSearch) {
+      onSearch(value);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && onSearch) {
+      onSearch(query);
+    }
+  };
 
   return (
-    <form
-      onSubmit={submit}
+    <div
       style={{
-        width: "75%",
-        maxWidth: 520,
         display: "flex",
-        gap: 8,
+        alignItems: "center",
+        width: "100%",
+        maxWidth: 600,
+        background: "#111",
+        color: "#fff",
+        borderRadius: 999, // keep oval shape
+        padding: "4px 6px",
+        border: "1px solid #555",
+        margin: "0 auto",
       }}
     >
       <input
-        value={q}
-        onChange={e => setQ(e.target.value)}
-        placeholder="Search YouTube"
+        type="text"
+        value={query}
+        onChange={handleChange}
+        onKeyPress={handleKeyPress}
+        placeholder="Search videos, playlists..."
         style={{
           flex: 1,
-          padding: "10px 14px",
-          borderRadius: 999,
-          border: "1px solid #333",
-          background: "#000",
+          background: "transparent",
+          border: "none",
           color: "#fff",
-          textAlign: "center",
-          fontSize: "1rem",
+          outline: "none",
+          fontSize: 14,
+          padding: "6px 12px",
+        }}
+      />
+
+      {/* Vertical Divider */}
+      <div
+        style={{
+          width: 1,
+          height: 24,
+          background: "#555",
+          margin: "0 8px",
         }}
       />
 
       <button
-        type="submit"
+        onClick={() => onSearch && onSearch(query)}
         style={{
-          padding: "0 14px",
-          borderRadius: 999,
+          background: "transparent",
           border: "none",
-          background: "#ff0000",
           color: "#fff",
-          fontWeight: 600,
+          padding: "6px 12px",
           cursor: "pointer",
+          fontWeight: "bold",
+          fontSize: 14,
         }}
       >
-        🔍
+        Search
       </button>
-    </form>
+    </div>
   );
 }
