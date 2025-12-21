@@ -1,6 +1,3 @@
-// File: src/App.jsx
-// PCC v1.0 — Preservation-First Mode
-
 import { Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -9,9 +6,9 @@ import Playlists from "./pages/Playlists";
 import Watch from "./pages/Watch";
 
 import BootSplash from "./components/BootSplash";
-import Header from "./components/Header";
 import Footer from "./components/Footer";
 import DebugOverlay from "./components/DebugOverlay";
+import Header from "./components/Header"; // ✅ Correct import
 
 import { PlaylistProvider } from "./contexts/PlaylistContext";
 
@@ -25,19 +22,19 @@ export default function App() {
 
   return (
     <PlaylistProvider>
-      {/* 🔒 BOOT SPLASH ALWAYS MOUNTS */}
       <BootSplash ready={ready} />
 
-      {/* 🔒 NOTHING ELSE EXISTS UNTIL READY */}
       {ready && (
         <>
+          <Header />
+
+          {/* 🔒 GLOBAL DEBUG OVERLAY (ONCE) */}
           <DebugOverlay />
-          {typeof Header === "function" && <Header />}
 
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/watch/:id" element={<Watch />} />
             <Route path="/playlists" element={<Playlists />} />
+            <Route path="/watch/:id" element={<Watch />} />
           </Routes>
 
           <Footer />
