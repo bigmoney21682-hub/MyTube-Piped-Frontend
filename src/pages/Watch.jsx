@@ -1,24 +1,29 @@
 // File: src/pages/Watch.jsx
+// PCC v1.0 — Preservation-First Mode, full context verified
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import RelatedVideos from "../components/RelatedVideos";
+import Spinner from "../components/Spinner";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import Player from "../components/Player";
-import { API_KEY } from "../config";
 import DebugOverlay from "../components/DebugOverlay";
+import { API_KEY } from "../config";
 
+// Temporarily disable ReactPlayer to isolate iOS PWA iframe issue
 export default function Watch() {
   const { id } = useParams();
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [playlist, setPlaylist] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   const playerRef = useRef(null);
-  const [isMuted, setIsMuted] = useState(true); // iOS autoplay-safe
 
   // Load video metadata
   useEffect(() => {
     if (!id) return;
+
     setLoading(true);
     (async () => {
       try {
@@ -37,10 +42,24 @@ export default function Watch() {
     })();
   }, [id]);
 
-  const snippet = video?.snippet || {};
-  const embedUrl = video?.id
-    ? `https://www.youtube.com/embed/${video.id}?autoplay=1&controls=1`
+  // Setup playlist
+  useEffect(() => {
+    if (video) {
+      setPlaylist([video]); // placeholder for multi-track support
+      setCurrentIndex(0);
+    }
+  }, [video]);
+
+  const currentTrack = playlist[currentIndex];
+  const snippet = currentTrack?.snippet || {};
+  const embedUrl = currentTrack?.id
+    ? `https://www.youtube.com/embed/${currentTrack.id}?autoplay=1&controls=1&playsinline=1`
     : "";
+
+  // PCC-Safe logging for iOS PWA debugging
+  console.log("Watch.jsx debug: currentTrack", currentTrack);
+  console.log("Watch.jsx debug: embedUrl", embedUrl);
+  console.log("Watch.jsx debug: video object", video);
 
   return (
     <div
@@ -52,54 +71,39 @@ export default function Watch() {
         color: "#fff",
       }}
     >
-      {/* Debug overlay */}
       <DebugOverlay />
 
       <Header />
 
-      {loading && <p style={{ padding: 16 }}>Loading video…</p>}
+      {loading && <Spinner message="Loading video…" />}
 
-      {!loading && !video && (
+      {!loading && !currentTrack && (
         <div style={{ padding: 16 }}>
           <p>Video not found or unavailable.</p>
         </div>
       )}
 
-      {!loading && video && (
+      {!loading && currentTrack && (
         <>
           <h2>{snippet.title}</h2>
           <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
+          {/* PCC-SAFE TEMP: raw iframe for iOS PWA embed test */}
           {embedUrl && (
-            <div style={{ position: "relative" }}>
-              <Player
-                ref={playerRef}
-                embedUrl={embedUrl}
-                playing={true}
-                muted={isMuted} // <-- iOS-safe autoplay
-              />
-              {isMuted && (
-                <button
-                  onClick={() => setIsMuted(false)}
-                  style={{
-                    position: "absolute",
-                    bottom: 12,
-                    right: 12,
-                    padding: "8px 12px",
-                    background: "#ff4500",
-                    color: "#fff",
-                    border: "none",
-                    borderRadius: 6,
-                    cursor: "pointer",
-                  }}
-                >
-                  Unmute
-                </button>
-              )}
-            </div>
+            <iframe
+              title={snippet.title || "YouTube Test"}
+              src={embedUrl}
+              width="100%"
+              height="300px"
+              allow="autoplay; encrypted-media"
+              allowFullScreen
+              style={{ border: "none", marginTop: 16 }}
+            />
           )}
 
-          {video.id && <RelatedVideos videoId={video.id} apiKey={API_KEY} />}
+          {currentTrack.id && (
+            <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
+          )}
         </>
       )}
 
