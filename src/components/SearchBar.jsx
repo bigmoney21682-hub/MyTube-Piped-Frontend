@@ -9,16 +9,11 @@ export default function SearchBar({ onSearch }) {
   const handleChange = (e) => {
     const value = e.target.value;
     setQuery(value);
-
-    if (onSearch) {
-      onSearch(value);
-    }
+    if (onSearch) onSearch(value);
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === "Enter" && onSearch) {
-      onSearch(query);
-    }
+    if (e.key === "Enter" && onSearch) onSearch(query);
   };
 
   return (
@@ -29,9 +24,8 @@ export default function SearchBar({ onSearch }) {
         width: "100%",
         maxWidth: 600,
         background: "#111",
-        color: "#fff",
-        borderRadius: 999, // keep oval shape
-        padding: "4px 6px",
+        padding: "6px 12px",
+        borderRadius: 24, // keeps oval shape
         border: "1px solid #555",
         margin: "0 auto",
       }}
@@ -49,11 +43,10 @@ export default function SearchBar({ onSearch }) {
           color: "#fff",
           outline: "none",
           fontSize: 14,
-          padding: "6px 12px",
         }}
       />
 
-      {/* Vertical Divider */}
+      {/* Vertical divider */}
       <div
         style={{
           width: 1,
@@ -63,16 +56,16 @@ export default function SearchBar({ onSearch }) {
         }}
       />
 
+      {/* Red search button */}
       <button
         onClick={() => onSearch && onSearch(query)}
         style={{
-          background: "transparent",
+          background: "#ff0000", // red button
           border: "none",
           color: "#fff",
           padding: "6px 12px",
+          borderRadius: 12,
           cursor: "pointer",
-          fontWeight: "bold",
-          fontSize: 14,
         }}
       >
         Search
