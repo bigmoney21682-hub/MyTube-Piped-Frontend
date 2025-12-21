@@ -1,11 +1,14 @@
 // File: src/contexts/PlaylistContext.jsx
+// PCC v1.0 — Preservation-First Mode
+
 import { createContext, useContext, useEffect, useState } from "react";
 
-// IndexedDB helper
+// IndexedDB constants
 const DB_NAME = "MyTubeDB";
 const STORE_NAME = "playlists";
 const DB_VERSION = 1;
 
+// Open IndexedDB
 function openDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -20,6 +23,7 @@ function openDB() {
   });
 }
 
+// Fetch all playlists
 function getAllPlaylists() {
   return openDB().then((db) => {
     return new Promise((resolve, reject) => {
@@ -32,6 +36,7 @@ function getAllPlaylists() {
   });
 }
 
+// Save or update a playlist
 function savePlaylist(playlist) {
   return openDB().then((db) => {
     return new Promise((resolve, reject) => {
@@ -44,6 +49,7 @@ function savePlaylist(playlist) {
   });
 }
 
+// Delete a playlist
 function deletePlaylistDB(id) {
   return openDB().then((db) => {
     return new Promise((resolve, reject) => {
@@ -63,15 +69,15 @@ export function PlaylistProvider({ children }) {
   const [playlists, setPlaylists] = useState([]);
   const [currentPlaylist, setCurrentPlaylist] = useState(null);
 
-  // Load playlists from IndexedDB on mount
+  // Load playlists on mount
   useEffect(() => {
     getAllPlaylists()
       .then((data) => {
-        // Sort by saved order
         const sorted = data.sort((a, b) => a.order - b.order);
         setPlaylists(sorted);
+        window.debugLog?.(`DEBUG: Loaded ${sorted.length} playlists from IndexedDB`);
       })
-      .catch(console.error);
+      .catch((err) => window.debugLog?.(`DEBUG: Error loading playlists: ${err}`));
   }, []);
 
   // Add new playlist
@@ -84,7 +90,7 @@ export function PlaylistProvider({ children }) {
     };
     setPlaylists((prev) => {
       const updated = [...prev, newPlaylist];
-      savePlaylist(newPlaylist).catch(console.error);
+      savePlaylist(newPlaylist).catch((err) => window.debugLog?.(`DEBUG: Failed to save new playlist: ${err}`));
       return updated;
     });
   };
@@ -95,7 +101,7 @@ export function PlaylistProvider({ children }) {
       prev.map((p) => {
         if (p.id === id) {
           const updated = { ...p, name: newName };
-          savePlaylist(updated).catch(console.error);
+          savePlaylist(updated).catch((err) => window.debugLog?.(`DEBUG: Failed to rename playlist: ${err}`));
           return updated;
         }
         return p;
@@ -107,7 +113,7 @@ export function PlaylistProvider({ children }) {
   const deletePlaylist = (id) => {
     setPlaylists((prev) => {
       const updated = prev.filter((p) => p.id !== id);
-      deletePlaylistDB(id).catch(console.error);
+      deletePlaylistDB(id).catch((err) => window.debugLog?.(`DEBUG: Failed to delete playlist: ${err}`));
       return updated;
     });
   };
@@ -118,7 +124,7 @@ export function PlaylistProvider({ children }) {
       prev.map((p) => {
         if (p.id === playlistId) {
           const updated = { ...p, videos: [...p.videos, video] };
-          savePlaylist(updated).catch(console.error);
+          savePlaylist(updated).catch((err) => window.debugLog?.(`DEBUG: Failed to add video: ${err}`));
           return updated;
         }
         return p;
@@ -126,7 +132,7 @@ export function PlaylistProvider({ children }) {
     );
   };
 
-  // Reorder playlist: move up/down
+  // Reorder playlists
   const movePlaylist = (id, direction) => {
     setPlaylists((prev) => {
       const index = prev.findIndex((p) => p.id === id);
@@ -138,10 +144,9 @@ export function PlaylistProvider({ children }) {
       const updated = [...prev];
       [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
 
-      // Update order field and persist
       updated.forEach((p, i) => {
         p.order = i;
-        savePlaylist(p).catch(console.error);
+        savePlaylist(p).catch((err) => window.debugLog?.(`DEBUG: Failed to save order: ${err}`));
       });
 
       return updated;
