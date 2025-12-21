@@ -1,7 +1,9 @@
+// File: src/components/Player.jsx
+
 import { forwardRef } from "react";
 import ReactPlayer from "react-player";
 
-const Player = forwardRef(({ embedUrl, playing, onEnded, pipMode, draggable, trackTitle }, ref) => {
+const Player = forwardRef(({ embedUrl, playing, muted }, ref) => {
   try {
     if (!embedUrl) {
       console.warn("Player: embedUrl is empty");
@@ -12,15 +14,13 @@ const Player = forwardRef(({ embedUrl, playing, onEnded, pipMode, draggable, tra
       <ReactPlayer
         ref={ref}
         url={embedUrl}
-        width="100%"       // Force visible width
-        height="300px"     // Force visible height for iOS mount
+        width="100%"
+        height="300px"
         playing={playing}
-        onEnded={onEnded}
-        controls={false}
+        controls={true}      // Allow iOS native controls
         volume={1}
-        muted={false}
-        playsinline={true} // iOS background playback
-        style={{ borderRadius: pipMode ? 8 : 0 }}
+        muted={muted}        // iOS autoplay-safe
+        playsinline={true}   // iOS background playback
       />
     );
   } catch (e) {
