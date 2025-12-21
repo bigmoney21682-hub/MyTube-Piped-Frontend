@@ -1,51 +1,45 @@
 // File: src/components/DebugOverlay.jsx
 import { useEffect, useState } from "react";
 
-let globalLogs = [];
+const MAX_LOGS = 200;
 
-export function addDebugLog(message) {
-  const timestamp = new Date().toLocaleTimeString();
-  globalLogs.push(`${timestamp}: DEBUG: ${message}`);
-  // Keep only last 50 logs for performance
-  if (globalLogs.length > 50) globalLogs.shift();
-}
-
-export default function DebugOverlay() {
+export default function DebugOverlay({ pageName = "GLOBAL" }) {
   const [logs, setLogs] = useState([]);
 
+  // Attach a global function to allow other components to log
   useEffect(() => {
-    // Mount log
-    addDebugLog("DebugOverlay mounted");
+    window.debugLog = (msg) => {
+      setLogs((prev) => [...prev.slice(-MAX_LOGS + 1), `${new Date().toLocaleTimeString()}: ${msg}`]);
+    };
 
-    // Interval to sync logs
-    const interval = setInterval(() => {
-      setLogs([...globalLogs]);
-    }, 200);
+    window.debugLog(`DEBUG: ${pageName} overlay initialized`);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      window.debugLog = null;
+    };
+  }, [pageName]);
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: 0,
+        bottom: "var(--footer-height)",
         left: 0,
         right: 0,
-        maxHeight: "40vh", // Restore full-height scrollable behavior
-        background: "rgba(0,0,0,0.9)",
+        maxHeight: "40vh",
+        background: "rgba(0,0,0,0.85)",
         color: "#0f0",
-        fontFamily: "monospace",
-        fontSize: 12,
-        padding: 8,
+        fontSize: "0.8rem",
         overflowY: "auto",
+        padding: 8,
         zIndex: 9999,
-        pointerEvents: "none", // Prevent interference with UI clicks
-        whiteSpace: "pre-wrap",
+        pointerEvents: "none",
       }}
     >
       {logs.map((log, i) => (
-        <div key={i}>{log}</div>
+        <div key={i} style={{ whiteSpace: "pre-wrap" }}>
+          {log}
+        </div>
       ))}
     </div>
   );
