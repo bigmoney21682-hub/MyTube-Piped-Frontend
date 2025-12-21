@@ -1,10 +1,13 @@
 // File: src/App.jsx
+// PCC v1.0 — Preservation-First Mode
+
 import { Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 import Home from "./pages/Home";
 import Playlists from "./pages/Playlists";
 import SettingsPage from "./pages/SettingsPage";
+import Watch from "./pages/Watch";
 
 import BootSplash from "./components/BootSplash";
 import Footer from "./components/Footer";
@@ -27,17 +30,24 @@ export default function App() {
     return () => clearTimeout(t);
   }, []);
 
+  // Search callback for centralized Header
+  const handleSearch = (query) => {
+    window.debugLog?.(`DEBUG: Search requested: ${query}`);
+    // Optionally, navigate or filter results here
+  };
+
   return (
     <PlaylistProvider>
       <BootSplash ready={ready} />
       {ready && (
         <>
-          <Header />
+          <Header onSearch={handleSearch} /> {/* Search bar restored here */}
           <DebugOverlay />
 
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/playlists" element={<Playlists />} />
+            <Route path="/watch/:id" element={<Watch />} />
             <Route path="/settings" element={<SettingsPage />} />
           </Routes>
 
