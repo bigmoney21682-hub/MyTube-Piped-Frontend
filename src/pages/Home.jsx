@@ -1,97 +1,49 @@
-// File: src/pages/Home.jsx
 import { useEffect, useState } from "react";
 import VideoCard from "../components/VideoCard";
-import Spinner from "../components/Spinner";
-import { API_KEY } from "../config";
 import DebugOverlay from "../components/DebugOverlay";
+import { API_KEY } from "../config";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
-  const [trending, setTrending] = useState([]);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-  const [loadingTrending, setLoadingTrending] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const log = (msg) => window.debugLog?.(msg);
 
-  async function search(q) {
-    if (!q.trim()) return;
-    setLoadingSearch(true);
-    setVideos([]);
-    log(`DEBUG: Searching videos for query: "${q}"`);
-
-    try {
-      const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(
-          q.trim()
-        )}&key=${API_KEY}`
-      );
-      const data = await res.json();
-      setVideos(Array.isArray(data.items) ? data.items : []);
-      log(`DEBUG: Search returned ${data.items?.length || 0} items`);
-    } catch (err) {
-      setVideos([]);
-      log(`DEBUG: Search error: ${err}`);
-    } finally {
-      setLoadingSearch(false);
-    }
-  }
-
   useEffect(() => {
-    (async () => {
-      setLoadingTrending(true);
-      log("DEBUG: Fetching trending videos");
+    log("DEBUG: Home page mounted");
 
+    (async () => {
       try {
         const res = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=${API_KEY}`
+          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=10&regionCode=US&key=${API_KEY}`
         );
         const data = await res.json();
-        setTrending(Array.isArray(data.items) ? data.items : []);
-        log(`DEBUG: Trending returned ${data.items?.length || 0} items`);
+        setVideos(data.items || []);
+        log(`DEBUG: Fetched popular videos: ${data.items?.length || 0}`);
       } catch (err) {
-        setTrending([]);
-        log(`DEBUG: Trending fetch error: ${err}`);
+        log(`DEBUG: Home fetch error: ${err}`);
       } finally {
-        setLoadingTrending(false);
+        setLoading(false);
       }
     })();
   }, []);
 
-  const list = videos.length > 0 ? videos : trending;
-
   return (
-    <div>
-      <DebugOverlay />
+    <div style={{ paddingTop: "var(--header-height)", paddingBottom: "var(--footer-height)", minHeight: "100vh", background: "var(--app-bg)", color: "#fff" }}>
+      <DebugOverlay pageName="Home" />
 
-      {(loadingSearch || loadingTrending) && (
-        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
-      )}
+      <h2>Trending Videos</h2>
+      {loading && <p>Loading videos…</p>}
 
-      <Header onSearch={search} />
-
-      {videos.length === 0 && !loadingTrending && list.length > 0 && (
-        <h3 style={{ padding: "1rem", opacity: 0.8 }}>👀 Trending</h3>
-      )}
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {list.map((v, index) => {
-          const id = v.id?.videoId || (typeof v.id === "string" ? v.id : null);
-          if (!id) return null;
-
-          return (
-            <VideoCard
-              key={`${id}-${index}`}
-              video={{
-                id,
-                title: v.snippet?.title || "Untitled",
-                thumbnail:
-                  v.snippet?.thumbnails?.high?.url ||
-                  `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
-                author: v.snippet?.channelTitle || "Unknown",
-              }}
-            />
-          );
-        })}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 16 }}>
+        {videos.map((v) => (
+          <VideoCard key={v.id} video={{
+            id: v.id,
+            title: v.snippet.title,
+            thumbnail: v.snippet.thumbnails.medium.url,
+            author: v.snippet.channelTitle
+          }} />
+        ))}
       </div>
     </div>
   );
