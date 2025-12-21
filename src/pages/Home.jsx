@@ -1,23 +1,10 @@
 // File: src/pages/Home.jsx
-
 import { useEffect, useState } from "react";
 import Header from "../components/Header";
 import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
 import { API_KEY } from "../config";
-
-function extractVideoId(v) {
-  if (!v) return null;
-  if (v.id?.videoId) return v.id.videoId;
-  if (typeof v.id === "string" && v.id.length > 5) return v.id;
-  return null;
-}
-
-function getThumbnail(v, id) {
-  if (v.snippet?.thumbnails?.high?.url) return v.snippet.thumbnails.high.url;
-  if (id) return `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
-  return null;
-}
+import DebugOverlay from "../components/DebugOverlay";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
@@ -25,17 +12,13 @@ export default function Home() {
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingTrending, setLoadingTrending] = useState(true);
 
-  // Boot detection (unchanged)
-  const isInitialBoot = !sessionStorage.getItem("mytube_boot_complete");
-
-  useEffect(() => {
-    sessionStorage.setItem("mytube_boot_complete", "1");
-  }, []);
+  const log = (msg) => window.debugLog?.(msg);
 
   async function search(q) {
     if (!q.trim()) return;
     setLoadingSearch(true);
     setVideos([]);
+    log(`DEBUG: Searching videos for query: "${q}"`);
 
     try {
       const res = await fetch(
@@ -45,48 +28,44 @@ export default function Home() {
       );
       const data = await res.json();
       setVideos(Array.isArray(data.items) ? data.items : []);
-    } catch {
+      log(`DEBUG: Search returned ${data.items?.length || 0} items`);
+    } catch (err) {
       setVideos([]);
+      log(`DEBUG: Search error: ${err}`);
     } finally {
       setLoadingSearch(false);
     }
   }
 
   useEffect(() => {
-    let active = true;
-
     (async () => {
       setLoadingTrending(true);
+      log("DEBUG: Fetching trending videos");
+
       try {
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=${API_KEY}`
         );
         const data = await res.json();
-        if (active) {
-          setTrending(Array.isArray(data.items) ? data.items : []);
-        }
+        setTrending(Array.isArray(data.items) ? data.items : []);
+        log(`DEBUG: Trending returned ${data.items?.length || 0} items`);
+      } catch (err) {
+        setTrending([]);
+        log(`DEBUG: Trending fetch error: ${err}`);
       } finally {
-        if (active) setLoadingTrending(false);
+        setLoadingTrending(false);
       }
     })();
-
-    // 🔥 CRITICAL SAFETY CLEANUP
-    return () => {
-      active = false;
-      setLoadingTrending(false);
-      setLoadingSearch(false);
-    };
   }, []);
 
   const list = videos.length > 0 ? videos : trending;
 
   return (
     <div>
-      {/* 🔒 Spinner can NEVER survive route unmount */}
-      {!isInitialBoot && (loadingSearch || loadingTrending) && (
-        <Spinner
-          message={loadingSearch ? "Searching…" : "Loading trending…"}
-        />
+      <DebugOverlay />
+
+      {(loadingSearch || loadingTrending) && (
+        <Spinner message={loadingSearch ? "Searching…" : "Loading trending…"} />
       )}
 
       <Header onSearch={search} />
@@ -97,7 +76,7 @@ export default function Home() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {list.map((v, index) => {
-          const id = extractVideoId(v);
+          const id = v.id?.videoId || (typeof v.id === "string" ? v.id : null);
           if (!id) return null;
 
           return (
@@ -106,7 +85,9 @@ export default function Home() {
               video={{
                 id,
                 title: v.snippet?.title || "Untitled",
-                thumbnail: getThumbnail(v, id),
+                thumbnail:
+                  v.snippet?.thumbnails?.high?.url ||
+                  `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
                 author: v.snippet?.channelTitle || "Unknown",
               }}
             />
