@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v1.0 — Preservation-First Mode
+// Connected to global miniplayer for background play
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
@@ -10,19 +10,24 @@ import Player from "../components/Player";
 import DebugOverlay from "../components/DebugOverlay";
 import { API_KEY } from "../config";
 
-export default function Watch() {
+export default function Watch({ currentVideo, setCurrentVideo, isPlaying, setIsPlaying }) {
   const { id } = useParams();
-  const [video, setVideo] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [video, setVideo] = useState(currentVideo || null);
+  const [loading, setLoading] = useState(!currentVideo);
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const playerRef = useRef(null);
 
   const log = (msg) => window.debugLog?.(msg);
 
-  // Fetch video metadata
   useEffect(() => {
     if (!id) return;
+
+    if (currentVideo && currentVideo.id === id) {
+      setVideo(currentVideo);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     log(`DEBUG: Fetching video metadata for id: ${id}`);
@@ -33,36 +38,33 @@ export default function Watch() {
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
         );
         const data = await res.json();
-        log(`DEBUG: Video fetch response: ${JSON.stringify(data)}`);
 
-        if (data.items?.length > 0) setVideo(data.items[0]);
-        else setVideo(null);
+        if (data.items?.length > 0) {
+          const fetchedVideo = data.items[0];
+          setVideo(fetchedVideo);
+          setCurrentVideo(fetchedVideo);  // Sync to global
+        } else {
+          setVideo(null);
+        }
       } catch (err) {
         log(`DEBUG: Video fetch error: ${err}`);
         setVideo(null);
       } finally {
         setLoading(false);
-        log("DEBUG: Watch loading complete");
       }
     })();
-  }, [id]);
+  }, [id, currentVideo, setCurrentVideo]);
 
-  // Set playlist with current video
   useEffect(() => {
     if (video) {
       setPlaylist([video]);
       setCurrentIndex(0);
-      log(`DEBUG: Playlist set with video: ${video.snippet?.title || "Unknown"}`);
     }
   }, [video]);
 
   const handleEnded = () => {
-    if (currentIndex < playlist.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      log(`DEBUG: Track ended, advancing to index ${currentIndex + 1}`);
-    } else {
-      log("DEBUG: Playlist ended");
-    }
+    log("DEBUG: Video ended");
+    setIsPlaying(false);
   };
 
   const currentTrack = playlist[currentIndex];
@@ -70,9 +72,6 @@ export default function Watch() {
   const embedUrl = currentTrack?.id
     ? `https://www.youtube-nocookie.com/embed/${currentTrack.id}?autoplay=1&rel=0&controls=1&playsinline=1`
     : "";
-
-  log(`DEBUG: Watch mounted with id = ${id}`);
-  log(`DEBUG: Current track: ${snippet.title || "None"}`);
 
   return (
     <div
@@ -84,9 +83,7 @@ export default function Watch() {
         color: "#fff",
       }}
     >
-      {/* Placeholder div preserves layout while Header is centralized in App */}
       <div style={{ height: "var(--header-height)" }} />
-
       <DebugOverlay />
 
       {loading && <Spinner message="Loading video…" />}
@@ -99,19 +96,19 @@ export default function Watch() {
 
       {!loading && currentTrack && (
         <>
-          <h2>{snippet.title}</h2>
-          <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
+          <h2 style={{ padding: "0 16px" }}>{snippet.title}</h2>
+          <p style={{ padding: "0 16px", opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
           {embedUrl && (
             <Player
               ref={playerRef}
               embedUrl={embedUrl}
-              playing={true}
+              playing={isPlaying}
               onEnded={handleEnded}
               pipMode={false}
               draggable={false}
               trackTitle={snippet.title}
-              style={{ width: "100%" }} // Fill visible width
+              style={{ width: "100%" }}
             />
           )}
 
