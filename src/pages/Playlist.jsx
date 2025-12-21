@@ -4,6 +4,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { usePlaylists } from "../contexts/PlaylistContext";
+import Header from "../components/Header";
 import Spinner from "../components/Spinner";
 
 export default function Playlist() {
@@ -25,6 +26,7 @@ export default function Playlist() {
   if (loading) {
     return (
       <div style={{ paddingTop: "var(--header-height)" }}>
+        <Header />
         <Spinner message="Loading playlist…" />
       </div>
     );
@@ -45,7 +47,7 @@ export default function Playlist() {
         color: "#fff",
       }}
     >
-      {/* Header removed per baby step #2 */}
+      <Header />
 
       <h3 style={{ padding: "1rem" }}>
         📁 {name} ({videos.length})
