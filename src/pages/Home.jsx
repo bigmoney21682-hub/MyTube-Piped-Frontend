@@ -1,6 +1,5 @@
 // File: src/pages/Home.jsx
 import { useEffect, useState } from "react";
-import Header from "../components/Header";
 import VideoCard from "../components/VideoCard";
 import Spinner from "../components/Spinner";
 import { API_KEY } from "../config";
