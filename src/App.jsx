@@ -1,6 +1,5 @@
 // File: src/App.jsx
 // PCC v1.0 — Preservation-First Mode
-// Global layout owner: Header, Footer, DebugOverlay
 
 import { Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -26,24 +25,21 @@ export default function App() {
 
   return (
     <PlaylistProvider>
+      {/* 🔒 BOOT SPLASH ALWAYS MOUNTS */}
       <BootSplash ready={ready} />
 
+      {/* 🔒 NOTHING ELSE EXISTS UNTIL READY */}
       {ready && (
         <>
-          {/* 🔒 GLOBAL DEBUG OVERLAY (ONCE) */}
           <DebugOverlay />
-
-          {/* 🔒 GLOBAL HEADER (ONCE) */}
           <Header />
 
-          {/* 🔒 ROUTES = CONTENT ONLY */}
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/watch/:id" element={<Watch />} />
             <Route path="/playlists" element={<Playlists />} />
           </Routes>
 
-          {/* 🔒 GLOBAL FOOTER (ONCE) */}
           <Footer />
         </>
       )}
