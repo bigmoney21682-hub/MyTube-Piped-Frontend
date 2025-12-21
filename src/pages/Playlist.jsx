@@ -4,7 +4,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { usePlaylists } from "../contexts/PlaylistContext";
-import Header from "../components/Header";
 import Spinner from "../components/Spinner";
 
 export default function Playlist() {
