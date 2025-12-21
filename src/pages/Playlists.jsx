@@ -1,10 +1,12 @@
 // File: src/pages/Playlists.jsx
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext";
 import Header from "../components/Header";
 
 export default function Playlists() {
   const { playlists, addPlaylist } = usePlaylists();
+  const navigate = useNavigate();
 
   useEffect(() => {
     window.debugLog?.("DEBUG: Playlists page mounted");
@@ -13,10 +15,7 @@ export default function Playlists() {
 
   const handleAdd = () => {
     const name = prompt("Enter new playlist name:");
-    if (name) {
-      addPlaylist(name);
-      window.debugLog?.(`DEBUG: Playlist created: "${name}"`);
-    }
+    if (name) addPlaylist(name);
   };
 
   return (
@@ -25,23 +24,46 @@ export default function Playlists() {
         paddingTop: "var(--header-height)",
         paddingBottom: "var(--footer-height)",
         minHeight: "100vh",
+        background: "var(--app-bg)",
+        color: "#fff",
       }}
     >
       <Header />
 
-      <h2 style={{ padding: "1rem" }}>Playlists</h2>
+      <div style={{ padding: "1rem" }}>
+        <h2>Playlists</h2>
+        <button onClick={handleAdd}>+ New Playlist</button>
+      </div>
 
-      <button style={{ marginLeft: "1rem" }} onClick={handleAdd}>
-        + New Playlist
-      </button>
-
-      <ul style={{ padding: "1rem" }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          gap: "16px",
+          padding: "1rem",
+        }}
+      >
         {playlists.map((p) => (
-          <li key={p.id}>
-            {p.name} ({p.videos.length})
-          </li>
+          <div
+            key={p.id}
+            onClick={() => navigate(`/playlist/${p.id}`)}
+            style={{
+              background: "#111",
+              borderRadius: "12px",
+              padding: "16px",
+              cursor: "pointer",
+              border: "1px solid #222",
+            }}
+          >
+            <div style={{ fontSize: "1.1rem", fontWeight: "600" }}>
+              📁 {p.name}
+            </div>
+            <div style={{ opacity: 0.6, marginTop: 6 }}>
+              {p.videos.length} videos
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }
