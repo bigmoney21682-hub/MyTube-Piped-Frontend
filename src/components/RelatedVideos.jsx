@@ -1,8 +1,9 @@
 // File: src/components/RelatedVideos.jsx
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-export default function RelatedVideos({ videoId, apiKey, debug = false }) {
+export default function RelatedVideos({ videoId, apiKey }) {
   const [videos, setVideos] = useState([]);
   const [error, setError] = useState(null);
 
@@ -10,40 +11,38 @@ export default function RelatedVideos({ videoId, apiKey, debug = false }) {
     if (!videoId || !apiKey) return;
 
     const fetchRelated = async () => {
-      try {
-        if (debug) console.log("DEBUG: Fetching related videos for:", videoId);
+      console.log(`DEBUG: Fetching related videos for id: ${videoId}`);
 
+      try {
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${videoId}&type=video&maxResults=5&key=${apiKey}`
         );
         const data = await res.json();
 
-        if (debug) console.log("DEBUG: Related videos response:", data);
-
         if (data.error) {
+          console.error("DEBUG: Related videos fetch error:", data.error.message);
           setError(data.error.message);
           return;
         }
 
-        const validVideos = (data.items || []).filter(
-          (item) => item.id?.videoId
-        );
+        const validVideos = (data.items || []).filter((item) => item.id?.videoId);
 
         setVideos(validVideos);
         setError(null);
-
-        if (debug) console.log("DEBUG: Valid related videos:", validVideos);
+        console.log(
+          `DEBUG: Related videos fetched successfully: ${validVideos.length} items`
+        );
       } catch (err) {
+        console.error("DEBUG: Related videos fetch exception:", err.message);
         setError(err.message);
-        if (debug) console.error("DEBUG: Related videos fetch error:", err);
       }
     };
 
     fetchRelated();
-  }, [videoId, apiKey, debug]);
+  }, [videoId, apiKey]);
 
   if (error) return <p style={{ color: "red" }}>Error loading related videos: {error}</p>;
-  if (!videos.length) return <p>Loading...</p>;
+  if (!videos.length) return <p>Loading related videos…</p>;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
