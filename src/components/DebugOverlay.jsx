@@ -6,22 +6,29 @@ const MAX_LOGS = 200;
 export default function DebugOverlay({ pageName = "GLOBAL" }) {
   const [logs, setLogs] = useState([]);
 
-  // Attach a global logging function
+  // Attach global logging function
   useEffect(() => {
     window.debugLog = (msg) => {
       setLogs((prev) => [...prev.slice(-MAX_LOGS + 1), `${new Date().toLocaleTimeString()}: ${msg}`]);
     };
 
+    // Initial log
     window.debugLog(`DEBUG: ${pageName} overlay initialized`);
+
+    // Auto-log home screen boot if pageName is Home
+    if (pageName === "Home") {
+      window.debugLog("DEBUG: Home screen mounted");
+      window.debugLog("DEBUG: Fetching trending videos...");
+      // Optionally you can log other home events here automatically
+    }
 
     return () => {
       window.debugLog = null;
     };
   }, [pageName]);
 
-  // Calculate height based on ~4 lines
-  const lineHeight = 18; // px, adjust if needed
-  const maxHeight = lineHeight * 4;
+  const lineHeight = 18; // px
+  const maxHeight = lineHeight * 4; // 4 lines
 
   return (
     <div
