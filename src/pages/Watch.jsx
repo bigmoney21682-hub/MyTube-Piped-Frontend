@@ -1,7 +1,7 @@
 // File: src/pages/Watch.jsx
-
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
+
 import RelatedVideos from "../components/RelatedVideos";
 import Spinner from "../components/Spinner";
 import Header from "../components/Header";
@@ -23,16 +23,25 @@ export default function Watch() {
     if (!id) return;
 
     setLoading(true);
+    console.log("DEBUG: Fetching video metadata for ID:", id);
+
     (async () => {
       try {
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
         );
         const data = await res.json();
-        if (data.items?.length > 0) setVideo(data.items[0]);
-        else setVideo(null);
+        console.log("DEBUG: Video fetch response:", data);
+
+        if (data.items?.length > 0) {
+          setVideo(data.items[0]);
+          console.log("DEBUG: Video set to state:", data.items[0]);
+        } else {
+          setVideo(null);
+          console.warn("DEBUG: Video not found for ID:", id);
+        }
       } catch (err) {
-        console.error("Video fetch error:", err);
+        console.error("DEBUG: Video fetch error:", err);
         setVideo(null);
       } finally {
         setLoading(false);
@@ -40,19 +49,21 @@ export default function Watch() {
     })();
   }, [id]);
 
-  // Setup playlist (single video for now)
+  // Setup playlist
   useEffect(() => {
     if (video) {
-      setPlaylist([video]);
+      setPlaylist([video]); // single video for now
       setCurrentIndex(0);
+      console.log("DEBUG: Playlist initialized with video:", video);
     }
   }, [video]);
 
   const handleEnded = () => {
     if (currentIndex < playlist.length - 1) {
       setCurrentIndex(currentIndex + 1);
+      console.log("DEBUG: Moving to next video in playlist:", currentIndex + 1);
     } else {
-      console.log("Playlist ended");
+      console.log("DEBUG: Playlist ended");
     }
   };
 
@@ -72,7 +83,7 @@ export default function Watch() {
         color: "#fff",
       }}
     >
-      {/* DEBUG OVERLAY ALWAYS MOUNTED */}
+      {/* DEBUG overlay */}
       <DebugOverlay />
 
       <Header />
@@ -91,19 +102,29 @@ export default function Watch() {
           <p style={{ opacity: 0.7 }}>by {snippet.channelTitle}</p>
 
           {embedUrl && (
-            <Player
-              ref={playerRef}
-              embedUrl={embedUrl}
-              playing={true}
-              onEnded={handleEnded}
-              pipMode={false} // mini-player temporarily disabled
-              draggable={false} // disable dragging
-              trackTitle={snippet.title}
-            />
+            <>
+              <div style={{ color: "#0f0", marginBottom: 8 }}>
+                DEBUG: mounting Player with URL: {embedUrl}
+              </div>
+              <Player
+                ref={playerRef}
+                embedUrl={embedUrl}
+                playing={true}
+                onEnded={handleEnded}
+                pipMode={false}  // Mini-player temporarily disabled
+                draggable={false} // disable dragging
+                trackTitle={snippet.title}
+              />
+            </>
           )}
 
           {currentTrack.id && (
-            <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
+            <>
+              <div style={{ color: "#0f0", marginTop: 8 }}>
+                DEBUG: mounting RelatedVideos
+              </div>
+              <RelatedVideos videoId={currentTrack.id} apiKey={API_KEY} />
+            </>
           )}
         </>
       )}
