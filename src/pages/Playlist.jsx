@@ -1,5 +1,5 @@
 // File: src/pages/Playlist.jsx
-// FIXED: Reliable loading + debug logs + no stale state
+// PCC v2.1 — Strong debug logging for playlist detail page
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -15,13 +15,14 @@ export default function Playlist() {
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Debug log helper
   const log = (msg) => window.debugLog?.(`Playlist(${id}): ${msg}`);
 
+  // Page mount
   useEffect(() => {
-    log("Page mounted");
+    log("Mounted");
   }, []);
 
+  // Playlist loading
   useEffect(() => {
     log(`Playlists updated: count=${playlists.length}`);
 
@@ -33,7 +34,7 @@ export default function Playlist() {
     const found = playlists.find((p) => p.id === id);
 
     if (found) {
-      log(`Playlist found: ${found.name}`);
+      log(`Found playlist "${found.name}" with ${found.videos?.length ?? 0} videos`);
       setPlaylist(found);
     } else {
       log("Playlist NOT found");
@@ -52,6 +53,7 @@ export default function Playlist() {
   }
 
   if (!playlist) {
+    log("Rendering: Playlist not found");
     return (
       <div
         style={{
@@ -67,6 +69,8 @@ export default function Playlist() {
   }
 
   const { name, videos = [] } = playlist;
+
+  log(`Rendering playlist "${name}" with ${videos.length} videos`);
 
   return (
     <div
@@ -100,7 +104,10 @@ export default function Playlist() {
                 borderRadius: 8,
                 cursor: "pointer",
               }}
-              onClick={() => navigate(`/watch/${v.id}?pl=1&index=${i}`)}
+              onClick={() => {
+                log(`Clicked video index=${i}, id=${v.id}`);
+                navigate(`/watch/${v.id}?pl=1&index=${i}`);
+              }}
             >
               {v.title}
             </div>
