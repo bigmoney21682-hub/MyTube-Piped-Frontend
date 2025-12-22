@@ -1,3 +1,14 @@
+/* ============================================================
+   File: src/index.css
+   Purpose: Core layout shell for MyTube mobile app
+   Notes:
+     - .app-root becomes the fixed-height flex container
+     - .app-content becomes the ONLY scrollable region
+     - Footer, MiniPlayer, DebugOverlay are fixed overlays
+     - Prevents content from covering footer/miniplayer
+     - Fixes the "footer not visible" issue
+   ============================================================ */
+
 :root {
   --app-bg: #0a0a0a;
   --header-height: 112px;
@@ -9,6 +20,11 @@
   box-sizing: border-box;
 }
 
+/* ============================================================
+   Global document sizing
+   - html/body/#root MUST be 100% height
+   - This allows .app-root to fill the screen
+   ============================================================ */
 html,
 body,
 #root {
@@ -20,24 +36,39 @@ body,
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* App shell */
+/* ============================================================
+   .app-root
+   - The entire app lives inside this container
+   - MUST be flex column + height:100% + overflow:hidden
+   - This prevents the entire page from scrolling
+   - Only .app-content should scroll
+   ============================================================ */
 .app-root {
   display: flex;
   flex-direction: column;
-  height: 100%;          /* critical */
-  overflow: hidden;      /* critical */
+  height: 100%;        /* CRITICAL: enables proper layout */
+  overflow: hidden;    /* CRITICAL: prevents content from covering footer */
   background: var(--app-bg);
 }
 
-/* Scrollable content area */
+/* ============================================================
+   .app-content
+   - This is the ONLY scrollable region
+   - flex:1 makes it fill remaining space between header/footer
+   - overflow-y:auto ensures content scrolls INSIDE this box
+   - padding-bottom MUST include footer + miniplayer height
+   ============================================================ */
 .app-content {
-  flex: 1;               /* critical */
-  overflow-y: auto;      /* critical */
+  flex: 1;                     /* CRITICAL: makes this the scroll container */
+  overflow-y: auto;            /* CRITICAL: prevents content from covering footer */
   padding-top: var(--header-height);
-  padding-bottom: calc(var(--footer-height) + 68px); /* footer + miniplayer */
+  padding-bottom: calc(var(--footer-height) + 68px); 
+  /* 68px = MiniPlayer height */
 }
 
-/* Grid safety (existing behavior preserved) */
+/* ============================================================
+   Grid safety (unchanged)
+   ============================================================ */
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
