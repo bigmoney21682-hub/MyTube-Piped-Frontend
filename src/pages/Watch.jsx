@@ -147,3 +147,33 @@ export default function Watch({
                 playing={isPlaying}
                 onEnded={handleEnded}
                 pipMode={false}
+                draggable={false}
+                trackTitle={snippet.title}
+                onSeekRelative={handleSeekRelative}
+                onPrev={handlePrev}
+                onNext={handleNext}
+              />
+            </div>
+          )}
+
+          {/* Title/description BELOW player */}
+          <div style={{ padding: "12px 16px 8px 16px" }}>
+            <h2 style={{ margin: 0 }}>{snippet.title}</h2>
+            <p style={{ margin: "4px 0 0 0", opacity: 0.7 }}>
+              by {snippet.channelTitle}
+            </p>
+          </div>
+
+          {/* Related videos BELOW description */}
+          {videoIdForApi && (
+            <RelatedVideos
+              videoId={videoIdForApi}
+              apiKey={API_KEY}
+              onDebugLog={log}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
