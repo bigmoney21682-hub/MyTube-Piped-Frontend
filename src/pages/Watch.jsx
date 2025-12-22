@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v2.1 — Clean layout, related videos fix, custom player controls
+// PCC v2.2 — Uses PlayerContext, clean layout, related videos fix
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
@@ -8,18 +8,24 @@ import Spinner from "../components/Spinner";
 import Player from "../components/Player";
 import DebugOverlay from "../components/DebugOverlay";
 import { API_KEY } from "../config";
+import { usePlayer } from "../contexts/PlayerContext";
 
-export default function Watch({
-  currentVideo,
-  setCurrentVideo,
-  isPlaying,
-  setIsPlaying,
-}) {
+export default function Watch() {
   const { id } = useParams();
+  const {
+    currentVideo,
+    playing,
+    playVideo,
+    setCurrentVideo,
+    setPlaying,
+    setPlaylist,
+    setCurrentIndex,
+  } = usePlayer();
+
   const [video, setVideo] = useState(currentVideo || null);
   const [loading, setLoading] = useState(!currentVideo);
-  const [playlist, setPlaylist] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [playlist, setLocalPlaylist] = useState([]);
+  const [currentIndex, setLocalIndex] = useState(0);
   const playerRef = useRef(null);
 
   const log = (msg) => window.debugLog?.(`Watch(${id}): ${msg}`);
@@ -27,7 +33,6 @@ export default function Watch({
   useEffect(() => {
     if (!id) return;
 
-    // Reuse global currentVideo if it matches this id
     if (
       currentVideo &&
       (currentVideo.id === id || currentVideo.id?.videoId === id)
@@ -46,13 +51,12 @@ export default function Watch({
         const res = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,statistics&id=${id}&key=${API_KEY}`
         );
-          const data = await res.json();
+        const data = await res.json();
 
         if (data.items?.length > 0) {
           const fetchedVideo = data.items[0];
           setVideo(fetchedVideo);
-          setCurrentVideo(fetchedVideo);
-          setIsPlaying(true);
+          playVideo(fetchedVideo); // sync to global
           log("Video fetched and global currentVideo updated");
         } else {
           setVideo(null);
@@ -65,36 +69,40 @@ export default function Watch({
         setLoading(false);
       }
     })();
-  }, [id, currentVideo, setCurrentVideo, setIsPlaying]);
+  }, [id, currentVideo, playVideo]);
 
   useEffect(() => {
     if (video) {
+      setLocalPlaylist([video]);
+      setLocalIndex(0);
       setPlaylist([video]);
       setCurrentIndex(0);
       log("Playlist set to single current video");
     }
-  }, [video]);
+  }, [video, setPlaylist, setCurrentIndex]);
 
   const handleEnded = () => {
     log("Video ended");
-    setIsPlaying(false);
-    // Later: auto-advance in playlist
+    setPlaying(false);
+    // future: use playNext() from context
   };
 
-  const currentTrack = playlist[currentIndex];
+  const currentTrack = playlist[currentIndex] || video;
   const snippet = currentTrack?.snippet || {};
 
-  // Normalized videoId for API and embed
-  const videoIdForApi =
-    typeof currentTrack?.id === "string"
-      ? currentTrack.id
-      : currentTrack?.id?.videoId || "";
+  // Normalized videoId
+  let videoIdForApi = "";
+  if (typeof currentTrack?.id === "string") {
+    videoIdForApi = currentTrack.id;
+  } else if (currentTrack?.id?.videoId) {
+    videoIdForApi = currentTrack.id.videoId;
+  }
+  videoIdForApi = String(videoIdForApi || "").trim();
 
   const embedUrl = videoIdForApi
     ? `https://www.youtube-nocookie.com/embed/${videoIdForApi}`
     : "";
 
-  // Seek relative handler used by Player paused overlay
   const handleSeekRelative = (secs) => {
     const player = playerRef.current;
     if (!player) return;
@@ -108,12 +116,10 @@ export default function Watch({
   };
 
   const handlePrev = () => {
-    // Placeholder for multi-video playlist
     log("Prev video requested (no previous in single-item playlist)");
   };
 
   const handleNext = () => {
-    // Placeholder for multi-video playlist
     log("Next video requested (no next in single-item playlist)");
   };
 
@@ -138,13 +144,21 @@ export default function Watch({
 
       {!loading && currentTrack && (
         <>
-          {/* Video */}
+          {/* Player container: full width, 16:9 from viewport width */}
           {embedUrl && (
-            <div style={{ width: "100%", aspectRatio: "16 / 9" }}>
+            <div
+              style={{
+                width: "100%",
+                background: "#000",
+                position: "relative",
+                height: "calc((100vw) * 9 / 16)",
+                overflow: "hidden",
+              }}
+            >
               <Player
                 ref={playerRef}
                 embedUrl={embedUrl}
-                playing={isPlaying}
+                playing={playing}
                 onEnded={handleEnded}
                 pipMode={false}
                 draggable={false}
@@ -165,7 +179,7 @@ export default function Watch({
           </div>
 
           {/* Related videos BELOW description */}
-          {videoIdForApi && (
+          {videoIdForApi.length > 0 && (
             <RelatedVideos
               videoId={videoIdForApi}
               apiKey={API_KEY}
