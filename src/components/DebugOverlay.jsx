@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.1 — Positioned above footer, below miniplayer
+// PCC v3.2 — Extra top padding/height so first line is fully visible and copyable
 
 import { useEffect, useRef, useState } from "react";
 
@@ -10,19 +10,18 @@ export default function DebugOverlay({ pageName }) {
   const [logs, setLogs] = useState([]);
   const containerRef = useRef(null);
 
-  // Install global logger ONCE
+  // Install global logger once
   useEffect(() => {
     window.debugLog = (msg) => {
       const timestamp = new Date().toLocaleTimeString();
       const line = `${timestamp}: ${msg}`;
-
       setLogs((prev) => [...prev.slice(-MAX_LOGS + 1), line]);
     };
 
     window.debugLog("DEBUG: DebugOverlay initialized");
   }, []);
 
-  // Auto-scroll
+  // Auto-scroll to bottom
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -36,16 +35,17 @@ export default function DebugOverlay({ pageName }) {
       ref={containerRef}
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)", // now ABOVE footer
+        bottom: "var(--footer-height)", // sits directly above footer
         left: 0,
         right: 0,
-        height: `${VISIBLE_LINES * 1.4}em`,
+        // +1 line of height so header + first log line are never clipped
+        height: `${(VISIBLE_LINES + 1) * 1.4}em`,
         background: "rgba(0,0,0,0.9)",
         color: "#0f0",
         fontSize: "0.8rem",
         overflowY: "auto",
-        padding: "4px 8px",
-        zIndex: 9999, // below miniplayer, above footer
+        padding: "6px 8px 4px 8px",
+        zIndex: 9999,
         borderTop: "1px solid #333",
       }}
     >
