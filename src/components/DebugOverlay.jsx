@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.2 — Extra top padding/height so first line is fully visible and copyable
+// PCC v3.3 — Guaranteed top-line visibility with blank spacer lines
 
 import { useEffect, useRef, useState } from "react";
 
@@ -10,7 +10,6 @@ export default function DebugOverlay({ pageName }) {
   const [logs, setLogs] = useState([]);
   const containerRef = useRef(null);
 
-  // Install global logger once
   useEffect(() => {
     window.debugLog = (msg) => {
       const timestamp = new Date().toLocaleTimeString();
@@ -21,7 +20,6 @@ export default function DebugOverlay({ pageName }) {
     window.debugLog("DEBUG: DebugOverlay initialized");
   }, []);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -35,20 +33,23 @@ export default function DebugOverlay({ pageName }) {
       ref={containerRef}
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)", // sits directly above footer
+        bottom: "var(--footer-height)",
         left: 0,
         right: 0,
-        // +1 line of height so header + first log line are never clipped
-        height: `${(VISIBLE_LINES + 1) * 1.4}em`,
+        height: `${(VISIBLE_LINES + 2) * 1.4}em`, // +2 lines
         background: "rgba(0,0,0,0.9)",
         color: "#0f0",
         fontSize: "0.8rem",
         overflowY: "auto",
-        padding: "6px 8px 4px 8px",
+        padding: "12px 8px 4px 8px", // more top padding
         zIndex: 9999,
         borderTop: "1px solid #333",
       }}
     >
+      {/* Spacer lines to guarantee visibility */}
+      <div style={{ height: "1.4em" }}></div>
+      <div style={{ height: "1.4em" }}></div>
+
       <div
         style={{
           display: "flex",
