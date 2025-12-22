@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v4.1 — Correct layout structure for footer + miniplayer + debug overlay
+// PCC v5.0 — Removes duplicate PlaylistProvider to restore footer rendering
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -16,7 +16,6 @@ import DebugOverlay from "./components/DebugOverlay";
 import Header from "./components/Header";
 import MiniPlayer from "./components/MiniPlayer";
 
-import { PlaylistProvider } from "./contexts/PlaylistContext";
 import { clearAllCaches } from "./utils/cacheManager";
 
 export default function App() {
@@ -70,7 +69,7 @@ export default function App() {
   };
 
   return (
-    <PlaylistProvider>
+    <>
       <BootSplash ready={ready} />
 
       {ready && (
@@ -78,7 +77,6 @@ export default function App() {
           <Header onSearch={handleSearch} />
           <DebugOverlay pageName="App" />
 
-          {/* Scrollable content area */}
           <div className="app-content">
             <Routes>
               <Route path="/" element={<Home searchQuery={searchQuery} />} />
@@ -99,7 +97,6 @@ export default function App() {
             </Routes>
           </div>
 
-          {/* Miniplayer sits ABOVE footer */}
           <MiniPlayer
             currentVideo={currentVideo}
             isPlaying={isPlaying}
@@ -107,10 +104,9 @@ export default function App() {
             onClose={closePlayer}
           />
 
-          {/* Footer sits at the bottom */}
           <Footer />
         </div>
       )}
-    </PlaylistProvider>
+    </>
   );
 }
