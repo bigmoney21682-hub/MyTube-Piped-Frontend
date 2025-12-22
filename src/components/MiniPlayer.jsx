@@ -1,5 +1,5 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v2.3 — Correct stacking order for footer + debug overlay
+// PCC v2.3 — Positioned above DebugOverlay, below header
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -18,14 +18,7 @@ export default function MiniPlayer({
   const log = (msg) => window.debugLog?.(`MiniPlayer: ${msg}`);
 
   useEffect(() => {
-    if (!currentVideo) {
-      log("No currentVideo, miniplayer hidden");
-      return;
-    }
-
-    log(
-      `currentVideo updated: id=${currentVideo.id || currentVideo.videoId || "unknown"}`
-    );
+    if (!currentVideo) return;
 
     if (currentVideo.snippet) {
       setTitle(currentVideo.snippet.title || "Unknown Video");
@@ -35,31 +28,25 @@ export default function MiniPlayer({
           currentVideo.snippet.thumbnails?.medium?.url ||
           ""
       );
-      return;
+    } else {
+      setTitle(currentVideo.title || "Unknown Video");
+      setChannel(currentVideo.author || "");
+      setThumbnail(currentVideo.thumbnail || "");
     }
-
-    setTitle(currentVideo.title || "Unknown Video");
-    setChannel(currentVideo.author || "");
-    setThumbnail(currentVideo.thumbnail || "");
   }, [currentVideo]);
 
   if (!currentVideo) return null;
 
   const handleClick = () => {
     const id = currentVideo.id || currentVideo.videoId;
-    if (!id) {
-      log("No valid id on currentVideo, cannot navigate to watch");
-      return;
-    }
-    log(`Navigating back to /watch/${id} from miniplayer`);
-    navigate(`/watch/${id}`);
+    if (id) navigate(`/watch/${id}`);
   };
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)",
+        bottom: "calc(var(--footer-height) + 84px)", // ABOVE debug overlay
         left: 0,
         right: 0,
         height: "68px",
@@ -68,7 +55,7 @@ export default function MiniPlayer({
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
-        zIndex: 1001, // footer=1000, debug=9999
+        zIndex: 10001, // above debug overlay
         boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
       }}
       onClick={handleClick}
@@ -113,7 +100,6 @@ export default function MiniPlayer({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          log(`Toggle play clicked, isPlaying=${isPlaying}`);
           onTogglePlay();
         }}
         style={{
@@ -131,7 +117,6 @@ export default function MiniPlayer({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          log("Close clicked, clearing currentVideo");
           onClose();
         }}
         style={{
