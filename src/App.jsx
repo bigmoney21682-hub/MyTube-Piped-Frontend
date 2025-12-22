@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v3.1 — Correct layout spacing for miniplayer + footer
+// PCC v4.0 — Correct layout structure for footer + miniplayer + debug overlay
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -74,17 +74,12 @@ export default function App() {
       <BootSplash ready={ready} />
 
       {ready && (
-        <>
+        <div className="app-root">
           <Header onSearch={handleSearch} />
           <DebugOverlay pageName="App" />
 
-          <div
-            style={{
-              paddingBottom: currentVideo
-                ? "calc(68px + var(--footer-height))"
-                : "var(--footer-height)",
-            }}
-          >
+          {/* Scrollable content area */}
+          <div className="app-content">
             <Routes>
               <Route path="/" element={<Home searchQuery={searchQuery} />} />
               <Route path="/playlists" element={<Playlists />} />
@@ -104,6 +99,7 @@ export default function App() {
             </Routes>
           </div>
 
+          {/* Miniplayer sits ABOVE footer */}
           <MiniPlayer
             currentVideo={currentVideo}
             isPlaying={isPlaying}
@@ -111,8 +107,9 @@ export default function App() {
             onClose={closePlayer}
           />
 
+          {/* Footer sits at the bottom */}
           <Footer />
-        </>
+        </div>
       )}
     </PlaylistProvider>
   );
