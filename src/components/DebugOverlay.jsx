@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v2.0 — Auto-scrolling, clearable, page-aware debug console
+// PCC v3.0 — Stacked above miniplayer, auto-scrolling, clearable
 
 import { useEffect, useRef, useState } from "react";
 
@@ -39,9 +39,14 @@ export default function DebugOverlay({ pageName }) {
 
   return (
     <div
+      ref={containerRef}
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)",
+        // IMPORTANT: sit ABOVE miniplayer, which is above footer
+        // Footer: bottom: 0, height: var(--footer-height)
+        // MiniPlayer: bottom: var(--footer-height), height: 68px
+        // DebugOverlay: above both
+        bottom: "calc(var(--footer-height) + 68px)",
         left: 0,
         right: 0,
         height: `${VISIBLE_LINES * 1.4}em`,
@@ -50,12 +55,11 @@ export default function DebugOverlay({ pageName }) {
         fontSize: "0.8rem",
         overflowY: "auto",
         padding: "4px 8px",
-        zIndex: 9999,
+        zIndex: 9999, // stays on top visually, but now *above* miniplayer
         pointerEvents: "auto",
         userSelect: "text",
         borderTop: "1px solid #333",
       }}
-      ref={containerRef}
     >
       {/* Header row */}
       <div
