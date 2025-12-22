@@ -1,29 +1,41 @@
 // File: src/components/DebugOverlay.jsx
+// PCC v2.0 — Auto-scrolling, clearable, page-aware debug console
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const MAX_LOGS = 200;
-const VISIBLE_LINES = 4;
+const MAX_LOGS = 300;
+const VISIBLE_LINES = 6;
 
-export default function DebugOverlay() {
+export default function DebugOverlay({ pageName }) {
   const [logs, setLogs] = useState([]);
+  const containerRef = useRef(null);
 
+  // Install global logger ONCE
   useEffect(() => {
-    // Install global logger ONCE
     window.debugLog = (msg) => {
-      setLogs((prev) => [
-        ...prev.slice(-MAX_LOGS + 1),
-        `${new Date().toLocaleTimeString()}: ${msg}`,
-      ]);
+      const timestamp = new Date().toLocaleTimeString();
+      const line = `${timestamp}: ${msg}`;
+
+      setLogs((prev) => {
+        const updated = [...prev.slice(-MAX_LOGS + 1), line];
+        return updated;
+      });
     };
 
     window.debugLog("DEBUG: DebugOverlay initialized");
-
-    return () => {
-      // Do NOT null this unless app fully unmounts
-      // (prevents navigation regressions)
-    };
   }, []);
+
+  // Auto-scroll to bottom when logs update
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    }
+  }, [logs]);
+
+  const clearLogs = () => {
+    setLogs([]);
+    window.debugLog("DEBUG: Logs cleared");
+  };
 
   return (
     <div
@@ -39,12 +51,40 @@ export default function DebugOverlay() {
         overflowY: "auto",
         padding: "4px 8px",
         zIndex: 9999,
-
-        // Critical: allow text selection but block clicks through
         pointerEvents: "auto",
         userSelect: "text",
+        borderTop: "1px solid #333",
       }}
+      ref={containerRef}
     >
+      {/* Header row */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          marginBottom: 4,
+          opacity: 0.8,
+        }}
+      >
+        <div>{pageName ? `Page: ${pageName}` : "Debug Console"}</div>
+
+        <button
+          onClick={clearLogs}
+          style={{
+            background: "none",
+            border: "1px solid #0f0",
+            color: "#0f0",
+            padding: "0 6px",
+            borderRadius: 4,
+            cursor: "pointer",
+            fontSize: "0.7rem",
+          }}
+        >
+          Clear
+        </button>
+      </div>
+
+      {/* Log lines */}
       {logs.map((log, i) => (
         <div key={i} style={{ whiteSpace: "pre-wrap", lineHeight: "1.4em" }}>
           {log}
