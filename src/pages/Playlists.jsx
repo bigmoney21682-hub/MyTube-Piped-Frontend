@@ -1,5 +1,5 @@
 // File: src/pages/Playlists.jsx
-// PCC v2.0 — Stable playlists grid with navigation + debug logs
+// PCC v2.1 — Strong debug logging for playlist list page
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,13 +13,16 @@ export default function Playlists() {
 
   // Log page mount
   useEffect(() => {
-    log("Page mounted");
+    log("Mounted");
   }, []);
 
   // Log playlist changes
   useEffect(() => {
-    log(`Playlists count = ${playlists?.length ?? 0}`);
-    log(JSON.stringify(playlists, null, 2));
+    log(`Playlists updated: count=${playlists?.length ?? 0}`);
+
+    playlists?.forEach((p, i) => {
+      log(`Playlist[${i}]: id=${p.id}, name="${p.name}", videos=${p.videos?.length ?? 0}`);
+    });
   }, [playlists]);
 
   const handleAdd = () => {
@@ -30,11 +33,11 @@ export default function Playlists() {
     if (!trimmed) return;
 
     const created = addPlaylist(trimmed);
-    log(`Created playlist "${trimmed}" with id=${created.id}`);
+    log(`Created playlist "${trimmed}" (id=${created.id})`);
   };
 
   const handleOpen = (id) => {
-    log(`Opening playlist ${id}`);
+    log(`Opening playlist id=${id}`);
     navigate(`/playlist/${id}`);
   };
 
@@ -79,7 +82,7 @@ export default function Playlists() {
             gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
             gap: "16px",
             padding: "1rem",
-            width: "100%", // Safari fix
+            width: "100%",
             boxSizing: "border-box",
           }}
         >
@@ -94,10 +97,6 @@ export default function Playlists() {
                   padding: "16px",
                   cursor: "pointer",
                   border: "1px solid #222",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  minHeight: 90,
                 }}
               >
                 <div
