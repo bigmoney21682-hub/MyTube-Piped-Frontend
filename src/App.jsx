@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v5.1 — Quiet debug logging, prevents persistent spam in DebugOverlay
+// PCC v5.2 — Uses PlayerContext instead of local player state
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -17,41 +17,40 @@ import Header from "./components/Header";
 import MiniPlayer from "./components/MiniPlayer";
 
 import { clearAllCaches } from "./utils/cacheManager";
+import { usePlayer } from "./contexts/PlayerContext";
 
 export default function App() {
   const [ready, setReady] = useState(false);
-
-  const [currentVideo, setCurrentVideo] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
   const [searchQuery, setSearchQuery] = useState("");
 
-  const navigate = useNavigate();
+  const { currentVideo, playing, setPlaying } = usePlayer();
 
+  const navigate = useNavigate();
   const log = (msg) => window.debugLog?.(`App: ${msg}`);
 
-  // Track previous values to prevent spam
   const prevVideoRef = useRef(null);
   const prevPlayingRef = useRef(null);
 
-  // Log only when currentVideo actually changes
   useEffect(() => {
     if (prevVideoRef.current !== currentVideo) {
       if (!currentVideo) log("currentVideo changed -> null");
-      else log(`currentVideo changed -> id=${currentVideo.id || currentVideo.videoId}`);
+      else
+        log(
+          `currentVideo changed -> id=${
+            currentVideo.id || currentVideo.id?.videoId
+          }`
+        );
       prevVideoRef.current = currentVideo;
     }
   }, [currentVideo]);
 
-  // Log only when isPlaying actually changes
   useEffect(() => {
-    if (prevPlayingRef.current !== isPlaying) {
-      log(`isPlaying changed -> ${isPlaying}`);
-      prevPlayingRef.current = isPlaying;
+    if (prevPlayingRef.current !== playing) {
+      log(`isPlaying changed -> ${playing}`);
+      prevPlayingRef.current = playing;
     }
-  }, [isPlaying]);
+  }, [playing]);
 
-  // Initial splash + optional cache clear
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 2000);
 
@@ -71,13 +70,13 @@ export default function App() {
   };
 
   const togglePlay = () => {
-    setIsPlaying((prev) => !prev);
+    setPlaying((prev) => !prev);
   };
 
   const closePlayer = () => {
     log("closePlayer -> clearing currentVideo");
-    setCurrentVideo(null);
-    setIsPlaying(false);
+    // we keep stop logic inside PlayerContext for next step
+    setPlaying(false);
   };
 
   return (
@@ -94,27 +93,12 @@ export default function App() {
               <Route path="/" element={<Home searchQuery={searchQuery} />} />
               <Route path="/playlists" element={<Playlists />} />
               <Route path="/playlist/:id" element={<Playlist />} />
-              <Route
-                path="/watch/:id"
-                element={
-                  <Watch
-                    currentVideo={currentVideo}
-                    setCurrentVideo={setCurrentVideo}
-                    isPlaying={isPlaying}
-                    setIsPlaying={setIsPlaying}
-                  />
-                }
-              />
+              <Route path="/watch/:id" element={<Watch />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Routes>
           </div>
 
-          <MiniPlayer
-            currentVideo={currentVideo}
-            isPlaying={isPlaying}
-            onTogglePlay={togglePlay}
-            onClose={closePlayer}
-          />
+          <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
 
           <Footer />
         </div>
