@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.4 — Extra spacer lines + padding to guarantee top log visibility
+// PCC v3.5 — Sits above MiniPlayer, fully visible
 
 import { useEffect, useRef, useState } from "react";
 
@@ -36,18 +36,17 @@ export default function DebugOverlay({ pageName }) {
         bottom: "var(--footer-height)",
         left: 0,
         right: 0,
-        // +3 extra lines worth of height to avoid any clipping
-        height: `${(VISIBLE_LINES + 3) * 1.4}em`,
+        height: `${(VISIBLE_LINES + 2) * 1.4}em`,
         background: "rgba(0,0,0,0.9)",
         color: "#0f0",
         fontSize: "0.8rem",
         overflowY: "auto",
-        padding: "18px 8px 4px 8px", // more top padding
-        zIndex: 9999,
+        padding: "18px 8px 4px 8px",
+        zIndex: 10001, // 🔼 above MiniPlayer now
         borderTop: "1px solid #333",
       }}
     >
-      {/* Spacer lines to guarantee real content is never hard against top edge */}
+      {/* Spacer lines so content isn't tight against the top */}
       <div style={{ height: "1.4em" }} />
       <div style={{ height: "1.4em" }} />
       <div style={{ height: "1.4em" }} />
