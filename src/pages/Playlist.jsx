@@ -1,5 +1,5 @@
 // File: src/pages/Playlist.jsx
-// FIXED: Reliable loading, no stale state, no missing functions
+// FIXED: Reliable loading + debug logs + no stale state
 
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -15,19 +15,31 @@ export default function Playlist() {
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Load playlist when playlists or id changes
+  // Debug log helper
+  const log = (msg) => window.debugLog?.(`Playlist(${id}): ${msg}`);
+
   useEffect(() => {
-    if (!playlists) return;
+    log("Page mounted");
+  }, []);
+
+  useEffect(() => {
+    log(`Playlists updated: count=${playlists.length}`);
+
+    if (playlists.length === 0) {
+      log("No playlists loaded yet, waiting...");
+      return;
+    }
 
     const found = playlists.find((p) => p.id === id);
 
     if (found) {
+      log(`Playlist found: ${found.name}`);
       setPlaylist(found);
-      setLoading(false);
-    } else if (playlists.length > 0) {
-      // Playlist not found but playlists loaded
-      setLoading(false);
+    } else {
+      log("Playlist NOT found");
     }
+
+    setLoading(false);
   }, [id, playlists]);
 
   if (loading) {
