@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v4.0 — Correct layout structure for footer + miniplayer + debug overlay
+// PCC v4.1 — Correct layout structure for footer + miniplayer + debug overlay
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
