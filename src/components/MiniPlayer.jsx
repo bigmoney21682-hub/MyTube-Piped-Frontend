@@ -1,6 +1,6 @@
 // File: src/components/MiniPlayer.jsx
 // Persistent miniplayer for background play support (Musi-style)
-// PCC v2.0 — Robust to mixed video shapes + debug logging
+// PCC v2.1 — Above debug overlay, robust to mixed video shapes, debug logging
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -72,7 +72,8 @@ export default function MiniPlayer({
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
-        zIndex: 999,
+        // Critical: above DebugOverlay (zIndex 9999)
+        zIndex: 10001,
         boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
       }}
       onClick={handleClick}
