@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v6.0 — Uses PlayerContext + GlobalPlayer for background audio
+// PCC v6.1 — DebugOverlay fixed for iOS, GlobalPlayer stable, layout preserved
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -84,27 +84,30 @@ export default function App() {
       <BootSplash ready={ready} />
 
       {ready && (
-        <div className="app-root">
-          <Header onSearch={handleSearch} />
+        <>
+          {/* DebugOverlay MUST be outside .app-root to avoid iOS clipping */}
           <DebugOverlay pageName="App" />
 
-          {/* Global audio engine — always mounted, no visible UI */}
-          <GlobalPlayer />
+          <div className="app-root">
+            <Header onSearch={handleSearch} />
 
-          <div className="app-content">
-            <Routes>
-              <Route path="/" element={<Home searchQuery={searchQuery} />} />
-              <Route path="/playlists" element={<Playlists />} />
-              <Route path="/playlist/:id" element={<Playlist />} />
-              <Route path="/watch/:id" element={<Watch />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Routes>
+            {/* Global audio engine — always mounted, no visible UI */}
+            <GlobalPlayer />
+
+            <div className="app-content">
+              <Routes>
+                <Route path="/" element={<Home searchQuery={searchQuery} />} />
+                <Route path="/playlists" element={<Playlists />} />
+                <Route path="/playlist/:id" element={<Playlist />} />
+                <Route path="/watch/:id" element={<Watch />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Routes>
+            </div>
+
+            <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
+            <Footer />
           </div>
-
-          <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
-
-          <Footer />
-        </div>
+        </>
       )}
     </>
   );
