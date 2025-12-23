@@ -1,23 +1,23 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v5.1 — Background audio engine with autonext, route-agnostic loading
+// PCC v6.0 — Single global YouTube iframe player (no Invidious, no <audio>)
+// Uses YouTube IFrame Player API as the sole playback engine.
 
-import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useEffect, useRef } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
 
-const INVIDIOUS_BASE = "https://yewtu.be";
-
 export default function GlobalPlayer() {
-  const { currentVideo, playing, playNext } = usePlayer();
-  const location = useLocation();
+  const {
+    currentVideo,
+    playing,
+    playNext,
+    setPlaying,
+  } = usePlayer();
 
-  const audioRef = useRef(null);
+  const containerRef = useRef(null);
+  const playerRef = useRef(null);
+  const apiReadyRef = useRef(false);
 
-  const [audioSrc, setAudioSrc] = useState(null);
-  const [sourceType, setSourceType] = useState("none");
-  const [loading, setLoading] = useState(false);
-
-  const log = (msg) => window.debugLog?.(`GlobalPlayer: ${msg}`);
+  const log = (msg) => window.debugLog?.(`GlobalPlayer(YT): ${msg}`);
 
   const getVideoId = (video) => {
     if (!video) return null;
@@ -28,244 +28,153 @@ export default function GlobalPlayer() {
 
   const videoId = getVideoId(currentVideo);
 
-  // Compute audioEnabled from global each render
-  const audioEnabled = window.__GLOBAL_AUDIO_ENABLED !== false;
-
-  // Log route changes (for visibility only)
-  useEffect(() => {
-    log(
-      `Route changed -> pathname=${location.pathname}, audioEnabled=${audioEnabled}, videoId=${videoId}`
-    );
-  }, [location.pathname, audioEnabled, videoId]);
-
   // -------------------------------
-  // Invidious stream loader
-  // -------------------------------
-  async function fetchInvidiousStreams(id) {
-    const url = `${INVIDIOUS_BASE}/api/v1/videos/${id}`;
-    log(`Loading new videoId=${id} -> trying Invidious: ${url}`);
-
-    try {
-      const res = await fetch(url);
-      const raw = await res.text();
-      log(`Invidious streams raw response (trimmed): ${raw.slice(0, 200)}...`);
-
-      let data;
-      try {
-        data = JSON.parse(raw);
-      } catch (err) {
-        log(`Invidious JSON parse error: ${err}`);
-        return null;
-      }
-
-      const adaptive = Array.isArray(data?.adaptiveFormats)
-        ? data.adaptiveFormats
-        : [];
-      const formats = Array.isArray(data?.formatStreams)
-        ? data.formatStreams
-        : [];
-
-      const audioOnly = adaptive.filter((f) =>
-        String(f.type || "").startsWith("audio/")
-      );
-      if (audioOnly.length > 0) {
-        const sorted = audioOnly.sort(
-          (a, b) => (b.bitrate || 0) - (a.bitrate || 0)
-        );
-        const best = sorted[0];
-        if (best?.url) {
-          log(
-            `Invidious audio-only available: ${audioOnly.length}, using bitrate=${best.bitrate}, itag=${best.itag}`
-          );
-          return best.url;
-        }
-      }
-
-      const withAudio = formats.filter((f) =>
-        String(f.type || "").includes("audio")
-      );
-      if (withAudio.length > 0) {
-        const best = withAudio[0];
-        if (best?.url) {
-          log(
-            `Invidious formatStreams with audio available: ${withAudio.length}, using itag=${best.itag}`
-          );
-          return best.url;
-        }
-      }
-
-      log("Invidious returned no usable audio streams");
-      return null;
-    } catch (err) {
-      log(`Invidious streams fetch exception: ${err}`);
-      return null;
-    }
-  }
-
-  // -------------------------------
-  // Load stream when video or audioEnabled changes
-  // (NOT when route changes)
+  // Load YouTube IFrame API once
   // -------------------------------
   useEffect(() => {
-    log(
-      `Loader effect fired -> audioEnabled=${audioEnabled}, videoId=${videoId}`
-    );
-
-    if (!audioEnabled) {
-      log("Audio engine disabled -> clearing audio");
-      setAudioSrc(null);
-      setSourceType("none");
+    if (window.YT && window.YT.Player) {
+      log("YouTube IFrame API already loaded");
+      apiReadyRef.current = true;
       return;
     }
+
+    if (window._ytApiLoading) {
+      log("YouTube IFrame API loading already in progress");
+      return;
+    }
+
+    log("Injecting YouTube IFrame API script");
+    window._ytApiLoading = true;
+
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName("script")[0];
+    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof prev === "function") prev();
+      log("YouTube IFrame API ready");
+      apiReadyRef.current = true;
+    };
+  }, []);
+
+  // -------------------------------
+  // Create the player once API is ready
+  // -------------------------------
+  useEffect(() => {
+    if (!apiReadyRef.current) return;
+    if (!containerRef.current) return;
+    if (playerRef.current) return;
+
+    log("Creating YouTube Player instance");
+
+    playerRef.current = new window.YT.Player(containerRef.current, {
+      width: "0",
+      height: "0",
+      videoId: null,
+      playerVars: {
+        autoplay: 0,
+        controls: 0,
+        rel: 0,
+        modestbranding: 1,
+        playsinline: 1,
+      },
+      events: {
+        onReady: () => {
+          log("YouTube player ready");
+        },
+        onStateChange: (event) => {
+          const state = event.data;
+          const YT = window.YT;
+          if (!YT) return;
+
+          if (state === YT.PlayerState.ENDED) {
+            log("Player state = ENDED -> autonext");
+            const next = playNext();
+            if (!next) {
+              log("No autonext target, stopping");
+            }
+          } else if (state === YT.PlayerState.PLAYING) {
+            log("Player state = PLAYING");
+            if (!playing) setPlaying(true);
+          } else if (state === YT.PlayerState.PAUSED) {
+            log("Player state = PAUSED");
+            if (playing) setPlaying(false);
+          }
+        },
+      },
+    });
+  }, [playNext, playing, setPlaying]);
+
+  // -------------------------------
+  // React to video changes
+  // -------------------------------
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player) return;
 
     if (!videoId) {
-      log("No currentVideo or invalid id -> stopping audio");
-      setAudioSrc(null);
-      setSourceType("none");
+      log("No videoId -> stopping player");
+      try {
+        player.stopVideo();
+      } catch (e) {
+        // ignore
+      }
       return;
     }
 
-    let cancelled = false;
-
-    async function loadStream() {
-      setLoading(true);
-      setAudioSrc(null);
-      setSourceType("none");
-
-      const invidiousUrl = await fetchInvidiousStreams(videoId);
-      if (cancelled) return;
-
-      if (invidiousUrl) {
-        setAudioSrc(invidiousUrl);
-        setSourceType("invidious");
-        setLoading(false);
-        return;
+    log(`Loading videoId=${videoId} into global player`);
+    try {
+      player.loadVideoById(videoId);
+      if (!playing) {
+        // If context says "not playing", pause immediately after load
+        player.pauseVideo();
       }
-
-      log("Falling back to YouTube iframe audio");
-      setAudioSrc(null);
-      setSourceType("youtube");
-      setLoading(false);
+    } catch (e) {
+      log(`Error loading videoId=${videoId}: ${e}`);
     }
-
-    loadStream();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [currentVideo, videoId, audioEnabled]); // <-- pathname removed
+  }, [videoId]);
 
   // -------------------------------
-  // Sync play/pause with context
+  // React to play/pause changes
   // -------------------------------
   useEffect(() => {
-    if (!audioEnabled) {
-      log("Audio engine disabled -> skipping play/pause sync");
+    const player = playerRef.current;
+    if (!player) return;
+
+    if (!videoId) {
+      log("No videoId while toggling play/pause, skipping");
       return;
     }
 
-    if (sourceType !== "invidious") {
-      log(
-        `Play/pause sync: sourceType=${sourceType} -> iframe/autoplay path or disabled`
-      );
-      return;
+    try {
+      if (playing) {
+        log("Context playing=true -> player.playVideo()");
+        player.playVideo();
+      } else {
+        log("Context playing=false -> player.pauseVideo()");
+        player.pauseVideo();
+      }
+    } catch (e) {
+      log(`Error syncing play/pause: ${e}`);
     }
+  }, [playing, videoId]);
 
-    const audio = audioRef.current;
-    if (!audio) {
-      log("No audio element yet for Invidious, skipping play/pause sync");
-      return;
-    }
-    if (!audioSrc) {
-      log("No audioSrc set for Invidious, skipping play/pause sync");
-      return;
-    }
-
-    if (playing) {
-      audio
-        .play()
-        .then(() => log("Audio play() resolved (Invidious)"))
-        .catch((err) => log(`Audio play() error (Invidious): ${err}`));
-    } else {
-      audio.pause();
-      log("Audio paused due to playing=false (Invidious)");
-    }
-  }, [playing, audioSrc, sourceType, audioEnabled]);
-
-  // -------------------------------
-  // Autonext handling
-  // -------------------------------
-  const handleEnded = () => {
-    log("Audio ended -> calling playNext()");
-    const next = playNext();
-
-    if (!next) {
-      log("playNext() returned null -> no autonext");
-      return;
-    }
-
-    const nextId =
-      typeof next.id === "string"
-        ? next.id
-        : typeof next.id?.videoId === "string"
-        ? next.id.videoId
-        : null;
-
-    if (!nextId) {
-      log("Autonext video has no valid id, aborting navigation");
-      return;
-    }
-
-    if (window.location.pathname.startsWith("/watch")) {
-      log(`Autonext navigating to /watch/${nextId}`);
-      window.location.href = `/watch/${nextId}`;
-    } else {
-      log("Autonext in background mode (not on /watch) -> audio only");
-    }
-  };
-
-  if (!audioEnabled) {
-    return null;
-  }
-
+  // Hidden player container
   return (
-    <>
-      {sourceType === "invidious" && audioSrc && (
-        <audio
-          ref={audioRef}
-          src={audioSrc}
-          autoPlay={playing}
-          onEnded={handleEnded}
-          onError={(e) => {
-            const msg =
-              e?.message ||
-              (e?.target && e.target.error && e.target.error.code) ||
-              "unknown";
-            log(
-              `Audio element error (Invidious) -> falling back to YouTube: ${msg}`
-            );
-            setSourceType("youtube");
-            setAudioSrc(null);
-          }}
-        />
-      )}
-
-      {sourceType === "youtube" && videoId && playing && (
-        <iframe
-          key={`${videoId}-playing`}
-          title="Global YouTube audio fallback"
-          src={`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=0`}
-          style={{
-            position: "fixed",
-            width: 0,
-            height: 0,
-            border: "none",
-            opacity: 0,
-            pointerEvents: "none",
-          }}
-          allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
-        />
-      )}
-    </>
+    <div
+      style={{
+        position: "fixed",
+        width: 0,
+        height: 0,
+        overflow: "hidden",
+        opacity: 0,
+        pointerEvents: "none",
+        zIndex: -1,
+      }}
+    >
+      <div id="yt-global-player" ref={containerRef} />
+    </div>
   );
 }
