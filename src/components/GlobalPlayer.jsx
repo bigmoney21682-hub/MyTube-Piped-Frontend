@@ -1,8 +1,10 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v2.0 — Robust global audio engine (Piped -> YouTube fallback, auto-next, toggle-safe)
+// PCC v3.0 — Robust global audio engine (Invidious -> YouTube fallback, auto-next, toggle-safe)
 
 import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
+
+const INVIDIOUS_BASE = "https://yewtu.be";
 
 export default function GlobalPlayer() {
   const { currentVideo, playing, playNext } = usePlayer();
@@ -24,6 +26,77 @@ export default function GlobalPlayer() {
 
   const videoId = getVideoId(currentVideo);
 
+  // -------------------------------
+  // Invidious stream loader
+  // -------------------------------
+  async function fetchInvidiousStreams(id) {
+    const url = `${INVIDIOUS_BASE}/api/v1/videos/${id}`;
+    log(`Loading new videoId=${id} -> trying Invidious: ${url}`);
+
+    try {
+      const res = await fetch(url);
+      const raw = await res.text();
+      log(`Invidious streams raw response (trimmed): ${raw.slice(0, 200)}...`);
+
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (err) {
+        log(`Invidious JSON parse error: ${err}`);
+        return null;
+      }
+
+      // Prefer adaptiveFormats (audio-only), then formatStreams
+      const adaptive = Array.isArray(data?.adaptiveFormats)
+        ? data.adaptiveFormats
+        : [];
+      const formats = Array.isArray(data?.formatStreams)
+        ? data.formatStreams
+        : [];
+
+      // Pick best audio from adaptiveFormats
+      const audioOnly = adaptive.filter((f) =>
+        String(f.type || "").startsWith("audio/")
+      );
+      if (audioOnly.length > 0) {
+        // Choose highest bitrate if available, else first
+        const sorted = audioOnly.sort(
+          (a, b) => (b.bitrate || 0) - (a.bitrate || 0)
+        );
+        const best = sorted[0];
+        if (best?.url) {
+          log(
+            `Invidious audio-only available: ${audioOnly.length}, using bitrate=${best.bitrate}, itag=${best.itag}`
+          );
+          return best.url;
+        }
+      }
+
+      // Fallback: pick any formatStream with audio
+      const withAudio = formats.filter((f) =>
+        String(f.type || "").includes("audio")
+      );
+      if (withAudio.length > 0) {
+        const best = withAudio[0];
+        if (best?.url) {
+          log(
+            `Invidious formatStreams with audio available: ${withAudio.length}, using itag=${best.itag}`
+          );
+          return best.url;
+        }
+      }
+
+      log("Invidious returned no usable audio streams");
+      return null;
+    } catch (err) {
+      log(`Invidious streams fetch exception: ${err}`);
+      return null;
+    }
+  }
+
+  // -------------------------------
+  // Load stream whenever videoId changes
+  // -------------------------------
   useEffect(() => {
     if (!videoId) {
       log("No currentVideo or invalid id -> stopping audio");
@@ -39,41 +112,18 @@ export default function GlobalPlayer() {
       setAudioSrc(null);
       setSourceType("none");
 
-      const pipedUrl = `https://pipedapi.kavin.rocks/streams/${videoId}`;
-      log(`Loading new videoId=${videoId} -> trying Piped: ${pipedUrl}`);
+      // 1) Try Invidious audio
+      const invidiousUrl = await fetchInvidiousStreams(videoId);
+      if (cancelled) return;
 
-      try {
-        const res = await fetch(pipedUrl);
-        const raw = await res.text();
-        log(`Piped streams raw response (trimmed): ${raw.slice(0, 200)}...`);
-
-        if (cancelled) return;
-
-        let data;
-        try {
-          data = JSON.parse(raw);
-        } catch (err) {
-          log(`Piped JSON parse error: ${err}`);
-          data = null;
-        }
-
-        const audioStreams = data?.audioStreams;
-        if (Array.isArray(audioStreams) && audioStreams.length > 0) {
-          const best = audioStreams[0];
-          log(
-            `Piped audioStreams available: ${audioStreams.length}, using bitrate=${best.bitrate}, codec=${best.codec}`
-          );
-          setAudioSrc(best.url);
-          setSourceType("piped");
-          setLoading(false);
-          return;
-        } else {
-          log("Piped returned no audioStreams, falling back to YouTube");
-        }
-      } catch (err) {
-        log(`Piped streams fetch exception: ${err}`);
+      if (invidiousUrl) {
+        setAudioSrc(invidiousUrl);
+        setSourceType("invidious");
+        setLoading(false);
+        return;
       }
 
+      // 2) Fallback to YouTube iframe
       log("Falling back to YouTube iframe audio");
       setAudioSrc(null);
       setSourceType("youtube");
@@ -87,13 +137,16 @@ export default function GlobalPlayer() {
     };
   }, [videoId]);
 
+  // -------------------------------
+  // Sync play/pause with context
+  // -------------------------------
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) {
       log("No audio element yet, skipping play/pause sync");
       return;
     }
-    if (!audioSrc || sourceType !== "piped") {
+    if (!audioSrc || sourceType !== "invidious") {
       log(
         `Play/pause sync: sourceType=${sourceType}, audioSrc=${!!audioSrc} -> skipping audio control`
       );
@@ -104,14 +157,14 @@ export default function GlobalPlayer() {
       audio
         .play()
         .then(() => {
-          log("Audio play() resolved (Piped)");
+          log("Audio play() resolved (Invidious)");
         })
         .catch((err) => {
-          log(`Audio play() error (Piped): ${err}`);
+          log(`Audio play() error (Invidious): ${err}`);
         });
     } else {
       audio.pause();
-      log("Audio paused due to playing=false (Piped)");
+      log("Audio paused due to playing=false (Invidious)");
     }
   }, [playing, audioSrc, sourceType]);
 
@@ -122,21 +175,28 @@ export default function GlobalPlayer() {
 
   return (
     <>
-      {sourceType === "piped" && audioSrc && (
+      {/* Invidious audio element */}
+      {sourceType === "invidious" && audioSrc && (
         <audio
           ref={audioRef}
           src={audioSrc}
           autoPlay={playing}
           onEnded={handleEnded}
           onError={(e) => {
-            const msg = e?.message || (e?.target && e.target.error?.code) || "unknown";
-            log(`Audio element error (Piped) -> falling back to YouTube: ${msg}`);
+            const msg =
+              e?.message ||
+              (e?.target && e.target.error && e.target.error.code) ||
+              "unknown";
+            log(
+              `Audio element error (Invidious) -> falling back to YouTube: ${msg}`
+            );
             setSourceType("youtube");
             setAudioSrc(null);
           }}
         />
       )}
 
+      {/* YouTube iframe fallback (audio via hidden video) */}
       {sourceType === "youtube" && videoId && playing && (
         <iframe
           key={`${videoId}-playing`}
