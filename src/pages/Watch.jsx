@@ -1,38 +1,26 @@
 // File: src/pages/Watch.jsx
-// PCC v6.1 — Adds sourceUsed debug tag + unified fallback chain
+// PCC v7.0 — Invidious primary, YouTube fallback, sourceUsed debug
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import DebugOverlay from "../components/DebugOverlay";
 import { usePlayer } from "../contexts/PlayerContext";
 
+const INVIDIOUS_BASE = "https://yewtu.be";
+
 export default function Watch() {
   const { id } = useParams();
   const { playVideo } = usePlayer();
 
   const [video, setVideo] = useState(null);
-  const [related, setRelated] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sourceUsed, setSourceUsed] = useState(null);
 
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
-  async function fetchFromPiped(path) {
-    const url = `https://pipedapi.kavin.rocks${path}`;
-    log(`Trying Piped: ${url}`);
-
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (err) {
-      log(`Piped failed: ${err}`);
-      return null;
-    }
-  }
-
-  async function fetchFromInvidious(path) {
-    const url = `https://yewtu.be${path}`;
+  // Invidious video details
+  async function fetchFromInvidious(id) {
+    const url = `${INVIDIOUS_BASE}/api/v1/videos/${id}`;
     log(`Trying Invidious: ${url}`);
 
     try {
@@ -45,6 +33,7 @@ export default function Watch() {
     }
   }
 
+  // YouTube fallback
   async function fetchFromYouTube(id) {
     log("Fallback → YouTube API");
 
@@ -60,36 +49,58 @@ export default function Watch() {
     }
   }
 
+  // Normalize into a shape GlobalPlayer already understands
+  const normalizeVideo = (v) => {
+    if (!v) return null;
+
+    // Invidious shape
+    if (v.videoId || v.formatStreams || v.adaptiveFormats) {
+      return {
+        id: v.videoId || id,
+        title: v.title,
+        author: v.author,
+        description: v.description,
+        // Let GlobalPlayer handle picking the right stream; we just pass raw
+        invidious: v,
+      };
+    }
+
+    // YouTube API shape
+    if (v.id && v.snippet) {
+      return {
+        id: typeof v.id === "string" ? v.id : v.id.videoId,
+        title: v.snippet.title,
+        author: v.snippet.channelTitle,
+        description: v.snippet.description,
+        youtube: v,
+      };
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     async function load() {
       setLoading(true);
+      setSourceUsed(null);
 
-      let v = null;
-
-      // 1) Piped
-      const piped = await fetchFromPiped(`/streams/${id}`);
-      if (piped?.title) {
-        setSourceUsed("PIPED");
-        v = piped;
+      let raw = await fetchFromInvidious(id);
+      if (raw && raw.title) {
+        setSourceUsed("INVIDIOUS");
+      } else {
+        raw = await fetchFromYouTube(id);
+        if (raw) setSourceUsed("YOUTUBE_API");
       }
 
-      // 2) Invidious
-      if (!v) {
-        const inv = await fetchFromInvidious(`/api/v1/videos/${id}`);
-        if (inv?.title) {
-          setSourceUsed("INVIDIOUS");
-          v = inv;
-        }
-      }
+      const normalized = normalizeVideo(raw);
+      setVideo(normalized);
 
-      // 3) YouTube API
-      if (!v) {
-        setSourceUsed("YOUTUBE_API");
-        v = await fetchFromYouTube(id);
+      if (normalized) {
+        log(`Calling playVideo for id=${normalized.id}`);
+        playVideo(normalized);
+      } else {
+        log("No video data available after all fallbacks");
       }
-
-      setVideo(v);
-      if (v) playVideo(v);
 
       setLoading(false);
     }
@@ -97,21 +108,31 @@ export default function Watch() {
     load();
   }, [id]);
 
-  if (loading)
+  if (loading) {
     return (
       <>
         <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
         <p style={{ color: "#fff", padding: 16 }}>Loading…</p>
       </>
     );
+  }
+
+  if (!video) {
+    return (
+      <>
+        <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
+        <p style={{ color: "#fff", padding: 16 }}>Unable to load this video.</p>
+      </>
+    );
+  }
 
   return (
     <>
       <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
 
       <div style={{ padding: 16, color: "#fff" }}>
-        <h2>{video?.title}</h2>
-        <p>{video?.author}</p>
+        <h2>{video.title}</h2>
+        <p style={{ opacity: 0.7 }}>{video.author}</p>
       </div>
     </>
   );
