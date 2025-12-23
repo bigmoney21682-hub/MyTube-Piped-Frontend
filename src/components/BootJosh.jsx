@@ -1,7 +1,8 @@
 // File: src/components/BootJosh.jsx
-// PCC v1.1 — Secondary splash screen with GIF + title + load logging
+// PCC v2.0 — Secondary splash screen with imported GIF + title + load logging
 
 import { useEffect, useState } from "react";
+import JoshGif from "../assets/Josh.GIF";
 
 export default function BootJosh({ onDone }) {
   const [visible, setVisible] = useState(true);
@@ -33,15 +34,15 @@ export default function BootJosh({ onDone }) {
       }}
     >
       <img
-        src="/Josh.GIF"
+        src={JoshGif}
         alt="BootJosh"
         style={{
           width: 180,
           height: "auto",
           marginBottom: 40,
         }}
-        onLoad={() => log("GIF loaded successfully (/Josh.GIF)")}
-        onError={() => log("GIF FAILED to load from /Josh.GIF")}
+        onLoad={() => log("GIF loaded successfully (imported Josh.GIF)")}
+        onError={() => log("GIF FAILED to load from imported Josh.GIF")}
       />
 
       <div
