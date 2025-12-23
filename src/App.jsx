@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v6.1 — DebugOverlay fixed for iOS, GlobalPlayer stable, layout preserved
+// PCC v7.0 — BootSplash + BootJosh + Restored DebugOverlay placement
 
 import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -11,6 +11,7 @@ import SettingsPage from "./pages/SettingsPage";
 import Watch from "./pages/Watch";
 
 import BootSplash from "./components/BootSplash";
+import BootJosh from "./components/BootJosh";   // ⭐ NEW
 import Footer from "./components/Footer";
 import DebugOverlay from "./components/DebugOverlay";
 import Header from "./components/Header";
@@ -22,6 +23,7 @@ import { usePlayer } from "./contexts/PlayerContext";
 
 export default function App() {
   const [ready, setReady] = useState(false);
+  const [joshDone, setJoshDone] = useState(false);   // ⭐ NEW
   const [searchQuery, setSearchQuery] = useState("");
 
   const { currentVideo, playing, setPlaying, stopVideo } = usePlayer();
@@ -81,17 +83,19 @@ export default function App() {
 
   return (
     <>
+      {/* First splash */}
       <BootSplash ready={ready} />
 
-      {ready && (
-        <>
-          {/* DebugOverlay MUST be outside .app-root to avoid iOS clipping */}
-          <DebugOverlay pageName="App" />
+      {/* Second splash (BootJosh) */}
+      {ready && !joshDone && <BootJosh onDone={() => setJoshDone(true)} />}
 
+      {/* Main app */}
+      {ready && joshDone && (
+        <>
           <div className="app-root">
             <Header onSearch={handleSearch} />
 
-            {/* Global audio engine — always mounted, no visible UI */}
+            {/* Global audio engine — always mounted */}
             <GlobalPlayer />
 
             <div className="app-content">
@@ -104,7 +108,12 @@ export default function App() {
               </Routes>
             </div>
 
+            {/* MiniPlayer stays above DebugOverlay */}
             <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
+
+            {/* ⭐ Restored original placement: full-width bottom debug console */}
+            <DebugOverlay pageName="App" />
+
             <Footer />
           </div>
         </>
