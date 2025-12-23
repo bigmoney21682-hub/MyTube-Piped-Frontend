@@ -1,9 +1,10 @@
 // File: src/pages/Home.jsx
-// PCC v8.0 — YouTube API only, clean normalization, sourceUsed debug
+// PCC v9.0 — YouTube API only + in-memory caching
 
 import { useEffect, useState } from "react";
 import VideoCard from "../components/VideoCard";
 import DebugOverlay from "../components/DebugOverlay";
+import { getCached, setCached } from "../utils/youtubeCache";
 
 export default function Home({ searchQuery }) {
   const [videos, setVideos] = useState([]);
@@ -17,26 +18,20 @@ export default function Home({ searchQuery }) {
   // -------------------------------
   const getId = (item) => {
     if (!item) return null;
-
-    // YouTube trending: id is string
     if (typeof item.id === "string") return item.id;
-
-    // YouTube search: id.videoId
     if (typeof item.id?.videoId === "string") return item.id.videoId;
-
     return null;
   };
 
   const getThumbnail = (item) => {
-    if (!item) return null;
-
-    const thumbs = item.snippet?.thumbnails;
-    if (thumbs?.maxres?.url) return thumbs.maxres.url;
-    if (thumbs?.high?.url) return thumbs.high.url;
-    if (thumbs?.medium?.url) return thumbs.medium.url;
-    if (thumbs?.default?.url) return thumbs.default.url;
-
-    return null;
+    const t = item.snippet?.thumbnails;
+    return (
+      t?.maxres?.url ||
+      t?.high?.url ||
+      t?.medium?.url ||
+      t?.default?.url ||
+      null
+    );
   };
 
   const normalizeItem = (item) => {
@@ -53,13 +48,17 @@ export default function Home({ searchQuery }) {
   };
 
   // -------------------------------
-  // YouTube API fetchers
+  // YouTube API fetchers (with caching)
   // -------------------------------
   async function fetchFromYouTubeTrending() {
     const apiKey = window.YT_API_KEY;
-    if (!apiKey) {
-      log("ERROR: No YT_API_KEY found on window for trending");
-      return [];
+    const cacheKey = "trending_US";
+
+    const cached = getCached(cacheKey);
+    if (cached) {
+      log("DEBUG: Using cached trending");
+      setSourceUsed("CACHE");
+      return cached;
     }
 
     log("DEBUG: Fetching trending via YouTube API");
@@ -80,6 +79,7 @@ export default function Home({ searchQuery }) {
         return [];
       }
 
+      setCached(cacheKey, data.items);
       setSourceUsed("YOUTUBE_API");
       return data.items;
     } catch (err) {
@@ -90,13 +90,15 @@ export default function Home({ searchQuery }) {
 
   async function fetchFromYouTubeSearch(query) {
     const apiKey = window.YT_API_KEY;
-    if (!apiKey) {
-      log("ERROR: No YT_API_KEY found on window for search");
-      return [];
-    }
-
     const q = query.trim();
-    if (!q) return [];
+    const cacheKey = `search_${q.toLowerCase()}`;
+
+    const cached = getCached(cacheKey);
+    if (cached) {
+      log(`DEBUG: Using cached search for "${q}"`);
+      setSourceUsed("CACHE");
+      return cached;
+    }
 
     log(`DEBUG: Searching via YouTube API for "${q}"`);
 
@@ -118,6 +120,7 @@ export default function Home({ searchQuery }) {
         return [];
       }
 
+      setCached(cacheKey, data.items);
       setSourceUsed("YOUTUBE_API");
       return data.items;
     } catch (err) {
@@ -137,21 +140,16 @@ export default function Home({ searchQuery }) {
 
       let items = [];
 
-      // SEARCH MODE
       if (searchQuery && searchQuery.trim().length > 0) {
         const q = searchQuery.trim();
         log(`DEBUG: Searching for "${q}"`);
-
         items = await fetchFromYouTubeSearch(q);
-        log(`DEBUG: Search returned ${items.length} raw items`);
-      }
-
-      // TRENDING MODE
-      else {
+      } else {
         log("DEBUG: Fetching trending");
         items = await fetchFromYouTubeTrending();
-        log(`DEBUG: Trending returned ${items.length} raw items`);
       }
+
+      log(`DEBUG: Raw items = ${items.length}`);
 
       const normalized = items.map(normalizeItem).filter(Boolean);
       log(`DEBUG: Normalized to ${normalized.length} videos`);
