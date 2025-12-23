@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.7 — Restored bottom console, scroll logs, Clear button, [SOURCE] tag (Option A)
+// PCC v3.8 — zIndex fix so overlay appears above BootJosh
 
 import { useEffect, useRef, useState } from "react";
 
@@ -35,7 +35,7 @@ export default function DebugOverlay({ pageName, sourceUsed }) {
       ref={containerRef}
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)", // ⭐ sits above footer
+        bottom: "var(--footer-height)", // sits above footer
         left: 0,
         right: 0,
 
@@ -46,7 +46,10 @@ export default function DebugOverlay({ pageName, sourceUsed }) {
         fontSize: "0.8rem",
         overflowY: "auto",
         padding: "6px 8px 4px 8px",
-        zIndex: 10001, // stays above MiniPlayer
+
+        // ⭐ FIX: ensure overlay is above BootJosh
+        zIndex: 9999999,
+
         borderTop: "1px solid #333",
       }}
     >
