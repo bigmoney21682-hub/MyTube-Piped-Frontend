@@ -1,22 +1,35 @@
 // File: src/pages/Watch.jsx
-// PCC v8.1 — Correct thumbnail rendering + sourceUsed debug + stable normalization
+// PCC v9.0 — Thumbnail → radial MyTube play button → full player (iOS-safe) + sourceUsed debug
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import DebugOverlay from "../components/DebugOverlay";
+import Player from "../components/Player";
 import { usePlayer } from "../contexts/PlayerContext";
 
 const INVIDIOUS_BASE = "https://yewtu.be";
 
 export default function Watch() {
   const { id } = useParams();
-  const { playVideo } = usePlayer();
+  const { playVideo, playing } = usePlayer();
 
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sourceUsed, setSourceUsed] = useState(null);
+  const [showPlayer, setShowPlayer] = useState(false);
 
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
+
+  // Disable GlobalPlayer while Watch is active
+  useEffect(() => {
+    window.__GLOBAL_AUDIO_ENABLED = false;
+    log("Global audio engine disabled for Watch page");
+
+    return () => {
+      window.__GLOBAL_AUDIO_ENABLED = true;
+      log("Global audio engine re-enabled after leaving Watch page");
+    };
+  }, []);
 
   // -------------------------------
   // Fetchers
@@ -129,6 +142,7 @@ export default function Watch() {
     async function load() {
       setLoading(true);
       setSourceUsed(null);
+      setShowPlayer(false);
 
       let raw = await fetchFromInvidious(id);
       if (raw && raw.title) {
@@ -143,11 +157,10 @@ export default function Watch() {
       const normalized = normalizeVideo(raw);
       setVideo(normalized);
 
-      if (normalized) {
-        log(`Calling playVideo for id=${normalized.id}`);
-        playVideo(normalized);
-      } else {
+      if (!normalized) {
         log("No video data available after all fallbacks");
+      } else {
+        log(`Normalized video ready with id=${normalized.id}`);
       }
 
       setLoading(false);
@@ -155,6 +168,28 @@ export default function Watch() {
 
     load();
   }, [id]);
+
+  // -------------------------------
+  // Derived embed URL
+  // -------------------------------
+  const embedUrl =
+    video && video.id
+      ? `https://www.youtube-nocookie.com/embed/${video.id}?autoplay=1&controls=0&rel=0&modestbranding=1&playsinline=1`
+      : null;
+
+  // -------------------------------
+  // Handlers
+  // -------------------------------
+  const handlePlayClick = () => {
+    if (!video) {
+      log("Play clicked but no video loaded");
+      return;
+    }
+
+    log(`Play clicked -> calling playVideo for id=${video.id}`);
+    playVideo(video);
+    setShowPlayer(true);
+  };
 
   // -------------------------------
   // Render
@@ -182,18 +217,91 @@ export default function Watch() {
       <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
 
       <div style={{ padding: 16, color: "#fff" }}>
-        {/* ⭐ FIX: Thumbnail now displays */}
-        {video.thumbnail && (
-          <img
-            src={video.thumbnail}
-            alt={video.title}
-            style={{
-              width: "100%",
-              borderRadius: 12,
-              marginBottom: 16,
-            }}
-          />
-        )}
+        {/* Video area: thumbnail → Play button → Player */}
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            paddingTop: "56.25%", // 16:9
+            borderRadius: 12,
+            overflow: "hidden",
+            background: "#000",
+            marginBottom: 16,
+          }}
+        >
+          {/* When player is active */}
+          {showPlayer && embedUrl ? (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+              }}
+            >
+              <Player embedUrl={embedUrl} playing={playing} />
+            </div>
+          ) : (
+            <>
+              {/* Thumbnail */}
+              {video.thumbnail && (
+                <img
+                  src={video.thumbnail}
+                  alt={video.title}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              )}
+
+              {/* Radial MyTube-orange Play button */}
+              <button
+                onClick={handlePlayClick}
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: "translate(-50%, -50%)",
+                  width: 80,
+                  height: 80,
+                  borderRadius: "50%",
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  background:
+                    "radial-gradient(circle, #ffdc99, #ff8c00, #ff4500, #ff0000)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.6)",
+                  transition: "transform 0.15s ease, opacity 0.15s ease",
+                  opacity: 0.95,
+                }}
+                onMouseDown={(e) => {
+                  e.currentTarget.style.transform =
+                    "translate(-50%, -50%) scale(0.95)";
+                  e.currentTarget.style.opacity = "0.9";
+                }}
+                onMouseUp={(e) => {
+                  e.currentTarget.style.transform =
+                    "translate(-50%, -50%) scale(1)";
+                  e.currentTarget.style.opacity = "0.95";
+                }}
+              >
+                <span
+                  style={{
+                    color: "#fff",
+                    fontSize: 30,
+                    marginLeft: 4, // nudge right to center triangle optically
+                  }}
+                >
+                  ▶
+                </span>
+              </button>
+            </>
+          )}
+        </div>
 
         <h2>{video.title}</h2>
         <p style={{ opacity: 0.7 }}>{video.author}</p>
