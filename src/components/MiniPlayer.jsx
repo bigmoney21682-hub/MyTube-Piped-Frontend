@@ -1,5 +1,5 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v3.0 — Visual miniplayer, now controlling GlobalPlayer audio
+// PCC v3.1 — Visual miniplayer, now logging the *new* play state
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -40,10 +40,12 @@ export default function MiniPlayer({ onTogglePlay, onClose }) {
       typeof currentVideo.id === "string"
         ? currentVideo.id
         : currentVideo.id?.videoId;
+
     if (!id) {
       log("No valid id on currentVideo, cannot navigate to watch");
       return;
     }
+
     log(`Navigating back to /watch/${id} from miniplayer`);
     navigate(`/watch/${id}`);
   };
@@ -61,7 +63,7 @@ export default function MiniPlayer({ onTogglePlay, onClose }) {
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
-        zIndex: 9998, // below DebugOverlay
+        zIndex: 9998,
         boxShadow: "0 -4px 12px rgba(0,0,0,0.5)",
       }}
       onClick={handleClick}
@@ -106,7 +108,8 @@ export default function MiniPlayer({ onTogglePlay, onClose }) {
       <button
         onClick={(e) => {
           e.stopPropagation();
-          log(`Toggle play clicked, playing=${playing}`);
+          const newState = !playing;
+          log(`Toggle play clicked -> newPlaying=${newState}`);
           onTogglePlay();
         }}
         style={{
