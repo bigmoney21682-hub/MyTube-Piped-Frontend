@@ -1,5 +1,5 @@
 // File: src/components/Player.jsx
-// PCC v4.0 — YouTube-style gestures + MyTube gradient UI + PlayerContext integration
+// PCC v4.1 — Fixed center button (setPlaying), correct ⏯ icon, stable gestures
 
 import React, {
   forwardRef,
@@ -12,7 +12,7 @@ import ReactPlayer from "react-player";
 import { usePlayer } from "../contexts/PlayerContext";
 
 const Player = forwardRef(({ embedUrl, playing, onEnded }, ref) => {
-  const { playPrev, playNext, seekRelative } = usePlayer();
+  const { playPrev, playNext, seekRelative, setPlaying } = usePlayer();
 
   const [hasStarted, setHasStarted] = useState(false);
   const [tapOverlayVisible, setTapOverlayVisible] = useState(false);
@@ -115,11 +115,7 @@ const Player = forwardRef(({ embedUrl, playing, onEnded }, ref) => {
   }, [ref, playPrev, seekRelative]);
 
   const handlePlayPause = () => {
-    // Center button toggles play/pause
-    const { setPlaying } = usePlayer.getState
-      ? usePlayer.getState()
-      : { setPlaying: null };
-    if (setPlaying) setPlaying((p) => !p);
+    setPlaying((p) => !p);
   };
 
   const handleNext = () => playNext();
@@ -210,7 +206,7 @@ const Player = forwardRef(({ embedUrl, playing, onEnded }, ref) => {
 
           {/* Play / Pause */}
           <div style={circleStyle} onClick={handlePlayPause}>
-            {playing ? "⏸" : "▶️"}
+            ⏯️
           </div>
 
           {/* Next */}
