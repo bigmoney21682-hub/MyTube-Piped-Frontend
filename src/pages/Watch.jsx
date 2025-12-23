@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v8.0 — Invidious primary, YouTube fallback, correct thumbnails, sourceUsed debug
+// PCC v8.1 — Correct thumbnail rendering + sourceUsed debug + stable normalization
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -51,7 +51,7 @@ export default function Watch() {
   }
 
   // -------------------------------
-  // Thumbnail resolver (same as Home)
+  // Thumbnail resolver
   // -------------------------------
   const getThumbnail = (v) => {
     if (!v) return null;
@@ -83,7 +83,7 @@ export default function Watch() {
   };
 
   // -------------------------------
-  // Normalizer (same shape as Home)
+  // Normalizer
   // -------------------------------
   const normalizeVideo = (v) => {
     if (!v) return null;
@@ -182,6 +182,19 @@ export default function Watch() {
       <DebugOverlay pageName="Watch" sourceUsed={sourceUsed} />
 
       <div style={{ padding: 16, color: "#fff" }}>
+        {/* ⭐ FIX: Thumbnail now displays */}
+        {video.thumbnail && (
+          <img
+            src={video.thumbnail}
+            alt={video.title}
+            style={{
+              width: "100%",
+              borderRadius: 12,
+              marginBottom: 16,
+            }}
+          />
+        )}
+
         <h2>{video.title}</h2>
         <p style={{ opacity: 0.7 }}>{video.author}</p>
       </div>
