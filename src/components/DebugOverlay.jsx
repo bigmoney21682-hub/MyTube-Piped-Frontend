@@ -1,15 +1,16 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.6 — Compact height so MiniPlayer is fully visible
+// PCC v3.7 — Restored bottom console, scroll logs, Clear button, [SOURCE] tag (Option A)
 
 import { useEffect, useRef, useState } from "react";
 
 const MAX_LOGS = 300;
 const VISIBLE_LINES = 6;
 
-export default function DebugOverlay({ pageName }) {
+export default function DebugOverlay({ pageName, sourceUsed }) {
   const [logs, setLogs] = useState([]);
   const containerRef = useRef(null);
 
+  // Initialize global debugLog()
   useEffect(() => {
     window.debugLog = (msg) => {
       const timestamp = new Date().toLocaleTimeString();
@@ -20,6 +21,7 @@ export default function DebugOverlay({ pageName }) {
     window.debugLog("DEBUG: DebugOverlay initialized");
   }, []);
 
+  // Auto-scroll to bottom
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -33,34 +35,53 @@ export default function DebugOverlay({ pageName }) {
       ref={containerRef}
       style={{
         position: "fixed",
-        bottom: "var(--footer-height)",
+        bottom: "var(--footer-height)", // ⭐ sits above footer
         left: 0,
         right: 0,
 
-        // 🔥 COMPACT HEIGHT (about half of before)
-        height: `${(VISIBLE_LINES * 0.6) * 1.4}em`,
+        height: `${(VISIBLE_LINES * 0.6) * 1.4}em`, // compact height
 
         background: "rgba(0,0,0,0.9)",
         color: "#0f0",
         fontSize: "0.8rem",
         overflowY: "auto",
-
-        // small top padding so first line is never clipped
         padding: "6px 8px 4px 8px",
-
         zIndex: 10001, // stays above MiniPlayer
         borderTop: "1px solid #333",
       }}
     >
+      {/* Header row */}
       <div
         style={{
           display: "flex",
           justifyContent: "space-between",
           marginBottom: 4,
-          opacity: 0.8,
+          opacity: 0.85,
         }}
       >
-        <div>{pageName ? `Page: ${pageName}` : "Debug Console"}</div>
+        <div>
+          Page: {pageName}
+          {sourceUsed && (
+            <span
+              style={{
+                marginLeft: 8,
+                padding: "1px 4px",
+                borderRadius: 4,
+                background:
+                  sourceUsed === "INVIDIOUS"
+                    ? "#2196f3"
+                    : sourceUsed === "YOUTUBE_API"
+                    ? "#ff9800"
+                    : "#555",
+                color: "#fff",
+                fontWeight: 700,
+                fontSize: "0.7rem",
+              }}
+            >
+              [{sourceUsed}]
+            </span>
+          )}
+        </div>
 
         <button
           onClick={clearLogs}
@@ -78,6 +99,7 @@ export default function DebugOverlay({ pageName }) {
         </button>
       </div>
 
+      {/* Log lines */}
       {logs.map((log, i) => (
         <div key={i} style={{ whiteSpace: "pre-wrap", lineHeight: "1.4em" }}>
           {log}
