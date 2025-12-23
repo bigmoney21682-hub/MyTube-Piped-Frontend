@@ -31,7 +31,7 @@ export default function BootJosh({ onDone }) {
       }}
     >
       <img
-        src="public/Josh.gif"
+        src="public/Josh.GIF"
         alt="BootJosh"
         style={{
           width: 180,
