@@ -1,5 +1,5 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v3.1 — Visual miniplayer, now logging the *new* play state
+// PCC v4.0 — Adds next/prev controls + correct logging
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -7,7 +7,7 @@ import { usePlayer } from "../contexts/PlayerContext";
 
 export default function MiniPlayer({ onTogglePlay, onClose }) {
   const navigate = useNavigate();
-  const { currentVideo, playing } = usePlayer();
+  const { currentVideo, playing, playNext, playPrev } = usePlayer();
 
   const [title, setTitle] = useState("");
   const [channel, setChannel] = useState("");
@@ -105,6 +105,26 @@ export default function MiniPlayer({ onTogglePlay, onClose }) {
         </p>
       </div>
 
+      {/* PREVIOUS BUTTON */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          log("Prev clicked");
+          playPrev();
+        }}
+        style={{
+          background: "none",
+          border: "none",
+          color: "#fff",
+          fontSize: 26,
+          cursor: "pointer",
+          padding: "8px 10px",
+        }}
+      >
+        ⏮
+      </button>
+
+      {/* PLAY / PAUSE */}
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -124,6 +144,26 @@ export default function MiniPlayer({ onTogglePlay, onClose }) {
         {playing ? "⏸" : "▶"}
       </button>
 
+      {/* NEXT BUTTON */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          log("Next clicked");
+          playNext();
+        }}
+        style={{
+          background: "none",
+          border: "none",
+          color: "#fff",
+          fontSize: 26,
+          cursor: "pointer",
+          padding: "8px 10px",
+        }}
+      >
+        ⏭
+      </button>
+
+      {/* CLOSE */}
       <button
         onClick={(e) => {
           e.stopPropagation();
