@@ -1,5 +1,5 @@
 // File: src/components/BootJosh.jsx
-// PCC v1.0 — Secondary splash screen with GIF + title
+// PCC v1.1 — Secondary splash screen with GIF + title + load logging
 
 import { useEffect, useState } from "react";
 
@@ -16,6 +16,8 @@ export default function BootJosh({ onDone }) {
   }, [onDone]);
 
   if (!visible) return null;
+
+  const log = (msg) => window.debugLog?.(`BootJosh: ${msg}`);
 
   return (
     <div
@@ -38,6 +40,8 @@ export default function BootJosh({ onDone }) {
           height: "auto",
           marginBottom: 40,
         }}
+        onLoad={() => log("GIF loaded successfully (/Josh.GIF)")}
+        onError={() => log("GIF FAILED to load from /Josh.GIF")}
       />
 
       <div
