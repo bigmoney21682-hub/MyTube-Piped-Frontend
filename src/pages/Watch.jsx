@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v10.0 — Immediate player, fixed 16:9, stable GlobalPlayer reactivation
+// PCC v11.0 — GitHub Pages–safe Watch page (no .env, no crashes)
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
