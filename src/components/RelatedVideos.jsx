@@ -1,25 +1,34 @@
 // File: src/components/RelatedVideos.jsx
-// PCC v4.1 — Piped → Invidious → YouTube keyword fallback (GitHub Pages safe, feeds autonext)
+// PCC v5.0 — YouTube API only, relatedToVideoId + title fallback, feeds autonext
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-const PIPED_BASE = "https://pipedapi.kavin.rocks";
-const INVIDIOUS_BASE = "https://yewtu.be";
-
-export default function RelatedVideos({ videoId, title, onDebugLog, onLoaded }) {
+export default function RelatedVideos({
+  videoId,
+  title,
+  onDebugLog,
+  onLoaded,
+}) {
   const [videos, setVideos] = useState([]);
   const [error, setError] = useState(null);
 
   const log = (msg) => {
     if (typeof onDebugLog === "function") onDebugLog(msg);
-    else window.debugLog?.(msg);
+    else window.debugLog?.(`RelatedVideos: ${msg}`);
   };
 
   useEffect(() => {
     const cleanId = String(videoId || "").trim();
+    const apiKey = window.YT_API_KEY;
+
     if (!cleanId) {
       log("RelatedVideos aborted: empty videoId");
+      return;
+    }
+
+    if (!apiKey) {
+      log("RelatedVideos aborted: missing YT_API_KEY");
       return;
     }
 
@@ -27,105 +36,87 @@ export default function RelatedVideos({ videoId, title, onDebugLog, onLoaded }) 
       setError(null);
       setVideos([]);
 
-      // Helper to apply mapped list and notify autonext
-      const applyList = (mapped, sourceLabel) => {
+      const applied = (mapped, rawForAutonext, sourceLabel) => {
         setVideos(mapped);
         if (typeof onLoaded === "function") {
-          onLoaded(mapped);
+          onLoaded(rawForAutonext || mapped);
         }
         log(
-          `RelatedVideos: Applied ${mapped.length} items from ${sourceLabel} (and fed autonext)`
+          `Applied ${mapped.length} items from ${sourceLabel} (and fed autonext)`
         );
       };
 
       // -----------------------------------------
-      // 1. Try Piped
+      // 1. Try relatedToVideoId (best signal)
       // -----------------------------------------
       try {
-        const url = `${PIPED_BASE}/related/${cleanId}`;
-        log(`RelatedVideos: Trying Piped → ${url}`);
+        const url =
+          "https://www.googleapis.com/youtube/v3/search" +
+          `?part=snippet&type=video&maxResults=10&relatedToVideoId=${encodeURIComponent(
+            cleanId
+          )}&key=${apiKey}`;
+
+        log(`Trying YouTube relatedToVideoId → ${url}`);
 
         const res = await fetch(url);
         const data = await res.json();
 
-        if (Array.isArray(data)) {
-          const mapped = data
-            .filter((v) => v?.url)
-            .map((v) => ({
-              id: v.url.replace("/watch?v=", ""),
-              title: v.title,
-              thumbnail: v.thumbnail,
-            }));
-
-          if (mapped.length > 0) {
-            applyList(mapped, "Piped");
-            return;
-          }
-        }
-      } catch (err) {
-        log(`RelatedVideos: Piped failed → ${err}`);
-      }
-
-      // -----------------------------------------
-      // 2. Try Invidious
-      // -----------------------------------------
-      try {
-        const url = `${INVIDIOUS_BASE}/api/v1/related/${cleanId}`;
-        log(`RelatedVideos: Trying Invidious → ${url}`);
-
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (Array.isArray(data)) {
-          const mapped = data
-            .filter((v) => v?.videoId)
-            .map((v) => ({
-              id: v.videoId,
-              title: v.title,
-              thumbnail: v.videoThumbnails?.[0]?.url,
-            }));
-
-          if (mapped.length > 0) {
-            applyList(mapped, "Invidious");
-            return;
-          }
-        }
-      } catch (err) {
-        log(`RelatedVideos: Invidious failed → ${err}`);
-      }
-
-      // -----------------------------------------
-      // 3. YouTube API keyword fallback
-      // -----------------------------------------
-      const apiKey = window.YT_API_KEY; // GitHub Pages safe
-
-      if (!apiKey || !title) {
-        log("RelatedVideos: Skipping YouTube fallback (missing apiKey or title)");
-        return;
-      }
-
-      try {
-        const query = encodeURIComponent(title);
-        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=10&q=${query}&key=${apiKey}`;
-
-        log(`RelatedVideos: YouTube fallback → ${url}`);
-
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.items) {
+        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
           const mapped = data.items
             .filter((v) => v.id?.videoId)
             .map((v) => ({
               id: v.id.videoId,
               title: v.snippet.title,
-              thumbnail: v.snippet.thumbnails.default.url,
+              thumbnail:
+                v.snippet.thumbnails?.default?.url ||
+                v.snippet.thumbnails?.medium?.url ||
+                v.snippet.thumbnails?.high?.url,
             }));
 
-          applyList(mapped, "YouTube fallback");
+          if (mapped.length > 0) {
+            applied(mapped, data.items, "YouTube relatedToVideoId");
+            return;
+          }
         }
       } catch (err) {
-        log(`RelatedVideos: YouTube fallback failed → ${err}`);
+        log(`YouTube relatedToVideoId failed → ${err}`);
+      }
+
+      // -----------------------------------------
+      // 2. Fallback: keyword search by title
+      // -----------------------------------------
+      if (!title) {
+        log("Skipping title-based fallback (no title provided)");
+        return;
+      }
+
+      try {
+        const query = encodeURIComponent(title);
+        const url =
+          "https://www.googleapis.com/youtube/v3/search" +
+          `?part=snippet&type=video&maxResults=10&q=${query}&key=${apiKey}`;
+
+        log(`YouTube fallback by title → ${url}`);
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (data.items && Array.isArray(data.items)) {
+          const mapped = data.items
+            .filter((v) => v.id?.videoId)
+            .map((v) => ({
+              id: v.id.videoId,
+              title: v.snippet.title,
+              thumbnail:
+                v.snippet.thumbnails?.default?.url ||
+                v.snippet.thumbnails?.medium?.url ||
+                v.snippet.thumbnails?.high?.url,
+            }));
+
+          applied(mapped, data.items, "YouTube title fallback");
+        }
+      } catch (err) {
+        log(`YouTube fallback failed → ${err}`);
         setError(err.message);
       }
     }
@@ -160,7 +151,7 @@ export default function RelatedVideos({ videoId, title, onDebugLog, onLoaded }) 
           key={v.id || index}
           to={`/watch/${v.id}`}
           style={{ color: "#fff", textDecoration: "none" }}
-          onClick={() => log(`RelatedVideos: clicked → ${v.title}`)}
+          onClick={() => log(`clicked → ${v.title}`)}
         >
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <img
