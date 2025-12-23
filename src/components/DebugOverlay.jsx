@@ -1,15 +1,21 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.0 — Always-on debug panel with colored [SOURCE] tag
+// PCC v3.2 — Toggleable debug overlay with scroll area + [SOURCE] tag
 
 import { useEffect, useState } from "react";
 
 export default function DebugOverlay({ pageName, sourceUsed }) {
-  // Keep a local copy so we can show "last known" source for the page
-  const [lastSource, setLastSource] = useState(null);
+  const [visible, setVisible] = useState(false);
 
+  // Toggle with backtick (`) — desktop-focused
   useEffect(() => {
-    if (sourceUsed) setLastSource(sourceUsed);
-  }, [sourceUsed]);
+    const handler = (e) => {
+      if (e.key === "`") {
+        setVisible((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const tagStyle = {
     display: "inline-block",
@@ -21,11 +27,13 @@ export default function DebugOverlay({ pageName, sourceUsed }) {
   };
 
   const sourceColor =
-    lastSource === "INVIDIOUS"
+    sourceUsed === "INVIDIOUS"
       ? "#2196f3"
-      : lastSource === "YOUTUBE_API"
+      : sourceUsed === "YOUTUBE_API"
       ? "#ff9800"
       : "#777";
+
+  if (!visible) return null;
 
   return (
     <div
@@ -43,18 +51,35 @@ export default function DebugOverlay({ pageName, sourceUsed }) {
         lineHeight: 1.4,
       }}
     >
+      {/* Title */}
       <div style={{ fontWeight: 700, marginBottom: 6 }}>
         Debug: {pageName}
       </div>
 
-      {lastSource && (
-        <div style={{ marginTop: 4 }}>
+      {/* Source tag under title */}
+      {sourceUsed && (
+        <div style={{ marginBottom: 8 }}>
           Source:
           <span style={{ ...tagStyle, background: sourceColor }}>
-            [{lastSource}]
+            [{sourceUsed}]
           </span>
         </div>
       )}
+
+      {/* Scrollable area for logs / future fields */}
+      <div
+        style={{
+          maxHeight: 160,
+          overflowY: "auto",
+          paddingRight: 4,
+          opacity: 0.9,
+        }}
+      >
+        {/* You can later inject live logs here if you want */}
+        <div style={{ fontSize: 12, opacity: 0.7 }}>
+          Debug info will appear here as you extend this overlay.
+        </div>
+      </div>
     </div>
   );
 }
