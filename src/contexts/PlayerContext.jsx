@@ -1,7 +1,7 @@
 // File: src/contexts/PlayerContext.jsx
-// PCC v3.0 — Centralized player state with autonext (playlist + related)
+// PCC v4.0 — Global playback brain for YouTube-iframe-only architecture
 
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 
 const PlayerContext = createContext(null);
 export const usePlayer = () => useContext(PlayerContext);
@@ -10,7 +10,7 @@ export function PlayerProvider({ children }) {
   const [currentVideo, setCurrentVideo] = useState(null);
   const [playing, setPlaying] = useState(false);
 
-  // Playlist-based state
+  // Playlist / queue
   const [playlist, setPlaylist] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -20,26 +20,36 @@ export function PlayerProvider({ children }) {
   // Related-based autonext list (for discovery mode)
   const [relatedList, setRelatedList] = useState([]);
 
+  const log = (msg) => window.debugLog?.(`PlayerContext: ${msg}`);
+
+  const normalizeId = (video) => {
+    if (!video) return null;
+    if (typeof video.id === "string") return video.id;
+    if (typeof video.id?.videoId === "string") return video.id.videoId;
+    return null;
+  };
+
   // -----------------------------------
   // Core controls
   // -----------------------------------
   const playVideo = useCallback((video, list = null) => {
+    if (!video) return;
+    const id = normalizeId(video);
+    log(`playVideo called for id=${id}`);
+
     if (Array.isArray(list) && list.length > 0) {
       // Playlist mode
       setPlaylist(list);
       const idx = list.findIndex(
-        (v) =>
-          v.id === video.id ||
-          v.id?.videoId === video.id ||
-          v.id === video.id?.videoId
+        (v) => normalizeId(v) === id
       );
       setCurrentIndex(idx >= 0 ? idx : 0);
       setAutonextMode("playlist");
-    } else if (video) {
-      // Single video mode (discovery / related)
+    } else {
+      // Single video
       setPlaylist([video]);
       setCurrentIndex(0);
-      // Do not force autonextMode here; Watch will decide (e.g. "related")
+      // Leave autonextMode as-is; Watch may set "related"
     }
 
     setCurrentVideo(video);
@@ -47,16 +57,22 @@ export function PlayerProvider({ children }) {
   }, []);
 
   const pauseVideo = useCallback(() => {
+    log("pauseVideo");
     setPlaying(false);
   }, []);
 
   const stopVideo = useCallback(() => {
+    log("stopVideo");
     setPlaying(false);
     setCurrentVideo(null);
     setPlaylist([]);
     setCurrentIndex(0);
     setAutonextMode("none");
     setRelatedList([]);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    setPlaying((prev) => !prev);
   }, []);
 
   // -----------------------------------
@@ -70,6 +86,12 @@ export function PlayerProvider({ children }) {
 
     if (!nextVideo) return null;
 
+    log(
+      `playNextInPlaylist -> index ${currentIndex} -> ${nextIndex}, id=${normalizeId(
+        nextVideo
+      )}`
+    );
+
     setCurrentIndex(nextIndex);
     setCurrentVideo(nextVideo);
     setPlaying(true);
@@ -82,6 +104,12 @@ export function PlayerProvider({ children }) {
     const prevIndex = (currentIndex - 1 + playlist.length) % playlist.length;
     const prevVideo = playlist[prevIndex];
 
+    log(
+      `playPrev -> index ${currentIndex} -> ${prevIndex}, id=${normalizeId(
+        prevVideo
+      )}`
+    );
+
     setCurrentIndex(prevIndex);
     setCurrentVideo(prevVideo);
     setPlaying(true);
@@ -91,6 +119,8 @@ export function PlayerProvider({ children }) {
   // Autonext brain
   // -----------------------------------
   const playNext = useCallback(() => {
+    log(`playNext called, autonextMode=${autonextMode}`);
+
     // Playlist mode: deterministic next from playlist
     if (autonextMode === "playlist") {
       return playNextInPlaylist();
@@ -98,12 +128,14 @@ export function PlayerProvider({ children }) {
 
     // Related mode: use first related item if present
     if (autonextMode === "related") {
-      if (!relatedList || relatedList.length === 0) return null;
+      if (!relatedList || relatedList.length === 0) {
+        log("Related list empty, no autonext");
+        return null;
+      }
 
       const next = relatedList[0];
       if (!next) return null;
 
-      // Normalize shape a bit: allow either {id, title, ...} or YouTube-like
       const nextId =
         typeof next.id === "string"
           ? next.id
@@ -114,7 +146,8 @@ export function PlayerProvider({ children }) {
       const nextVideo = {
         id: nextId || next.id,
         title: next.title || next.snippet?.title || "",
-        author: next.author || next.channelTitle || next.snippet?.channelTitle,
+        author:
+          next.author || next.channelTitle || next.snippet?.channelTitle || "",
         description: next.description || next.snippet?.description,
         thumbnail:
           next.thumbnail ||
@@ -123,12 +156,15 @@ export function PlayerProvider({ children }) {
         fromRelated: true,
       };
 
+      log(`Autonext (related) -> id=${normalizeId(nextVideo)}`);
+
       setCurrentVideo(nextVideo);
       setPlaying(true);
       return nextVideo;
     }
 
     // No autonext
+    log("Autonext disabled, returning null");
     return null;
   }, [autonextMode, relatedList, playNextInPlaylist]);
 
@@ -143,6 +179,7 @@ export function PlayerProvider({ children }) {
     playVideo,
     pauseVideo,
     stopVideo,
+    togglePlay,
     playNext,
     playPrev,
 
@@ -157,7 +194,6 @@ export function PlayerProvider({ children }) {
   return (
     <PlayerContext.Provider value={value}>
       {children}
-      {/* Background engine (GlobalPlayer) mounts separately at app root */}
     </PlayerContext.Provider>
   );
 }
