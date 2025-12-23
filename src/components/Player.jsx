@@ -1,5 +1,5 @@
 // File: src/components/Player.jsx
-// PCC v2.0 — Custom paused controls overlay, minimal YouTube chrome
+// PCC v2.1 — Smaller player height (360px)
 
 import React, { forwardRef, useEffect, useState } from "react";
 import ReactPlayer from "react-player";
@@ -13,9 +13,9 @@ const Player = forwardRef(
       pipMode,
       draggable,
       trackTitle,
-      onSeekRelative, // (seconds: number) => void
-      onPrev,         // () => void
-      onNext,         // () => void
+      onSeekRelative,
+      onPrev,
+      onNext,
     },
     ref
   ) => {
@@ -55,42 +55,24 @@ const Player = forwardRef(
       setVideoVolume(1);
     };
 
-    const handleSeekClick = (secs) => {
-      if (onSeekRelative) onSeekRelative(secs);
-    };
-
-    const handlePrevClick = () => {
-      if (onPrev) onPrev();
-    };
-
-    const handleNextClick = () => {
-      if (onNext) onNext();
-    };
-
     return (
       <div style={{ position: "relative", width: "100%", background: "#000" }}>
-        {/* Black overlay during ads only */}
         {adOverlayVisible && (
           <div
             style={{
               position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
+              inset: 0,
               background: "#000",
               zIndex: 10,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              borderRadius: pipMode ? 8 : 0,
             }}
           >
             <p style={{ color: "#555", fontSize: 18 }}>Loading video...</p>
           </div>
         )}
 
-        {/* Custom controls overlay shown when paused */}
         {!playing && !adOverlayVisible && (
           <div
             style={{
@@ -105,21 +87,21 @@ const Player = forwardRef(
             }}
           >
             <button
-              onClick={() => handleSeekClick(-15)}
+              onClick={() => onSeekRelative?.(-15)}
               style={controlButtonStyle}
             >
               ⏪ 15s
             </button>
-            <button onClick={handlePrevClick} style={controlButtonStyle}>
+            <button onClick={onPrev} style={controlButtonStyle}>
               ⏮ Prev
             </button>
             <button
-              onClick={() => handleSeekClick(15)}
+              onClick={() => onSeekRelative?.(15)}
               style={controlButtonStyle}
             >
               15s ⏩
             </button>
-            <button onClick={handleNextClick} style={controlButtonStyle}>
+            <button onClick={onNext} style={controlButtonStyle}>
               ⏭ Next
             </button>
           </div>
@@ -129,7 +111,7 @@ const Player = forwardRef(
           ref={ref}
           url={embedUrl}
           width="100%"
-          height={pipMode ? "300px" : "100%"}
+          height={pipMode ? "260px" : "360px"} // <-- updated
           playing={playing}
           onEnded={onEnded}
           controls={false}
