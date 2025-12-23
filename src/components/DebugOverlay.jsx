@@ -1,13 +1,17 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v3.2 — Toggleable debug overlay with scroll area + [SOURCE] tag
+// PCC v3.3 — Mobile-visible by default, desktop-toggle, scroll area, [SOURCE] tag
 
 import { useEffect, useState } from "react";
 
 export default function DebugOverlay({ pageName, sourceUsed }) {
-  const [visible, setVisible] = useState(false);
+  // Mobile Safari cannot toggle with keyboard -> default ON for mobile
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  // Toggle with backtick (`) — desktop-focused
+  const [visible, setVisible] = useState(isMobile ? true : false);
+
+  // Desktop toggle with backtick
   useEffect(() => {
+    if (isMobile) return; // mobile cannot toggle
     const handler = (e) => {
       if (e.key === "`") {
         setVisible((v) => !v);
@@ -15,7 +19,7 @@ export default function DebugOverlay({ pageName, sourceUsed }) {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, []);
+  }, [isMobile]);
 
   const tagStyle = {
     display: "inline-block",
@@ -51,12 +55,10 @@ export default function DebugOverlay({ pageName, sourceUsed }) {
         lineHeight: 1.4,
       }}
     >
-      {/* Title */}
       <div style={{ fontWeight: 700, marginBottom: 6 }}>
         Debug: {pageName}
       </div>
 
-      {/* Source tag under title */}
       {sourceUsed && (
         <div style={{ marginBottom: 8 }}>
           Source:
@@ -66,7 +68,6 @@ export default function DebugOverlay({ pageName, sourceUsed }) {
         </div>
       )}
 
-      {/* Scrollable area for logs / future fields */}
       <div
         style={{
           maxHeight: 160,
@@ -75,7 +76,6 @@ export default function DebugOverlay({ pageName, sourceUsed }) {
           opacity: 0.9,
         }}
       >
-        {/* You can later inject live logs here if you want */}
         <div style={{ fontSize: 12, opacity: 0.7 }}>
           Debug info will appear here as you extend this overlay.
         </div>
