@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v7.1 — Invidious primary, YouTube fallback, sourceUsed debug, normalized thumbnail
+// PCC v8.0 — Invidious primary, YouTube fallback, correct thumbnails, sourceUsed debug
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -18,6 +18,9 @@ export default function Watch() {
 
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
+  // -------------------------------
+  // Fetchers
+  // -------------------------------
   async function fetchFromInvidious(id) {
     const url = `${INVIDIOUS_BASE}/api/v1/videos/${id}`;
     log(`Trying Invidious: ${url}`);
@@ -47,9 +50,13 @@ export default function Watch() {
     }
   }
 
+  // -------------------------------
+  // Thumbnail resolver (same as Home)
+  // -------------------------------
   const getThumbnail = (v) => {
     if (!v) return null;
 
+    // Invidious: videoThumbnails[]
     if (Array.isArray(v.videoThumbnails) && v.videoThumbnails.length > 0) {
       const best = v.videoThumbnails[v.videoThumbnails.length - 1];
       if (best?.url) {
@@ -58,41 +65,56 @@ export default function Watch() {
       }
     }
 
+    // Invidious: thumbnail string
     if (typeof v.thumbnail === "string") {
       if (v.thumbnail.startsWith("http")) return v.thumbnail;
       if (v.thumbnail.startsWith("/")) return `${INVIDIOUS_BASE}${v.thumbnail}`;
       return v.thumbnail;
     }
 
+    // YouTube API
     const thumbs = v.snippet?.thumbnails;
-    if (thumbs?.medium?.url) return thumbs.medium.url;
+    if (thumbs?.maxres?.url) return thumbs.maxres.url;
     if (thumbs?.high?.url) return thumbs.high.url;
+    if (thumbs?.medium?.url) return thumbs.medium.url;
     if (thumbs?.default?.url) return thumbs.default.url;
 
     return null;
   };
 
+  // -------------------------------
+  // Normalizer (same shape as Home)
+  // -------------------------------
   const normalizeVideo = (v) => {
     if (!v) return null;
 
+    // Invidious
     if (v.videoId || v.formatStreams || v.adaptiveFormats) {
+      const thumb = getThumbnail(v);
+      log(`Resolved Invidious thumbnail: ${thumb}`);
+
       return {
         id: v.videoId || id,
         title: v.title,
         author: v.author,
         description: v.description,
-        thumbnail: getThumbnail(v),
+        thumbnail: thumb,
         invidious: v,
       };
     }
 
+    // YouTube API
     if (v.id && v.snippet) {
+      const vid = typeof v.id === "string" ? v.id : v.id.videoId;
+      const thumb = getThumbnail(v);
+      log(`Resolved YouTube thumbnail: ${thumb}`);
+
       return {
-        id: typeof v.id === "string" ? v.id : v.id.videoId,
+        id: vid,
         title: v.snippet.title,
         author: v.snippet.channelTitle,
         description: v.snippet.description,
-        thumbnail: getThumbnail(v),
+        thumbnail: thumb,
         youtube: v,
       };
     }
@@ -100,6 +122,9 @@ export default function Watch() {
     return null;
   };
 
+  // -------------------------------
+  // Loader
+  // -------------------------------
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -112,6 +137,8 @@ export default function Watch() {
         raw = await fetchFromYouTube(id);
         if (raw) setSourceUsed("YOUTUBE_API");
       }
+
+      log("Raw video object: " + JSON.stringify(raw)?.slice(0, 300));
 
       const normalized = normalizeVideo(raw);
       setVideo(normalized);
@@ -129,6 +156,9 @@ export default function Watch() {
     load();
   }, [id]);
 
+  // -------------------------------
+  // Render
+  // -------------------------------
   if (loading) {
     return (
       <>
