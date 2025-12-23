@@ -1,5 +1,5 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v3.2 — Background audio engine (Invidious → YouTube), disabled while Watch is active
+// PCC v4.0 — Background audio engine with reliable reactivation after Watch
 
 import { useEffect, useRef, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -29,7 +29,9 @@ export default function GlobalPlayer() {
   // Helper: is global audio engine allowed right now?
   const audioEnabled = window.__GLOBAL_AUDIO_ENABLED !== false;
 
+  // -------------------------------
   // Invidious stream loader
+  // -------------------------------
   async function fetchInvidiousStreams(id) {
     const url = `${INVIDIOUS_BASE}/api/v1/videos/${id}`;
     log(`Loading new videoId=${id} -> trying Invidious: ${url}`);
@@ -93,12 +95,14 @@ export default function GlobalPlayer() {
     }
   }
 
-  // Load stream whenever videoId changes
+  // -------------------------------
+  // Load stream whenever:
+  // - videoId changes
+  // - audioEnabled flips from false → true
+  // -------------------------------
   useEffect(() => {
     if (!audioEnabled) {
-      log(
-        "Audio engine globally disabled (likely on Watch page) -> not loading streams"
-      );
+      log("Audio engine disabled -> clearing audio");
       setAudioSrc(null);
       setSourceType("none");
       return;
@@ -141,18 +145,18 @@ export default function GlobalPlayer() {
     };
   }, [videoId, audioEnabled]);
 
-  // Sync play/pause with context (Invidious-only; YouTube handled by iframe autoplay)
+  // -------------------------------
+  // Sync play/pause with context
+  // -------------------------------
   useEffect(() => {
     if (!audioEnabled) {
-      log(
-        "Audio engine disabled -> skipping play/pause sync (Watch page likely active)"
-      );
+      log("Audio engine disabled -> skipping play/pause sync");
       return;
     }
 
     if (sourceType !== "invidious") {
       log(
-        `Play/pause sync: sourceType=${sourceType} -> iframe/autoplay path or disabled, no direct audioRef control`
+        `Play/pause sync: sourceType=${sourceType} -> iframe/autoplay path or disabled`
       );
       return;
     }
@@ -170,25 +174,26 @@ export default function GlobalPlayer() {
     if (playing) {
       audio
         .play()
-        .then(() => {
-          log("Audio play() resolved (Invidious)");
-        })
-        .catch((err) => {
-          log(`Audio play() error (Invidious): ${err}`);
-        });
+        .then(() => log("Audio play() resolved (Invidious)"))
+        .catch((err) => log(`Audio play() error (Invidious): ${err}`));
     } else {
       audio.pause();
       log("Audio paused due to playing=false (Invidious)");
     }
   }, [playing, audioSrc, sourceType, audioEnabled]);
 
+  // -------------------------------
+  // Handle audio end → auto-next
+  // -------------------------------
   const handleEnded = () => {
     log("Audio ended -> calling playNext()");
     playNext();
   };
 
+  // -------------------------------
+  // Render
+  // -------------------------------
   if (!audioEnabled) {
-    // While on Watch, GlobalPlayer is inert
     return null;
   }
 
