@@ -1,5 +1,5 @@
 // File: src/components/RelatedVideos.jsx
-// PCC v4.0 — Piped → Invidious → YouTube keyword fallback (GitHub Pages safe)
+// PCC v4.1 — Piped → Invidious → YouTube keyword fallback (GitHub Pages safe, feeds autonext)
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -7,7 +7,7 @@ import { Link } from "react-router-dom";
 const PIPED_BASE = "https://pipedapi.kavin.rocks";
 const INVIDIOUS_BASE = "https://yewtu.be";
 
-export default function RelatedVideos({ videoId, title, onDebugLog }) {
+export default function RelatedVideos({ videoId, title, onDebugLog, onLoaded }) {
   const [videos, setVideos] = useState([]);
   const [error, setError] = useState(null);
 
@@ -26,6 +26,17 @@ export default function RelatedVideos({ videoId, title, onDebugLog }) {
     async function load() {
       setError(null);
       setVideos([]);
+
+      // Helper to apply mapped list and notify autonext
+      const applyList = (mapped, sourceLabel) => {
+        setVideos(mapped);
+        if (typeof onLoaded === "function") {
+          onLoaded(mapped);
+        }
+        log(
+          `RelatedVideos: Applied ${mapped.length} items from ${sourceLabel} (and fed autonext)`
+        );
+      };
 
       // -----------------------------------------
       // 1. Try Piped
@@ -47,8 +58,7 @@ export default function RelatedVideos({ videoId, title, onDebugLog }) {
             }));
 
           if (mapped.length > 0) {
-            log(`RelatedVideos: Loaded ${mapped.length} from Piped`);
-            setVideos(mapped);
+            applyList(mapped, "Piped");
             return;
           }
         }
@@ -76,8 +86,7 @@ export default function RelatedVideos({ videoId, title, onDebugLog }) {
             }));
 
           if (mapped.length > 0) {
-            log(`RelatedVideos: Loaded ${mapped.length} from Invidious`);
-            setVideos(mapped);
+            applyList(mapped, "Invidious");
             return;
           }
         }
@@ -88,7 +97,7 @@ export default function RelatedVideos({ videoId, title, onDebugLog }) {
       // -----------------------------------------
       // 3. YouTube API keyword fallback
       // -----------------------------------------
-      const apiKey = window.YT_API_KEY; // <-- GitHub Pages safe
+      const apiKey = window.YT_API_KEY; // GitHub Pages safe
 
       if (!apiKey || !title) {
         log("RelatedVideos: Skipping YouTube fallback (missing apiKey or title)");
@@ -113,8 +122,7 @@ export default function RelatedVideos({ videoId, title, onDebugLog }) {
               thumbnail: v.snippet.thumbnails.default.url,
             }));
 
-          log(`RelatedVideos: Loaded ${mapped.length} from YouTube fallback`);
-          setVideos(mapped);
+          applyList(mapped, "YouTube fallback");
         }
       } catch (err) {
         log(`RelatedVideos: YouTube fallback failed → ${err}`);
@@ -123,7 +131,7 @@ export default function RelatedVideos({ videoId, title, onDebugLog }) {
     }
 
     load();
-  }, [videoId, title]);
+  }, [videoId, title, onLoaded]);
 
   if (error)
     return (
