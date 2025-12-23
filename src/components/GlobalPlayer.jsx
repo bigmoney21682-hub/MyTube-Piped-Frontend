@@ -26,9 +26,7 @@ export default function GlobalPlayer() {
 
   const videoId = getVideoId(currentVideo);
 
-  // -------------------------------
   // Invidious stream loader
-  // -------------------------------
   async function fetchInvidiousStreams(id) {
     const url = `${INVIDIOUS_BASE}/api/v1/videos/${id}`;
     log(`Loading new videoId=${id} -> trying Invidious: ${url}`);
@@ -46,7 +44,6 @@ export default function GlobalPlayer() {
         return null;
       }
 
-      // Prefer adaptiveFormats (audio-only), then formatStreams
       const adaptive = Array.isArray(data?.adaptiveFormats)
         ? data.adaptiveFormats
         : [];
@@ -54,12 +51,11 @@ export default function GlobalPlayer() {
         ? data.formatStreams
         : [];
 
-      // Pick best audio from adaptiveFormats
+      // Prefer audio-only adaptive formats
       const audioOnly = adaptive.filter((f) =>
         String(f.type || "").startsWith("audio/")
       );
       if (audioOnly.length > 0) {
-        // Choose highest bitrate if available, else first
         const sorted = audioOnly.sort(
           (a, b) => (b.bitrate || 0) - (a.bitrate || 0)
         );
@@ -72,7 +68,7 @@ export default function GlobalPlayer() {
         }
       }
 
-      // Fallback: pick any formatStream with audio
+      // Fallback: any formatStream with audio
       const withAudio = formats.filter((f) =>
         String(f.type || "").includes("audio")
       );
@@ -94,9 +90,7 @@ export default function GlobalPlayer() {
     }
   }
 
-  // -------------------------------
   // Load stream whenever videoId changes
-  // -------------------------------
   useEffect(() => {
     if (!videoId) {
       log("No currentVideo or invalid id -> stopping audio");
@@ -112,7 +106,6 @@ export default function GlobalPlayer() {
       setAudioSrc(null);
       setSourceType("none");
 
-      // 1) Try Invidious audio
       const invidiousUrl = await fetchInvidiousStreams(videoId);
       if (cancelled) return;
 
@@ -123,7 +116,6 @@ export default function GlobalPlayer() {
         return;
       }
 
-      // 2) Fallback to YouTube iframe
       log("Falling back to YouTube iframe audio");
       setAudioSrc(null);
       setSourceType("youtube");
@@ -137,9 +129,7 @@ export default function GlobalPlayer() {
     };
   }, [videoId]);
 
-  // -------------------------------
   // Sync play/pause with context
-  // -------------------------------
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) {
@@ -175,7 +165,6 @@ export default function GlobalPlayer() {
 
   return (
     <>
-      {/* Invidious audio element */}
       {sourceType === "invidious" && audioSrc && (
         <audio
           ref={audioRef}
@@ -196,7 +185,6 @@ export default function GlobalPlayer() {
         />
       )}
 
-      {/* YouTube iframe fallback (audio via hidden video) */}
       {sourceType === "youtube" && videoId && playing && (
         <iframe
           key={`${videoId}-playing`}
