@@ -1,5 +1,5 @@
 // File: src/components/Player.jsx
-// PCC v2.1 — Smaller player height (360px)
+// PCC v2.2 — Video player component (ReactPlayer), controlled by Watch page
 
 import React, { forwardRef, useEffect, useState } from "react";
 import ReactPlayer from "react-player";
@@ -111,7 +111,7 @@ const Player = forwardRef(
           ref={ref}
           url={embedUrl}
           width="100%"
-          height={pipMode ? "260px" : "360px"} // <-- updated
+          height={pipMode ? "260px" : "360px"}
           playing={playing}
           onEnded={onEnded}
           controls={false}
