@@ -1,9 +1,11 @@
 // File: src/pages/Home.jsx
-// PCC v6.1 — Unified Piped → Invidious → YouTube fallback + sourceUsed debug tag
+// PCC v7.0 — Invidious primary, YouTube fallback, fixed thumbnails, sourceUsed debug
 
 import { useEffect, useState } from "react";
 import VideoCard from "../components/VideoCard";
 import DebugOverlay from "../components/DebugOverlay";
+
+const INVIDIOUS_BASE = "https://yewtu.be";
 
 export default function Home({ searchQuery }) {
   const [videos, setVideos] = useState([]);
@@ -12,61 +14,113 @@ export default function Home({ searchQuery }) {
 
   const log = (msg) => window.debugLog?.(`Home: ${msg}`);
 
-  const getId = (video) => {
-    if (!video) return null;
-    if (typeof video.id === "string") return video.id;
-    if (typeof video.id?.videoId === "string") return video.id.videoId;
+  // -------------------------------
+  // ID extraction
+  // -------------------------------
+  const getId = (item) => {
+    if (!item) return null;
+
+    // Invidious search/trending: videoId
+    if (typeof item.videoId === "string") return item.videoId;
+
+    // YouTube trending: id is string
+    if (typeof item.id === "string") return item.id;
+
+    // YouTube search: id.videoId
+    if (typeof item.id?.videoId === "string") return item.id.videoId;
+
     return null;
   };
 
+  // -------------------------------
+  // Thumbnail selection
+  // -------------------------------
+  const getThumbnail = (item) => {
+    if (!item) return null;
+
+    // Invidious: videoThumbnails array with .url
+    if (Array.isArray(item.videoThumbnails) && item.videoThumbnails.length > 0) {
+      const best = item.videoThumbnails[item.videoThumbnails.length - 1];
+      if (best?.url) {
+        if (best.url.startsWith("http")) return best.url;
+        return `${INVIDIOUS_BASE}${best.url}`;
+      }
+    }
+
+    // Invidious: single thumbnail string, often relative
+    if (typeof item.thumbnail === "string") {
+      if (item.thumbnail.startsWith("http")) return item.thumbnail;
+      if (item.thumbnail.startsWith("/")) return `${INVIDIOUS_BASE}${item.thumbnail}`;
+      return item.thumbnail;
+    }
+
+    // YouTube: snippet.thumbnails
+    const thumbs = item.snippet?.thumbnails;
+    if (thumbs?.medium?.url) return thumbs.medium.url;
+    if (thumbs?.high?.url) return thumbs.high.url;
+    if (thumbs?.default?.url) return thumbs.default.url;
+
+    return null;
+  };
+
+  // -------------------------------
+  // Normalization
+  // -------------------------------
   const normalizeItem = (item) => {
-    const vid = getId(item);
-    if (!vid) return null;
+    const id = getId(item);
+    if (!id) return null;
 
     return {
-      id: vid,
-      title: item.title || item.snippet?.title,
-      author: item.uploader || item.author || item.snippet?.channelTitle,
-      thumbnail:
-        item.thumbnail ||
-        item.thumbnails?.medium?.url ||
-        item.thumbnails?.default?.url,
-      duration: item.duration || item.contentDetails?.duration,
+      id,
+      title: item.title || item.snippet?.title || "Untitled",
+      author:
+        item.author ||
+        item.uploader ||
+        item.snippet?.channelTitle ||
+        "Unknown",
+      thumbnail: getThumbnail(item),
+      duration: item.duration || item.lengthSeconds || item.contentDetails?.duration,
     };
   };
 
-  async function fetchFromPiped(path) {
-    const url = `https://pipedapi.kavin.rocks${path}`;
-    log(`DEBUG: Trying Piped: ${url}`);
+  // -------------------------------
+  // Invidious fetchers
+  // -------------------------------
+  async function fetchFromInvidiousTrending() {
+    const url = `${INVIDIOUS_BASE}/api/v1/trending?region=US`;
+    log(`DEBUG: Trying Invidious trending: ${url}`);
 
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const raw = await res.text();
-      log(`DEBUG: Piped raw: ${raw.slice(0, 200)}...`);
-      return JSON.parse(raw);
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     } catch (err) {
-      log(`ERROR: Piped failed: ${err}`);
-      return null;
+      log(`ERROR: Invidious trending failed: ${err}`);
+      return [];
     }
   }
 
-  async function fetchFromInvidious(path) {
-    const url = `https://yewtu.be${path}`;
-    log(`DEBUG: Trying Invidious: ${url}`);
+  async function fetchFromInvidiousSearch(query) {
+    const url = `${INVIDIOUS_BASE}/api/v1/search?q=${encodeURIComponent(
+      query
+    )}&type=video`;
+    log(`DEBUG: Trying Invidious search: ${url}`);
 
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const raw = await res.text();
-      log(`DEBUG: Invidious raw: ${raw.slice(0, 200)}...`);
-      return JSON.parse(raw);
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
     } catch (err) {
-      log(`ERROR: Invidious failed: ${err}`);
-      return null;
+      log(`ERROR: Invidious search failed: ${err}`);
+      return [];
     }
   }
 
+  // -------------------------------
+  // YouTube fallback
+  // -------------------------------
   async function fetchFromYouTubeTrending() {
     log("DEBUG: Trending fallback → YouTube API");
 
@@ -99,68 +153,60 @@ export default function Home({ searchQuery }) {
     }
   }
 
+  // -------------------------------
+  // Main loader
+  // -------------------------------
   useEffect(() => {
     async function load() {
       setLoading(true);
+      setSourceUsed(null);
+
       let items = [];
 
+      // SEARCH MODE
       if (searchQuery && searchQuery.trim().length > 0) {
         const q = searchQuery.trim();
         log(`DEBUG: Searching for "${q}"`);
 
-        const piped = await fetchFromPiped(
-          `/search?q=${encodeURIComponent(q)}&filter=videos`
-        );
-        if (piped?.items?.length) {
-          setSourceUsed("PIPED");
-          items = piped.items;
+        const inv = await fetchFromInvidiousSearch(q);
+        if (inv.length) {
+          setSourceUsed("INVIDIOUS");
+          items = inv;
         }
 
         if (!items.length) {
-          const inv = await fetchFromInvidious(
-            `/api/v1/search?q=${encodeURIComponent(q)}`
-          );
-          if (Array.isArray(inv) && inv.length) {
-            setSourceUsed("INVIDIOUS");
-            items = inv;
+          const yt = await fetchFromYouTubeSearch(q);
+          if (yt.length) {
+            setSourceUsed("YOUTUBE_API");
+            items = yt;
           }
-        }
-
-        if (!items.length) {
-          setSourceUsed("YOUTUBE_API");
-          items = await fetchFromYouTubeSearch(q);
         }
 
         log(`DEBUG: Search returned ${items.length} items`);
-      } else {
-        log("DEBUG: Fetching YouTube trending");
+      }
 
-        const piped = await fetchFromPiped("/trending?region=US");
-        if (Array.isArray(piped) && piped.length) {
-          setSourceUsed("PIPED");
-          items = piped;
+      // TRENDING MODE
+      else {
+        log("DEBUG: Fetching trending");
+
+        const inv = await fetchFromInvidiousTrending();
+        if (inv.length) {
+          setSourceUsed("INVIDIOUS");
+          items = inv;
         }
 
         if (!items.length) {
-          const inv = await fetchFromInvidious("/api/v1/trending?region=US");
-          if (Array.isArray(inv) && inv.length) {
-            setSourceUsed("INVIDIOUS");
-            items = inv;
+          const yt = await fetchFromYouTubeTrending();
+          if (yt.length) {
+            setSourceUsed("YOUTUBE_API");
+            items = yt;
           }
-        }
-
-        if (!items.length) {
-          setSourceUsed("YOUTUBE_API");
-          items = await fetchFromYouTubeTrending();
         }
 
         log(`DEBUG: Trending returned ${items.length} items`);
       }
 
-      const normalized = items
-        .map((item) => normalizeItem(item))
-        .filter(Boolean);
-
+      const normalized = items.map(normalizeItem).filter(Boolean);
       setVideos(normalized);
       setLoading(false);
     }
@@ -168,13 +214,17 @@ export default function Home({ searchQuery }) {
     load();
   }, [searchQuery]);
 
-  if (loading)
+  // -------------------------------
+  // Render
+  // -------------------------------
+  if (loading) {
     return (
       <>
         <DebugOverlay pageName="Home" sourceUsed={sourceUsed} />
         <p style={{ color: "#fff", padding: 16 }}>Loading…</p>
       </>
     );
+  }
 
   return (
     <>
