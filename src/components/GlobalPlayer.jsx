@@ -1,13 +1,15 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v4.0 — Background audio engine with reliable reactivation after Watch
+// PCC v4.1 — Background audio engine with route-aware reactivation after Watch
 
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { usePlayer } from "../contexts/PlayerContext";
 
 const INVIDIOUS_BASE = "https://yewtu.be";
 
 export default function GlobalPlayer() {
   const { currentVideo, playing, playNext } = usePlayer();
+  const location = useLocation();
 
   const audioRef = useRef(null);
 
@@ -26,7 +28,7 @@ export default function GlobalPlayer() {
 
   const videoId = getVideoId(currentVideo);
 
-  // Helper: is global audio engine allowed right now?
+  // Compute audioEnabled from global each render
   const audioEnabled = window.__GLOBAL_AUDIO_ENABLED !== false;
 
   // -------------------------------
@@ -56,7 +58,6 @@ export default function GlobalPlayer() {
         ? data.formatStreams
         : [];
 
-      // Prefer audio-only adaptive formats
       const audioOnly = adaptive.filter((f) =>
         String(f.type || "").startsWith("audio/")
       );
@@ -73,7 +74,6 @@ export default function GlobalPlayer() {
         }
       }
 
-      // Fallback: any formatStream with audio
       const withAudio = formats.filter((f) =>
         String(f.type || "").includes("audio")
       );
@@ -98,7 +98,8 @@ export default function GlobalPlayer() {
   // -------------------------------
   // Load stream whenever:
   // - videoId changes
-  // - audioEnabled flips from false → true
+  // - route changes (location.pathname)
+  // -> this is how we see audioEnabled flip after leaving Watch
   // -------------------------------
   useEffect(() => {
     if (!audioEnabled) {
@@ -143,7 +144,7 @@ export default function GlobalPlayer() {
     return () => {
       cancelled = true;
     };
-  }, [videoId, audioEnabled]);
+  }, [videoId, location.pathname, audioEnabled]);
 
   // -------------------------------
   // Sync play/pause with context
@@ -182,17 +183,11 @@ export default function GlobalPlayer() {
     }
   }, [playing, audioSrc, sourceType, audioEnabled]);
 
-  // -------------------------------
-  // Handle audio end → auto-next
-  // -------------------------------
   const handleEnded = () => {
     log("Audio ended -> calling playNext()");
     playNext();
   };
 
-  // -------------------------------
-  // Render
-  // -------------------------------
   if (!audioEnabled) {
     return null;
   }
