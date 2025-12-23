@@ -1,5 +1,5 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v4.1 — Stable next/prev controls + logging aligned with GlobalPlayer
+// PCC v4.2 — Mini controller wired to global YouTube iframe engine
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -130,7 +130,7 @@ export default function MiniPlayer({ onTogglePlay, onClose }) {
           e.stopPropagation();
           const newState = !playing;
           log(`Toggle play clicked -> newPlaying=${newState}`);
-          onTogglePlay();
+          onTogglePlay(); // App -> setPlaying(prev => !prev), which syncs to GlobalPlayer
         }}
         style={{
           background: "none",
