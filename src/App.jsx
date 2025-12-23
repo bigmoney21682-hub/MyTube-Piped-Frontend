@@ -1,7 +1,7 @@
 // File: src/App.jsx
-// PCC v7.0 — BootSplash + BootJosh + Restored DebugOverlay placement
+// PCC v8.0 — BootSplash + BootJosh + Global DebugOverlay + Correct pageName routing
 
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 
 import Home from "./pages/Home";
@@ -11,7 +11,7 @@ import SettingsPage from "./pages/SettingsPage";
 import Watch from "./pages/Watch";
 
 import BootSplash from "./components/BootSplash";
-import BootJosh from "./components/BootJosh";   // ⭐ NEW
+import BootJosh from "./components/BootJosh";
 import Footer from "./components/Footer";
 import DebugOverlay from "./components/DebugOverlay";
 import Header from "./components/Header";
@@ -23,16 +23,29 @@ import { usePlayer } from "./contexts/PlayerContext";
 
 export default function App() {
   const [ready, setReady] = useState(false);
-  const [joshDone, setJoshDone] = useState(false);   // ⭐ NEW
+  const [joshDone, setJoshDone] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { currentVideo, playing, setPlaying, stopVideo } = usePlayer();
 
   const navigate = useNavigate();
+  const location = useLocation();
+
   const log = (msg) => window.debugLog?.(`App: ${msg}`);
 
   const prevVideoRef = useRef(null);
   const prevPlayingRef = useRef(null);
+
+  // Track current page for DebugOverlay
+  const getPageName = () => {
+    if (location.pathname.startsWith("/watch")) return "Watch";
+    if (location.pathname.startsWith("/playlist")) return "Playlist";
+    if (location.pathname.startsWith("/playlists")) return "Playlists";
+    if (location.pathname.startsWith("/settings")) return "Settings";
+    return "Home";
+  };
+
+  const pageName = getPageName();
 
   useEffect(() => {
     if (prevVideoRef.current !== currentVideo) {
@@ -83,40 +96,35 @@ export default function App() {
 
   return (
     <>
+      {/* ⭐ DebugOverlay ALWAYS mounted so BootJosh logs appear */}
+      <DebugOverlay pageName={pageName} />
+
       {/* First splash */}
       <BootSplash ready={ready} />
 
-      {/* Second splash (BootJosh) */}
+      {/* Second splash */}
       {ready && !joshDone && <BootJosh onDone={() => setJoshDone(true)} />}
 
       {/* Main app */}
       {ready && joshDone && (
-        <>
-          <div className="app-root">
-            <Header onSearch={handleSearch} />
+        <div className="app-root">
+          <Header onSearch={handleSearch} />
 
-            {/* Global audio engine — always mounted */}
-            <GlobalPlayer />
+          <GlobalPlayer />
 
-            <div className="app-content">
-              <Routes>
-                <Route path="/" element={<Home searchQuery={searchQuery} />} />
-                <Route path="/playlists" element={<Playlists />} />
-                <Route path="/playlist/:id" element={<Playlist />} />
-                <Route path="/watch/:id" element={<Watch />} />
-                <Route path="/settings" element={<SettingsPage />} />
-              </Routes>
-            </div>
-
-            {/* MiniPlayer stays above DebugOverlay */}
-            <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
-
-            {/* ⭐ Restored original placement: full-width bottom debug console */}
-            <DebugOverlay pageName="App" />
-
-            <Footer />
+          <div className="app-content">
+            <Routes>
+              <Route path="/" element={<Home searchQuery={searchQuery} />} />
+              <Route path="/playlists" element={<Playlists />} />
+              <Route path="/playlist/:id" element={<Playlist />} />
+              <Route path="/watch/:id" element={<Watch />} />
+              <Route path="/settings" element={<SettingsPage />} />
+            </Routes>
           </div>
-        </>
+
+          <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
+          <Footer />
+        </div>
       )}
     </>
   );
