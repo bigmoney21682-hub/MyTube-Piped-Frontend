@@ -1,11 +1,12 @@
 // File: src/pages/Watch.jsx
-// PCC v3.7 — Uses config.js API key + route-aware audio engine + stable video loading
+// PCC v3.8 — Uses config.js API key + RelatedVideos integration
 
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { usePlayer } from "../contexts/PlayerContext";
 import Player from "../components/Player";
-import { API_KEY } from "../config";   // <-- Your API key comes from .env safely
+import RelatedVideos from "../components/RelatedVideos";
+import { API_KEY } from "../config";
 
 const INVIDIOUS_BASE = "https://yewtu.be";
 
@@ -23,7 +24,6 @@ export default function Watch() {
   // 1. Route-aware global audio engine toggle
   // ---------------------------------------------------------
   useEffect(() => {
-    // Default: audio enabled
     window.__GLOBAL_AUDIO_ENABLED = true;
 
     if (location.pathname.startsWith("/watch")) {
@@ -32,7 +32,6 @@ export default function Watch() {
     }
 
     return () => {
-      // When leaving Watch, ALWAYS re-enable audio
       window.__GLOBAL_AUDIO_ENABLED = true;
       log("Global audio engine re-enabled on cleanup");
     };
@@ -47,7 +46,7 @@ export default function Watch() {
     async function loadVideo() {
       log(`Trying Invidious: ${INVIDIOUS_BASE}/api/v1/videos/${id}`);
 
-      // Try Invidious first
+      // Try Invidious
       try {
         const invRes = await fetch(`${INVIDIOUS_BASE}/api/v1/videos/${id}`);
         const invData = await invRes.json();
@@ -134,11 +133,15 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Related videos placeholder (we’ll wire in your new component next) */}
-      <div style={{ padding: 16, color: "#fff" }}>
-        <h3>Related Videos</h3>
-        <p style={{ opacity: 0.5 }}>Coming soon…</p>
-      </div>
+      {/* Related videos */}
+      {video && (
+        <RelatedVideos
+          videoId={video.id}
+          title={video.title}
+          apiKey={API_KEY}
+          onDebugLog={(msg) => log(msg)}
+        />
+      )}
     </div>
   );
 }
