@@ -1,10 +1,11 @@
 // File: src/pages/Watch.jsx
-// PCC v3.6 — API key from .env + route-aware audio engine + stable video loading
+// PCC v3.7 — Uses config.js API key + route-aware audio engine + stable video loading
 
 import React, { useEffect, useState } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { usePlayer } from "../contexts/PlayerContext";
 import Player from "../components/Player";
+import { API_KEY } from "../config";   // <-- Your API key comes from .env safely
 
 const INVIDIOUS_BASE = "https://yewtu.be";
 
@@ -15,8 +16,6 @@ export default function Watch() {
 
   const [video, setVideo] = useState(null);
   const [embedUrl, setEmbedUrl] = useState("");
-
-  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
 
   const log = (msg) => window.debugLog?.(`Watch: ${msg}`);
 
@@ -106,7 +105,7 @@ export default function Watch() {
     }
 
     loadVideo();
-  }, [id, API_KEY, playVideo]);
+  }, [id, playVideo]);
 
   // ---------------------------------------------------------
   // 3. Build embed URL for ReactPlayer
@@ -135,7 +134,7 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Related videos section (we’ll restore this next) */}
+      {/* Related videos placeholder (we’ll wire in your new component next) */}
       <div style={{ padding: 16, color: "#fff" }}>
         <h3>Related Videos</h3>
         <p style={{ opacity: 0.5 }}>Coming soon…</p>
