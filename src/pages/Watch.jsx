@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// PCC v7.0 — Invidious primary, YouTube fallback, sourceUsed debug
+// PCC v7.1 — Invidious primary, YouTube fallback, sourceUsed debug, normalized thumbnail
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -49,7 +49,36 @@ export default function Watch() {
     }
   }
 
-  // Normalize into a shape GlobalPlayer already understands
+  // Thumbnail selection (mirror Home's logic)
+  const getThumbnail = (v) => {
+    if (!v) return null;
+
+    // Invidious: videoThumbnails array with .url
+    if (Array.isArray(v.videoThumbnails) && v.videoThumbnails.length > 0) {
+      const best = v.videoThumbnails[v.videoThumbnails.length - 1];
+      if (best?.url) {
+        if (best.url.startsWith("http")) return best.url;
+        return `${INVIDIOUS_BASE}${best.url}`;
+      }
+    }
+
+    // Invidious: single thumbnail string, often relative
+    if (typeof v.thumbnail === "string") {
+      if (v.thumbnail.startsWith("http")) return v.thumbnail;
+      if (v.thumbnail.startsWith("/")) return `${INVIDIOUS_BASE}${v.thumbnail}`;
+      return v.thumbnail;
+    }
+
+    // YouTube: snippet.thumbnails
+    const thumbs = v.snippet?.thumbnails;
+    if (thumbs?.medium?.url) return thumbs.medium.url;
+    if (thumbs?.high?.url) return thumbs.high.url;
+    if (thumbs?.default?.url) return thumbs.default.url;
+
+    return null;
+  };
+
+  // Normalize into a shape GlobalPlayer + MiniPlayer understand
   const normalizeVideo = (v) => {
     if (!v) return null;
 
@@ -60,7 +89,8 @@ export default function Watch() {
         title: v.title,
         author: v.author,
         description: v.description,
-        // Let GlobalPlayer handle picking the right stream; we just pass raw
+        thumbnail: getThumbnail(v),
+        // Keep raw invidious payload in case we want deeper access later
         invidious: v,
       };
     }
@@ -72,6 +102,7 @@ export default function Watch() {
         title: v.snippet.title,
         author: v.snippet.channelTitle,
         description: v.snippet.description,
+        thumbnail: getThumbnail(v),
         youtube: v,
       };
     }
