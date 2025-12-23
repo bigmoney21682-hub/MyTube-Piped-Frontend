@@ -1,11 +1,9 @@
 // File: src/pages/Home.jsx
-// PCC v7.0 — Invidious primary, YouTube fallback, fixed thumbnails, sourceUsed debug
+// PCC v8.0 — YouTube API only, clean normalization, sourceUsed debug
 
 import { useEffect, useState } from "react";
 import VideoCard from "../components/VideoCard";
 import DebugOverlay from "../components/DebugOverlay";
-
-const INVIDIOUS_BASE = "https://yewtu.be";
 
 export default function Home({ searchQuery }) {
   const [videos, setVideos] = useState([]);
@@ -15,13 +13,10 @@ export default function Home({ searchQuery }) {
   const log = (msg) => window.debugLog?.(`Home: ${msg}`);
 
   // -------------------------------
-  // ID extraction
+  // Normalization helpers
   // -------------------------------
   const getId = (item) => {
     if (!item) return null;
-
-    // Invidious search/trending: videoId
-    if (typeof item.videoId === "string") return item.videoId;
 
     // YouTube trending: id is string
     if (typeof item.id === "string") return item.id;
@@ -32,104 +27,61 @@ export default function Home({ searchQuery }) {
     return null;
   };
 
-  // -------------------------------
-  // Thumbnail selection
-  // -------------------------------
   const getThumbnail = (item) => {
     if (!item) return null;
 
-    // Invidious: videoThumbnails array with .url
-    if (Array.isArray(item.videoThumbnails) && item.videoThumbnails.length > 0) {
-      const best = item.videoThumbnails[item.videoThumbnails.length - 1];
-      if (best?.url) {
-        if (best.url.startsWith("http")) return best.url;
-        return `${INVIDIOUS_BASE}${best.url}`;
-      }
-    }
-
-    // Invidious: single thumbnail string, often relative
-    if (typeof item.thumbnail === "string") {
-      if (item.thumbnail.startsWith("http")) return item.thumbnail;
-      if (item.thumbnail.startsWith("/")) return `${INVIDIOUS_BASE}${item.thumbnail}`;
-      return item.thumbnail;
-    }
-
-    // YouTube: snippet.thumbnails
     const thumbs = item.snippet?.thumbnails;
-    if (thumbs?.medium?.url) return thumbs.medium.url;
+    if (thumbs?.maxres?.url) return thumbs.maxres.url;
     if (thumbs?.high?.url) return thumbs.high.url;
+    if (thumbs?.medium?.url) return thumbs.medium.url;
     if (thumbs?.default?.url) return thumbs.default.url;
 
     return null;
   };
 
-  // -------------------------------
-  // Normalization
-  // -------------------------------
   const normalizeItem = (item) => {
     const id = getId(item);
     if (!id) return null;
 
     return {
       id,
-      title: item.title || item.snippet?.title || "Untitled",
-      author:
-        item.author ||
-        item.uploader ||
-        item.snippet?.channelTitle ||
-        "Unknown",
+      title: item.snippet?.title || "Untitled",
+      author: item.snippet?.channelTitle || "Unknown",
       thumbnail: getThumbnail(item),
-      duration: item.duration || item.lengthSeconds || item.contentDetails?.duration,
+      duration: item.contentDetails?.duration,
     };
   };
 
   // -------------------------------
-  // Invidious fetchers
-  // -------------------------------
-  async function fetchFromInvidiousTrending() {
-    const url = `${INVIDIOUS_BASE}/api/v1/trending?region=US`;
-    log(`DEBUG: Trying Invidious trending: ${url}`);
-
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch (err) {
-      log(`ERROR: Invidious trending failed: ${err}`);
-      return [];
-    }
-  }
-
-  async function fetchFromInvidiousSearch(query) {
-    const url = `${INVIDIOUS_BASE}/api/v1/search?q=${encodeURIComponent(
-      query
-    )}&type=video`;
-    log(`DEBUG: Trying Invidious search: ${url}`);
-
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch (err) {
-      log(`ERROR: Invidious search failed: ${err}`);
-      return [];
-    }
-  }
-
-  // -------------------------------
-  // YouTube fallback
+  // YouTube API fetchers
   // -------------------------------
   async function fetchFromYouTubeTrending() {
-    log("DEBUG: Trending fallback → YouTube API");
+    const apiKey = window.YT_API_KEY;
+    if (!apiKey) {
+      log("ERROR: No YT_API_KEY found on window for trending");
+      return [];
+    }
+
+    log("DEBUG: Fetching trending via YouTube API");
 
     try {
-      const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&chart=mostPopular&regionCode=US&maxResults=20&key=${window.YT_API_KEY}`
-      );
+      const url =
+        "https://www.googleapis.com/youtube/v3/videos" +
+        `?part=snippet,contentDetails&chart=mostPopular&regionCode=US&maxResults=20&key=${apiKey}`;
+
+      log(`DEBUG: Trending URL → ${url}`);
+
+      const res = await fetch(url);
       const data = await res.json();
-      return data.items || [];
+
+      if (!data.items || !Array.isArray(data.items)) {
+        log("ERROR: YouTube trending returned no items or invalid format");
+        log("RAW: " + JSON.stringify(data).slice(0, 300));
+        return [];
+      }
+
+      setSourceUsed("YOUTUBE_API");
+      return data.items;
     } catch (err) {
       log(`ERROR: YouTube trending failed: ${err}`);
       return [];
@@ -137,16 +89,37 @@ export default function Home({ searchQuery }) {
   }
 
   async function fetchFromYouTubeSearch(query) {
-    log("DEBUG: Search fallback → YouTube API");
+    const apiKey = window.YT_API_KEY;
+    if (!apiKey) {
+      log("ERROR: No YT_API_KEY found on window for search");
+      return [];
+    }
+
+    const q = query.trim();
+    if (!q) return [];
+
+    log(`DEBUG: Searching via YouTube API for "${q}"`);
 
     try {
-      const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(
-          query
-        )}&key=${window.YT_API_KEY}`
-      );
+      const url =
+        "https://www.googleapis.com/youtube/v3/search" +
+        `?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(
+          q
+        )}&key=${apiKey}`;
+
+      log(`DEBUG: Search URL → ${url}`);
+
+      const res = await fetch(url);
       const data = await res.json();
-      return data.items || [];
+
+      if (!data.items || !Array.isArray(data.items)) {
+        log("ERROR: YouTube search returned no items or invalid format");
+        log("RAW: " + JSON.stringify(data).slice(0, 300));
+        return [];
+      }
+
+      setSourceUsed("YOUTUBE_API");
+      return data.items;
     } catch (err) {
       log(`ERROR: YouTube search failed: ${err}`);
       return [];
@@ -160,6 +133,7 @@ export default function Home({ searchQuery }) {
     async function load() {
       setLoading(true);
       setSourceUsed(null);
+      setVideos([]);
 
       let items = [];
 
@@ -168,45 +142,20 @@ export default function Home({ searchQuery }) {
         const q = searchQuery.trim();
         log(`DEBUG: Searching for "${q}"`);
 
-        const inv = await fetchFromInvidiousSearch(q);
-        if (inv.length) {
-          setSourceUsed("INVIDIOUS");
-          items = inv;
-        }
-
-        if (!items.length) {
-          const yt = await fetchFromYouTubeSearch(q);
-          if (yt.length) {
-            setSourceUsed("YOUTUBE_API");
-            items = yt;
-          }
-        }
-
-        log(`DEBUG: Search returned ${items.length} items`);
+        items = await fetchFromYouTubeSearch(q);
+        log(`DEBUG: Search returned ${items.length} raw items`);
       }
 
       // TRENDING MODE
       else {
         log("DEBUG: Fetching trending");
-
-        const inv = await fetchFromInvidiousTrending();
-        if (inv.length) {
-          setSourceUsed("INVIDIOUS");
-          items = inv;
-        }
-
-        if (!items.length) {
-          const yt = await fetchFromYouTubeTrending();
-          if (yt.length) {
-            setSourceUsed("YOUTUBE_API");
-            items = yt;
-          }
-        }
-
-        log(`DEBUG: Trending returned ${items.length} items`);
+        items = await fetchFromYouTubeTrending();
+        log(`DEBUG: Trending returned ${items.length} raw items`);
       }
 
       const normalized = items.map(normalizeItem).filter(Boolean);
+      log(`DEBUG: Normalized to ${normalized.length} videos`);
+
       setVideos(normalized);
       setLoading(false);
     }
