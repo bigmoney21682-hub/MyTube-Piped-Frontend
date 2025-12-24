@@ -1,5 +1,6 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v21.0 — Multi-panel debug console with filters, persistence, draggable toggle (Top-Left)
+// PCC v22.0 — Multi-panel debug console with filters, persistence, draggable toggle,
+// and persistent fatal error loader (survives black-screen crashes)
 
 import React, { useEffect, useRef, useState } from "react";
 
@@ -41,6 +42,23 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
     }, 200);
 
     return () => clearInterval(interval);
+  }, []);
+
+  // ------------------------------------------------------------
+  // Load persistent fatal errors (from main.jsx crash logger)
+  // ------------------------------------------------------------
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem("fatal_errors") || "[]");
+      if (stored.length > 0) {
+        const mapped = stored.map((e) => ({
+          time: new Date(e.time).toLocaleTimeString(),
+          category: "ERROR",
+          text: `[${e.type}] ${e.message} ${e.extra || ""}`,
+        }));
+        setLogs((prev) => [...mapped, ...prev]);
+      }
+    } catch {}
   }, []);
 
   // ------------------------------------------------------------
@@ -132,7 +150,7 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
   // ------------------------------------------------------------
   return (
     <>
-      {/* Draggable Toggle / Minimize Handle (Top-Left by default) */}
+      {/* Draggable Toggle / Minimize Handle */}
       <div
         onMouseDown={handleDragStart}
         onTouchStart={(e) => handleDragStart(e.touches[0])}
