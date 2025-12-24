@@ -1,11 +1,13 @@
 // File: src/main.jsx
-// PCC v5.0 — HashRouter + Global crash logger + ErrorBoundary wrapper
+// PCC v6.0 — HashRouter + Global crash logger + ErrorBoundary + PlayerProvider
 
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter } from "react-router-dom";
+
 import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { PlayerProvider } from "./contexts/PlayerContext";
 
 // ------------------------------------------------------------
 // GLOBAL CRASH LOGGER (PERSISTENT)
@@ -45,7 +47,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HashRouter>
       <ErrorBoundary>
-        <App />
+        <PlayerProvider>
+          <App />
+        </PlayerProvider>
       </ErrorBoundary>
     </HashRouter>
   </React.StrictMode>
