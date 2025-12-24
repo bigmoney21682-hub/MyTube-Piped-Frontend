@@ -3,7 +3,8 @@
 
 import { useEffect, useState } from "react";
 import DebugOverlay from "../components/DebugOverlay";
-import { getCached, setCached, clearAllCaches } from "../utils/youtubeCache";
+import { getCached, setCached } from "../utils/youtubeCache";
+import { clearAllCaches } from "../utils/cacheManager";
 import { usePlayer } from "../contexts/PlayerContext";
 
 export default function DebugEnv() {
