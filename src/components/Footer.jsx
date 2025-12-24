@@ -1,10 +1,18 @@
 // File: src/components/Footer.jsx
-// PCC v2.0 — Clean production footer, no debug instrumentation
+// PCC v3.0 — Now Playing button wired to current video
 
 import { useNavigate } from "react-router-dom";
+import { usePlayer } from "../contexts/PlayerContext";
 
 export default function Footer() {
   const navigate = useNavigate();
+  const { currentVideo } = usePlayer();
+
+  const hasVideo = !!currentVideo;
+  const videoId =
+    typeof currentVideo?.id === "string"
+      ? currentVideo.id
+      : currentVideo?.id?.videoId;
 
   return (
     <footer
@@ -27,8 +35,18 @@ export default function Footer() {
         icon="📁"
         onClick={() => navigate("/playlists")}
       />
+
       <FooterButton label="Home" icon="🏠" onClick={() => navigate("/")} />
-      <FooterButton label="Now Playing" icon="🎵" disabled />
+
+      <FooterButton
+        label="Now Playing"
+        icon="🎵"
+        disabled={!hasVideo}
+        onClick={() => {
+          if (!hasVideo) return;
+          navigate(`/watch/${videoId}`);
+        }}
+      />
     </footer>
   );
 }
