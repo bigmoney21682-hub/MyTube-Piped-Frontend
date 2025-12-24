@@ -1,7 +1,5 @@
 // File: src/App.jsx
-// PCC v11.1 — Single DebugOverlay mount, no duplicates.
-
-// rebuild-ios-2
+// PCC v12.0 — Stable routing, ChannelPage added, MiniPlayer disabled for debugging
 
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -13,6 +11,7 @@ import SettingsPage from "./pages/SettingsPage";
 import Watch from "./pages/Watch";
 import SubscriptionsPage from "./pages/Subscriptions";
 import DebugEnv from "./pages/DebugEnv";
+import ChannelPage from "./pages/ChannelPage"; // ✅ Corrected import
 
 import BootSplash from "./components/BootSplash";
 import BootJosh from "./components/BootJosh";
@@ -24,8 +23,6 @@ import GlobalPlayer from "./components/GlobalPlayer";
 
 import { clearAllCaches } from "./utils/cacheManager";
 import { usePlayer } from "./contexts/PlayerContext";
-
-// rebuild-2025-12-24-1
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -49,6 +46,7 @@ export default function App() {
     if (location.pathname.startsWith("/settings")) return "Settings";
     if (location.pathname.startsWith("/subs")) return "Subscriptions";
     if (location.pathname.startsWith("/debug-env")) return "DebugEnv";
+    if (location.pathname.startsWith("/channel")) return "Channel";
     return "Home";
   };
 
@@ -113,6 +111,7 @@ export default function App() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/subs" element={<SubscriptionsPage />} />
               <Route path="/debug-env" element={<DebugEnv />} />
+              <Route path="/channel/:id" element={<ChannelPage />} /> {/* ✅ Added */}
             </Routes>
           </div>
 
