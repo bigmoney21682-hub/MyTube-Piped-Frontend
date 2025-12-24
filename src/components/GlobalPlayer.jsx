@@ -1,5 +1,5 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v7.0 — FIXED YouTube API readiness + guaranteed player creation
+// PCC v7.1 — Overlay-free YouTube player (no links, no share, no title)
 // Single global YouTube iframe player (no Invidious, no <audio>)
 
 import { useEffect, useRef } from "react";
@@ -32,7 +32,6 @@ export default function GlobalPlayer() {
   // Load YouTube IFrame API once
   // -------------------------------
   useEffect(() => {
-    // If API already loaded, do NOT mark ready yet — wait for onReady
     if (window.YT && window.YT.Player) {
       log("YouTube IFrame API already present — waiting for onReady");
       return;
@@ -75,10 +74,15 @@ export default function GlobalPlayer() {
       videoId: null,
       playerVars: {
         autoplay: 0,
-        controls: 0,
-        rel: 0,
-        modestbranding: 1,
+        controls: 0,        // no controls
+        rel: 0,             // no related videos
+        modestbranding: 1,  // no YouTube logo
         playsinline: 1,
+        fs: 0,              // no fullscreen button
+        iv_load_policy: 3,  // no annotations
+        disablekb: 1,       // no keyboard shortcuts
+        showinfo: 0,        // hide title/channel
+        origin: window.location.origin,
       },
       events: {
         onReady: () => {
@@ -92,9 +96,7 @@ export default function GlobalPlayer() {
           if (state === YT.PlayerState.ENDED) {
             log("Player state = ENDED -> autonext");
             const next = playNext();
-            if (!next) {
-              log("No autonext target, stopping");
-            }
+            if (!next) log("No autonext target, stopping");
           } else if (state === YT.PlayerState.PLAYING) {
             log("Player state = PLAYING");
             if (!playing) setPlaying(true);
@@ -128,9 +130,7 @@ export default function GlobalPlayer() {
     log(`Loading videoId=${videoId} into global player`);
     try {
       player.loadVideoById(videoId);
-      if (!playing) {
-        player.pauseVideo();
-      }
+      if (!playing) player.pauseVideo();
     } catch (e) {
       log(`Error loading videoId=${videoId}: ${e}`);
     }
