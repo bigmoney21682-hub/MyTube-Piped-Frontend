@@ -1,5 +1,7 @@
+// File: src/components/SearchBar.jsx
+// PCC v4.0 — Crash‑proof SearchBar with safe dropdown + safe submit
+
 import { useState, useEffect, useRef } from "react";
-import { API_KEY } from "../config";
 
 export default function SearchBar({ onSearch }) {
   const [q, setQ] = useState("");
@@ -11,22 +13,32 @@ export default function SearchBar({ onSearch }) {
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
+  // ------------------------------------------------------------
   // Load search history on mount
+  // ------------------------------------------------------------
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("searchHistory") || "[]");
-    setHistory(saved);
+    try {
+      const saved = JSON.parse(localStorage.getItem("searchHistory") || "[]");
+      if (Array.isArray(saved)) setHistory(saved);
+    } catch {
+      setHistory([]);
+    }
   }, []);
 
+  // ------------------------------------------------------------
   // Save search history
+  // ------------------------------------------------------------
   const saveHistory = (term) => {
-    if (!term) return;
+    if (!term || typeof term !== "string") return;
 
     const updated = [term, ...history.filter((h) => h !== term)].slice(0, 10);
     setHistory(updated);
     localStorage.setItem("searchHistory", JSON.stringify(updated));
   };
 
-  // Debounce search suggestions
+  // ------------------------------------------------------------
+  // Debounce autocomplete suggestions
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!q.trim()) {
       setSuggestions([]);
@@ -41,7 +53,7 @@ export default function SearchBar({ onSearch }) {
           )}`
         );
         const data = await res.json();
-        setSuggestions(data[1] || []);
+        setSuggestions(Array.isArray(data[1]) ? data[1] : []);
       } catch (err) {
         console.error("Autocomplete error:", err);
       }
@@ -50,22 +62,31 @@ export default function SearchBar({ onSearch }) {
     return () => clearTimeout(t);
   }, [q]);
 
-  // Submit search
+  // ------------------------------------------------------------
+  // Safe submit — ignores accidental event objects
+  // ------------------------------------------------------------
   const submit = (term) => {
+    // If React passed a synthetic event, ignore it
+    if (term && typeof term === "object") return;
+
     const query = term || q.trim();
     if (!query) return;
 
     saveHistory(query);
     onSearch(query);
+
     setShowDropdown(false);
     setHighlightIndex(-1);
   };
 
-  // Handle keyboard navigation
+  // ------------------------------------------------------------
+  // Keyboard navigation
+  // ------------------------------------------------------------
   const handleKeyDown = (e) => {
     if (!showDropdown) return;
 
     const list = [...history, ...suggestions];
+    if (list.length === 0) return;
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -87,7 +108,9 @@ export default function SearchBar({ onSearch }) {
     }
   };
 
+  // ------------------------------------------------------------
   // Close dropdown when clicking outside
+  // ------------------------------------------------------------
   useEffect(() => {
     const handler = (e) => {
       if (
@@ -102,6 +125,9 @@ export default function SearchBar({ onSearch }) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
   return (
     <div style={{ width: "80%", maxWidth: 520, position: "relative" }}>
       <form
@@ -174,7 +200,10 @@ export default function SearchBar({ onSearch }) {
           {[...history, ...suggestions].map((item, i) => (
             <div
               key={i}
-              onMouseDown={() => submit(item)}
+              onMouseDown={(e) => {
+                e.preventDefault(); // prevent blur
+                submit(item);       // pass ONLY the string
+              }}
               style={{
                 padding: "10px 14px",
                 cursor: "pointer",
