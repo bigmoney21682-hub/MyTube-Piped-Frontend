@@ -1,3 +1,8 @@
+# File: .github/workflows/deploy.yml
+# PCC v4.0 — GitHub Pages deployment with API key injection (primary + fallback)
+# This workflow builds the Vite project, injects API keys from GitHub Secrets,
+# fixes SPA routing by copying index.html to 404.html, and deploys to GitHub Pages.
+
 name: Deploy to GitHub Pages
 
 on:
@@ -27,12 +32,15 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install   # Using npm install to avoid lock file error
+        run: npm install
 
       - name: Build
         run: npm run build
         env:
           CI: false
+          # Inject API keys into Vite build
+          VITE_YT_API_PRIMARY: ${{ secrets.VITE_YT_API_PRIMARY }}
+          VITE_YT_API_FALLBACK1: ${{ secrets.VITE_YT_API_FALLBACK1 }}
 
       - name: Copy index.html to 404.html (Fix routing)
         run: cp dist/index.html dist/404.html
