@@ -3,7 +3,6 @@
 
 import { useEffect, useState } from "react";
 import DebugOverlay from "../components/DebugOverlay";
-import VideoCard from "../components/VideoCard";
 
 export default function SubscriptionsPage() {
   const [subs, setSubs] = useState([]);
@@ -11,7 +10,9 @@ export default function SubscriptionsPage() {
   const log = (msg) => window.debugLog?.(`Subscriptions: ${msg}`);
 
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem("mytube_subscriptions") || "[]");
+    const stored = JSON.parse(
+      localStorage.getItem("mytube_subscriptions") || "[]"
+    );
     setSubs(stored);
     log(`Loaded ${stored.length} subscriptions`);
   }, []);
@@ -21,10 +22,12 @@ export default function SubscriptionsPage() {
       <DebugOverlay pageName="Subscriptions" sourceUsed="LOCAL" />
 
       <div style={{ padding: 16, color: "#fff" }}>
-        <h2>Your Subscriptions</h2>
+        <h2 style={{ marginBottom: 12 }}>Your Subscriptions</h2>
 
         {subs.length === 0 && (
-          <p style={{ opacity: 0.7 }}>You haven’t subscribed to any channels yet.</p>
+          <p style={{ opacity: 0.7 }}>
+            You haven’t subscribed to any channels yet.
+          </p>
         )}
 
         <div
@@ -45,6 +48,7 @@ export default function SubscriptionsPage() {
                 display: "flex",
                 flexDirection: "column",
                 gap: 8,
+                border: "1px solid #222",
               }}
             >
               <img
@@ -53,12 +57,18 @@ export default function SubscriptionsPage() {
                 width="100%"
                 style={{ borderRadius: 8 }}
               />
-              <strong>{ch.title}</strong>
+
+              <strong style={{ fontSize: "1rem" }}>{ch.title}</strong>
 
               {/* Clicking a subscription performs a search for that channel */}
               <a
                 href={`/?search=${encodeURIComponent(ch.title)}`}
-                style={{ color: "#4af", textDecoration: "none", marginTop: 4 }}
+                style={{
+                  color: "#4af",
+                  textDecoration: "none",
+                  marginTop: 4,
+                  fontSize: 14,
+                }}
               >
                 View videos
               </a>
