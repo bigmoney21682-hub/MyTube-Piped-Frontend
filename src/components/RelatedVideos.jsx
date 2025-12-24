@@ -1,7 +1,7 @@
 // File: src/components/RelatedVideos.jsx
-// PCC v6.0 — YouTube API only + in-memory caching + autonext feed
+// PCC v7.0 — Hardened YouTube API related feed + in-memory caching + autonext source
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getCached, setCached } from "../utils/youtubeCache";
 
@@ -14,9 +14,12 @@ export default function RelatedVideos({
   const [videos, setVideos] = useState([]);
   const [error, setError] = useState(null);
 
-  const log = (msg) => {
-    if (typeof onDebugLog === "function") onDebugLog(msg);
-    else window.debugLog?.(`RelatedVideos: ${msg}`);
+  const log = (msg, category = "API") => {
+    if (typeof onDebugLog === "function") {
+      onDebugLog(msg);
+    } else {
+      window.debugLog?.(`RelatedVideos: ${msg}`, category);
+    }
   };
 
   useEffect(() => {
@@ -24,14 +27,16 @@ export default function RelatedVideos({
     const apiKey = window.YT_API_KEY;
 
     if (!cleanId) {
-      log("RelatedVideos aborted: empty videoId");
+      log("aborted: empty videoId", "ERROR");
       return;
     }
 
     if (!apiKey) {
-      log("RelatedVideos aborted: missing YT_API_KEY");
+      log("aborted: missing YT_API_KEY", "ERROR");
       return;
     }
+
+    let cancelled = false;
 
     async function load() {
       setError(null);
@@ -40,10 +45,16 @@ export default function RelatedVideos({
       const cacheKey = `related_${cleanId}`;
       const cached = getCached(cacheKey);
 
-      if (cached) {
-        log("Using cached related videos");
-        setVideos(cached);
-        onLoaded?.(cached);
+      if (cached && Array.isArray(cached) && cached.length > 0) {
+        log(`using cached related videos (${cached.length})`, "API");
+        if (!cancelled) {
+          setVideos(cached);
+          try {
+            onLoaded?.(cached);
+          } catch (e) {
+            log(`onLoaded handler threw: ${e}`, "ERROR");
+          }
+        }
         return;
       }
 
@@ -57,40 +68,58 @@ export default function RelatedVideos({
             cleanId
           )}&key=${apiKey}`;
 
-        log(`Trying YouTube relatedToVideoId → ${url}`);
+        log(`YouTube relatedToVideoId → ${url}`, "API");
 
         const res = await fetch(url);
-        const data = await res.json();
+        const data = await res.json().catch((e) => {
+          throw new Error(`JSON parse error: ${e?.message || e}`);
+        });
+
+        if (cancelled) return;
+
+        if (data.error) {
+          log(
+            `YouTube relatedToVideoId error: ${data.error.message || "unknown"}`,
+            "ERROR"
+          );
+        }
 
         if (data.items && Array.isArray(data.items) && data.items.length > 0) {
           const mapped = data.items
-            .filter((v) => v.id?.videoId)
+            .filter((v) => v?.id?.videoId)
             .map((v) => ({
               id: v.id.videoId,
-              title: v.snippet.title,
+              title: v.snippet?.title || "Untitled",
               thumbnail:
-                v.snippet.thumbnails?.default?.url ||
-                v.snippet.thumbnails?.medium?.url ||
-                v.snippet.thumbnails?.high?.url,
+                v.snippet?.thumbnails?.default?.url ||
+                v.snippet?.thumbnails?.medium?.url ||
+                v.snippet?.thumbnails?.high?.url ||
+                "",
             }));
 
           if (mapped.length > 0) {
+            log(`applied ${mapped.length} items from relatedToVideoId`, "API");
             setCached(cacheKey, mapped);
-            setVideos(mapped);
-            onLoaded?.(mapped);
-            log(`Applied ${mapped.length} items from YouTube relatedToVideoId`);
+            if (!cancelled) {
+              setVideos(mapped);
+              try {
+                onLoaded?.(mapped);
+              } catch (e) {
+                log(`onLoaded handler threw: ${e}`, "ERROR");
+              }
+            }
             return;
           }
         }
       } catch (err) {
-        log(`YouTube relatedToVideoId failed → ${err}`);
+        log(`YouTube relatedToVideoId failed → ${err}`, "ERROR");
       }
 
       // -----------------------------------------
       // 2. Fallback: keyword search by title
       // -----------------------------------------
       if (!title) {
-        log("Skipping title-based fallback (no title provided)");
+        log("skipping title-based fallback (no title provided)", "UI");
         return;
       }
 
@@ -100,35 +129,62 @@ export default function RelatedVideos({
           "https://www.googleapis.com/youtube/v3/search" +
           `?part=snippet&type=video&maxResults=10&q=${query}&key=${apiKey}`;
 
-        log(`YouTube fallback by title → ${url}`);
+        log(`YouTube fallback by title → ${url}`, "API");
 
         const res = await fetch(url);
-        const data = await res.json();
+        const data = await res.json().catch((e) => {
+          throw new Error(`JSON parse error: ${e?.message || e}`);
+        });
+
+        if (cancelled) return;
+
+        if (data.error) {
+          log(
+            `YouTube title fallback error: ${data.error.message || "unknown"}`,
+            "ERROR"
+          );
+        }
 
         if (data.items && Array.isArray(data.items)) {
           const mapped = data.items
-            .filter((v) => v.id?.videoId)
+            .filter((v) => v?.id?.videoId)
             .map((v) => ({
               id: v.id.videoId,
-              title: v.snippet.title,
+              title: v.snippet?.title || "Untitled",
               thumbnail:
-                v.snippet.thumbnails?.default?.url ||
-                v.snippet.thumbnails?.medium?.url ||
-                v.snippet.thumbnails?.high?.url,
+                v.snippet?.thumbnails?.default?.url ||
+                v.snippet?.thumbnails?.medium?.url ||
+                v.snippet?.thumbnails?.high?.url ||
+                "",
             }));
 
+          log(
+            `applied ${mapped.length} items from YouTube title fallback`,
+            "API"
+          );
           setCached(cacheKey, mapped);
-          setVideos(mapped);
-          onLoaded?.(mapped);
-          log(`Applied ${mapped.length} items from YouTube title fallback`);
+          if (!cancelled) {
+            setVideos(mapped);
+            try {
+              onLoaded?.(mapped);
+            } catch (e) {
+              log(`onLoaded handler threw: ${e}`, "ERROR");
+            }
+          }
         }
       } catch (err) {
-        log(`YouTube fallback failed → ${err}`);
-        setError(err.message);
+        log(`YouTube fallback failed → ${err}`, "ERROR");
+        if (!cancelled) {
+          setError(err.message || "Unknown error");
+        }
       }
     }
 
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [videoId, title, onLoaded]);
 
   if (error)
@@ -158,16 +214,27 @@ export default function RelatedVideos({
           key={v.id || index}
           to={`/watch/${v.id}`}
           style={{ color: "#fff", textDecoration: "none" }}
-          onClick={() => log(`clicked → ${v.title}`)}
+          onClick={() => log(`clicked → ${v.title}`, "UI")}
         >
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <img
-              src={v.thumbnail}
-              alt={v.title}
-              width={80}
-              height={45}
-              style={{ borderRadius: 4 }}
-            />
+            {v.thumbnail ? (
+              <img
+                src={v.thumbnail}
+                alt={v.title}
+                width={80}
+                height={45}
+                style={{ borderRadius: 4, objectFit: "cover" }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 80,
+                  height: 45,
+                  borderRadius: 4,
+                  background: "#333",
+                }}
+              />
+            )}
             <span>{v.title}</span>
           </div>
         </Link>
