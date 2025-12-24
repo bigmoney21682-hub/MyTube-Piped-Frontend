@@ -1,40 +1,41 @@
 // File: src/utils/getApiKey.js
-// PCC v2.0 — Automatic fallback API key rotation + debug logging
-// Uses API_KEYS from src/config/keys.js and retries on quotaExceeded
+// PCC v3.0 — API key rotation + debug logging.
 
-import { API_KEYS } from "../config/keys";
+export const API_KEYS = {
+  primary: import.meta.env.VITE_YT_API_PRIMARY,
+  fallback1: import.meta.env.VITE_YT_API_FALLBACK1,
+};
 
-export async function fetchWithFallback(urlBuilder) {
-  const keys = API_KEYS;
+// Debug print to browser console
+console.log("DEBUG: VITE_YT_API_PRIMARY =", API_KEYS.primary);
+console.log("DEBUG: VITE_YT_API_FALLBACK1 =", API_KEYS.fallback1);
 
-  for (const label of ["primary", "fallback1"]) {
-    const key = keys[label];
-    if (!key) continue;
+export async function fetchWithFallback(buildUrl) {
+  const keys = [API_KEYS.primary, API_KEYS.fallback1];
 
-    const url = urlBuilder(key);
+  for (const key of keys) {
+    if (!key) {
+      window.debugLog?.(`API KEY MISSING → ${key}`);
+      continue;
+    }
 
-    // Debug logging (your DebugOverlay listens to window.debugLog)
-    window.debugLog?.(`API KEY USED → ${label}`);
+    const url = buildUrl(key);
     window.debugLog?.(`URL → ${url}`);
+    window.debugLog?.(`API KEY USED → ${key}`);
 
     try {
       const res = await fetch(url);
       const data = await res.json();
 
-      // Quota exceeded → try next key
-      if (data?.error?.errors?.[0]?.reason === "quotaExceeded") {
-        window.debugLog?.(`QUOTA EXCEEDED on ${label}, trying next…`);
-        continue;
+      if (!data.error) {
+        return { data, keyUsed: key };
       }
 
-      // Success
-      return { data, keyUsed: label };
+      window.debugLog?.(`ERROR for key ${key}: ${data.error?.message}`);
     } catch (err) {
-      window.debugLog?.(`ERROR on ${label}: ${err}`);
-      continue;
+      window.debugLog?.(`FETCH ERROR for key ${key}: ${err}`);
     }
   }
 
-  // All keys failed
   return { data: null, keyUsed: null };
 }
