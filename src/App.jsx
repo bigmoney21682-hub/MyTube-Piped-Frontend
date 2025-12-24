@@ -1,5 +1,6 @@
 // File: src/App.jsx
-// PCC v12.1 — Stable routing, ChannelPage added, MiniPlayer disabled for debugging
+// PCC v12.2 — Stable routing, ChannelPage added, MiniPlayer disabled for debugging
+// Crash-proof PlayerContext destructuring
 
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -28,7 +29,17 @@ export default function App() {
   const [joshDone, setJoshDone] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { currentVideo, playing, setPlaying, stopVideo } = usePlayer();
+  // ------------------------------------------------------------
+  // SAFE PlayerContext destructuring (prevents "right side cannot be destructured")
+  // ------------------------------------------------------------
+  const playerCtx = usePlayer() || {};
+
+  const {
+    currentVideo = null,
+    playing = false,
+    setPlaying = () => {},
+    stopVideo = () => {},
+  } = playerCtx;
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,6 +62,7 @@ export default function App() {
 
   const pageName = getPageName();
 
+  // Log video changes
   useEffect(() => {
     if (prevVideoRef.current !== currentVideo) {
       const id = currentVideo?.id || currentVideo?.id?.videoId || "null";
@@ -59,6 +71,7 @@ export default function App() {
     }
   }, [currentVideo]);
 
+  // Log playing changes
   useEffect(() => {
     if (prevPlayingRef.current !== playing) {
       log(`isPlaying changed -> ${playing}`);
@@ -66,6 +79,7 @@ export default function App() {
     }
   }, [playing]);
 
+  // Boot + auto-clear
   useEffect(() => {
     const t = setTimeout(() => setReady(true), 2000);
 
