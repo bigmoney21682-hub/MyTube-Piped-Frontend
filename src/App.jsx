@@ -3,7 +3,6 @@
 
 // rebuild-ios-2
 
-
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 
@@ -27,7 +26,6 @@ import { clearAllCaches } from "./utils/cacheManager";
 import { usePlayer } from "./contexts/PlayerContext";
 
 // rebuild-2025-12-24-1
-
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -118,9 +116,8 @@ export default function App() {
             </Routes>
           </div>
 
-    
-
-          <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
+          {/* MiniPlayer disabled for debugging */}
+          {/* <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} /> */}
           <Footer />
         </div>
       )}
