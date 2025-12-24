@@ -1,6 +1,6 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v4.0 — Global debug overlay for API key usage, endpoints, player state, and logs.
-// Appears as a floating dev panel. Toggle with the button in the corner.
+// PCC v5.0 — Inline debug panel (non-floating) placed in content flow above footer.
+// Tracks API key usage, endpoints, player state, video ID, and global logs.
 
 import React, { useEffect, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -9,7 +9,6 @@ export default function DebugOverlay() {
   const { current, playerState } = usePlayer();
 
   const [logs, setLogs] = useState([]);
-  const [visible, setVisible] = useState(true);
   const [apiKeyUsed, setApiKeyUsed] = useState(null);
   const [lastEndpoint, setLastEndpoint] = useState(null);
   const [apiCallCount, setApiCallCount] = useState(0);
@@ -34,46 +33,19 @@ export default function DebugOverlay() {
     };
   }, []);
 
-  if (!visible) {
-    return (
-      <button
-        onClick={() => setVisible(true)}
-        style={{
-          position: "fixed",
-          bottom: 16,
-          right: 16,
-          zIndex: 99999,
-          padding: "8px 12px",
-          background: "#111",
-          color: "#fff",
-          borderRadius: 8,
-          border: "1px solid #444",
-          fontSize: 14,
-          opacity: 0.7,
-        }}
-      >
-        Debug
-      </button>
-    );
-  }
-
   return (
     <div
       style={{
-        position: "fixed",
-        bottom: 16,
-        right: 16,
-        width: 320,
-        height: 300,
+        width: "100%",
         background: "rgba(0,0,0,0.85)",
         color: "#0f0",
         fontFamily: "monospace",
         fontSize: 12,
-        padding: 12,
-        borderRadius: 12,
-        zIndex: 99999,
-        overflowY: "auto",
-        border: "1px solid #333",
+        padding: "12px 16px",
+        borderTop: "1px solid #333",
+        borderBottom: "1px solid #333",
+        boxSizing: "border-box",
+        marginTop: 16,
       }}
     >
       {/* Header */}
@@ -85,25 +57,16 @@ export default function DebugOverlay() {
         }}
       >
         <strong style={{ color: "#fff" }}>Debug Panel</strong>
-        <button
-          onClick={() => setVisible(false)}
-          style={{
-            background: "none",
-            border: "1px solid #444",
-            color: "#fff",
-            padding: "2px 6px",
-            borderRadius: 6,
-            cursor: "pointer",
-          }}
-        >
-          Hide
-        </button>
       </div>
 
       {/* Key Info */}
       <div style={{ marginBottom: 8 }}>
-        <div>API Key Used: <span style={{ color: "#fff" }}>{apiKeyUsed || "—"}</span></div>
-        <div>API Calls: <span style={{ color: "#fff" }}>{apiCallCount}</span></div>
+        <div>
+          API Key Used: <span style={{ color: "#fff" }}>{apiKeyUsed || "—"}</span>
+        </div>
+        <div>
+          API Calls: <span style={{ color: "#fff" }}>{apiCallCount}</span>
+        </div>
         <div style={{ marginTop: 4 }}>
           Last Endpoint:
           <div style={{ color: "#fff", fontSize: 11, wordBreak: "break-all" }}>
@@ -114,12 +77,12 @@ export default function DebugOverlay() {
 
       {/* Player Info */}
       <div style={{ marginBottom: 8 }}>
-        <div>Player State: <span style={{ color: "#fff" }}>{playerState}</span></div>
         <div>
-          Current Video:
-          <span style={{ color: "#fff" }}>
-            {current?.id || "—"}
-          </span>
+          Player State: <span style={{ color: "#fff" }}>{playerState}</span>
+        </div>
+        <div>
+          Current Video:{" "}
+          <span style={{ color: "#fff" }}>{current?.id || "—"}</span>
         </div>
       </div>
 
