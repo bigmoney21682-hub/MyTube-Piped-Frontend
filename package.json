@@ -2,7 +2,7 @@
   "name": "mytube-frontend",
   "version": "1.0.0",
   "private": true,
-  "homepage": "https://bigmoney21682-hub.github.io/MyTube-Frontend",
+  "homepage": "https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend",
   "scripts": {
     "dev": "vite",
     "build": "vite build && cp dist/index.html dist/404.html",
