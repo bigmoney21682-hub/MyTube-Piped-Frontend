@@ -1,6 +1,11 @@
 // File: src/utils/api.js
+// PCC v3.0 — YouTube API wrapper using automatic fallback key rotation
+// All requests use fetchWithFallback() to rotate between primary + fallback keys.
 
-import { YT_API_KEY, YT_BASE_URL, MAX_RESULTS } from "../config";
+import { fetchWithFallback } from "./getApiKey";
+
+const YT_BASE_URL = "https://www.googleapis.com/youtube/v3";
+const MAX_RESULTS = 20;
 
 /**
  * Search videos by query string
@@ -10,33 +15,30 @@ import { YT_API_KEY, YT_BASE_URL, MAX_RESULTS } from "../config";
 export async function searchVideos(query) {
   if (!query) return [];
 
-  const url = `${YT_BASE_URL}/search?part=snippet&type=video&maxResults=${MAX_RESULTS}&q=${encodeURIComponent(
-    query
-  )}&key=${YT_API_KEY}`;
+  const { data, keyUsed } = await fetchWithFallback(
+    (key) =>
+      `${YT_BASE_URL}/search?part=snippet&type=video&maxResults=${MAX_RESULTS}` +
+      `&q=${encodeURIComponent(query)}&key=${key}`
+  );
 
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    return data.items || [];
-  } catch (err) {
-    console.error("API search error:", err);
-    return [];
-  }
+  window.debugLog?.(`searchVideos() used key: ${keyUsed}`);
+
+  return data?.items || [];
 }
 
 /**
  * Fetch trending videos (US)
  */
 export async function getTrending() {
-  const url = `${YT_BASE_URL}/videos?part=snippet,contentDetails,statistics&chart=mostPopular&regionCode=US&maxResults=${MAX_RESULTS}&key=${YT_API_KEY}`;
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    return data.items || [];
-  } catch (err) {
-    console.error("API trending error:", err);
-    return [];
-  }
+  const { data, keyUsed } = await fetchWithFallback(
+    (key) =>
+      `${YT_BASE_URL}/videos?part=snippet,contentDetails,statistics` +
+      `&chart=mostPopular&regionCode=US&maxResults=${MAX_RESULTS}&key=${key}`
+  );
+
+  window.debugLog?.(`getTrending() used key: ${keyUsed}`);
+
+  return data?.items || [];
 }
 
 /**
@@ -44,13 +46,13 @@ export async function getTrending() {
  * @param {string} videoId
  */
 export async function getRelated(videoId) {
-  const url = `${YT_BASE_URL}/search?part=snippet&type=video&maxResults=${MAX_RESULTS}&relatedToVideoId=${videoId}&key=${YT_API_KEY}`;
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    return data.items || [];
-  } catch (err) {
-    console.error("API related error:", err);
-    return [];
-  }
+  const { data, keyUsed } = await fetchWithFallback(
+    (key) =>
+      `${YT_BASE_URL}/search?part=snippet&type=video&maxResults=${MAX_RESULTS}` +
+      `&relatedToVideoId=${videoId}&key=${key}`
+  );
+
+  window.debugLog?.(`getRelated() used key: ${keyUsed}`);
+
+  return data?.items || [];
 }
