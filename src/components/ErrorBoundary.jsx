@@ -32,16 +32,15 @@ export default class ErrorBoundary extends React.Component {
     window.__fatalErrors = window.__fatalErrors || [];
     window.__fatalErrors.push(entry);
 
-    // Auto-recover after a short delay
+    // Auto-recover after a short delay (HashRouter-safe)
     setTimeout(() => {
-      window.location.hash = "#/"; // HashRouter safe
+      window.location.hash = "#/";
       window.location.reload();
     }, 400);
   }
 
   render() {
     if (this.state.crashed) {
-      // Keep DebugOverlay visible by rendering children anyway
       return (
         <div style={{ padding: 20, color: "#fff", background: "#000" }}>
           <h2>Recovering from crash…</h2>
