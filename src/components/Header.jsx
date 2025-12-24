@@ -1,89 +1,100 @@
-import { useNavigate } from "react-router-dom";
-import SearchBar from "./SearchBar";
+[9:30:20 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
 
-export default function Header({ onSearch }) {
-  const navigate = useNavigate();
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:21 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
 
-  return (
-    <header
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: "var(--header-height)",
-        background: "var(--app-bg)",
-        borderBottom: "1px solid #222",
-        zIndex: 1000,
-        padding: "10px 12px",
-      }}
-    >
-      {/* Top row */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 8,
-        }}
-      >
-        <button
-          onClick={() => navigate("/settings")}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#fff",
-            cursor: "pointer",
-            textAlign: "center",
-          }}
-        >
-          ☰
-          <div style={{ fontSize: 11, opacity: 0.7 }}>Menu</div>
-        </button>
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:25 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
 
-        <div
-          onClick={() => navigate("/")}
-          style={{
-            cursor: "pointer",
-            textAlign: "center",
-            flex: 1,
-          }}
-        >
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "1.5rem",
-              background:
-                "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            🔥 MyTube 🔥
-          </h1>
-        </div>
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:25 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
 
-        <button
-          onClick={() => navigate("/subs")}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#fff",
-            cursor: "pointer",
-            textAlign: "center",
-          }}
-        >
-          📺
-          <div style={{ fontSize: 11, opacity: 0.7 }}>Subs</div>
-        </button>
-      </div>
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:26 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
 
-      {/* Search bar */}
-      {onSearch && (
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <SearchBar onSearch={onSearch} />
-        </div>
-      )}
-    </header>
-  );
-}
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:26 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
+
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:27 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
+
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:27 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
+
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:28 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
+
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:28 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
+
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:29 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
+
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:30 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
+
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:30 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
+
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:30:31 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
+
+dg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:29207
+fg@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:72:30977
+Lh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:58:6493
+Mh@https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/assets/index-DkZgEMDy.js:67:145
+[9:41:51 AM] ReactRenderCrash
+TypeError: Right side of assignment cannot be destructured
