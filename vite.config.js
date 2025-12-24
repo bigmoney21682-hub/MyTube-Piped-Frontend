@@ -1,5 +1,5 @@
 // File: vite.config.js
-// PCC v3.0 — Force Vite to expose GitHub Secrets at build time
+// PCC v3.0 — Forces Vite to expose GitHub Secrets at build time.
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
