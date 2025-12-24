@@ -1,5 +1,5 @@
 // File: src/main.jsx
-// PCC v2.0 — Clean root with global error logging + API key init
+// PCC v3.0 — Clean root + global error logging + API key init
 
 import "./initApiKey";
 import React from "react";
@@ -10,7 +10,9 @@ import { PlayerProvider } from "./contexts/PlayerContext";
 import { PlaylistProvider } from "./contexts/PlaylistContext";
 import "./index.css";
 
-// Global error logging → surfaced into DebugOverlay (for iOS / mobile)
+// ------------------------------------------------------------
+// Global error logging (surfaced into DebugOverlay)
+// ------------------------------------------------------------
 window.onerror = function (message, source, lineno, colno, error) {
   window.debugLog?.(
     `GLOBAL ERROR: ${message} @ ${source}:${lineno}:${colno} :: ${
@@ -27,6 +29,9 @@ window.onunhandledrejection = function (event) {
   );
 };
 
+// ------------------------------------------------------------
+// React root
+// ------------------------------------------------------------
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <HashRouter>
