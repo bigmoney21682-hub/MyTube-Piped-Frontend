@@ -1,5 +1,5 @@
 // File: src/pages/Watch.jsx
-// Diagnostic v1 — render logging + RelatedVideos disabled
+// Diagnostic v2 — safe hooks destructuring + render logging + RelatedVideos disabled
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -16,6 +16,10 @@ export default function Watch() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // ------------------------------------------------------------
+  // SAFE HOOK DESTRUCTURING (prevents "right side cannot be destructured")
+  // ------------------------------------------------------------
+  const playerCtx = usePlayer() || {};
   const {
     playVideo,
     playing,
@@ -23,9 +27,14 @@ export default function Watch() {
     setRelatedList,
     setPlaylist,
     setCurrentIndex,
-  } = usePlayer();
+  } = playerCtx;
 
-  const { subscribe, unsubscribe, isSubscribed } = useSubscriptions();
+  const subsCtx = useSubscriptions() || {};
+  const {
+    subscribe = () => {},
+    unsubscribe = () => {},
+    isSubscribed = () => false,
+  } = subsCtx;
 
   const [video, setVideo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -90,6 +99,8 @@ export default function Watch() {
   // Normalize video safely
   // ------------------------------------------------------------
   const normalizeVideo = (v) => {
+    if (!v) return buildFallback(id);
+
     const snippet = v.snippet || {};
 
     return {
@@ -123,11 +134,15 @@ export default function Watch() {
 
       setVideo(normalized);
 
-      // Prepare PlayerContext
-      setPlaylist([normalized]);
-      setCurrentIndex(0);
-      setAutonextMode("related");
-      playVideo(normalized);
+      // Prepare PlayerContext (guard in case context is not ready)
+      if (setPlaylist && setCurrentIndex && setAutonextMode && playVideo) {
+        setPlaylist([normalized]);
+        setCurrentIndex(0);
+        setAutonextMode("related");
+        playVideo(normalized);
+      } else {
+        log("PlayerContext not ready — skipped playlist wiring");
+      }
 
       setLoading(false);
     }
@@ -286,7 +301,7 @@ export default function Watch() {
         </div>
 
         {/* Related Videos disabled for debugging */}
-        {/* 
+        {/*
         <RelatedVideos
           videoId={video.id}
           title={video.title}
