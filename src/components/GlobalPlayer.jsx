@@ -1,17 +1,22 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v7.1 — Overlay-free YouTube player (no links, no share, no title)
+// PCC v7.2 — Overlay-free YouTube player with safe PlayerContext usage
 // Single global YouTube iframe player (no Invidious, no <audio>)
 
 import { useEffect, useRef } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
 
 export default function GlobalPlayer() {
+  // ------------------------------------------------------------
+  // SAFE CONTEXT DESTRUCTURING
+  // ------------------------------------------------------------
+  const playerCtx = usePlayer() || {};
+
   const {
-    currentVideo,
-    playing,
-    playNext,
-    setPlaying,
-  } = usePlayer();
+    currentVideo = null,
+    playing = false,
+    playNext = null,
+    setPlaying = null,
+  } = playerCtx;
 
   const containerRef = useRef(null);
   const playerRef = useRef(null);
@@ -74,14 +79,14 @@ export default function GlobalPlayer() {
       videoId: null,
       playerVars: {
         autoplay: 0,
-        controls: 0,        // no controls
-        rel: 0,             // no related videos
-        modestbranding: 1,  // no YouTube logo
+        controls: 0,
+        rel: 0,
+        modestbranding: 1,
         playsinline: 1,
-        fs: 0,              // no fullscreen button
-        iv_load_policy: 3,  // no annotations
-        disablekb: 1,       // no keyboard shortcuts
-        showinfo: 0,        // hide title/channel
+        fs: 0,
+        iv_load_policy: 3,
+        disablekb: 1,
+        showinfo: 0,
         origin: window.location.origin,
       },
       events: {
@@ -92,6 +97,12 @@ export default function GlobalPlayer() {
           const state = event.data;
           const YT = window.YT;
           if (!YT) return;
+
+          // If context functions aren’t ready, don’t crash — just log
+          if (!setPlaying || !playNext) {
+            log("Context not ready in onStateChange, skipping control sync");
+            return;
+          }
 
           if (state === YT.PlayerState.ENDED) {
             log("Player state = ENDED -> autonext");
