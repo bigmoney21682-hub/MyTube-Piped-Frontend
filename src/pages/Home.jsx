@@ -1,5 +1,5 @@
 // File: src/pages/Home.jsx
-// PCC v13.0 — Trending + Quota detection + Test Player fallback
+// PCC v14.0 — Full-width 1-column Trending + Quota detection + Test Player fallback
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -75,7 +75,7 @@ export default function Home() {
             title: item.snippet.title,
             author: item.snippet.channelTitle,
             thumbnail,
-            duration: null,
+            duration: item.contentDetails?.duration || null,
           };
         });
 
@@ -141,16 +141,15 @@ export default function Home() {
         {loading && <p style={{ opacity: 0.7 }}>Loading…</p>}
 
         {!loading && videos.length === 0 && !quotaExceeded && (
-          <p style={{ opacity: 0.7 }}>
-            No trending videos available.
-          </p>
+          <p style={{ opacity: 0.7 }}>No trending videos available.</p>
         )}
 
+        {/* FULL-WIDTH 1-COLUMN GRID */}
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-            gap: 12,
+            gridTemplateColumns: "1fr",
+            gap: 16,
           }}
         >
           {videos.map((v) => (
