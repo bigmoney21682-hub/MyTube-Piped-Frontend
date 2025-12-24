@@ -1,294 +1,180 @@
-// File: src/components/SearchBar.jsx
-// PCC v6.0 — YouTube‑style, optimized, crash‑proof SearchBar
+// File: src/pages/SearchResults.jsx
+// PCC v1.0 — YouTube‑style search results with infinite scroll + skeletons
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import { Link } from "react-router-dom";
 
-const TRENDING = [
-  "music",
-  "news",
-  "gaming",
-  "podcasts",
-  "lofi",
-  "sports highlights",
-  "tech reviews",
-  "funny videos",
-];
+export default function SearchResults({ query }) {
+  const [results, setResults] = useState([]);
+  const [nextPage, setNextPage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(null);
 
-export default function SearchBar({ onSearch }) {
-  const [q, setQ] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
-  const [history, setHistory] = useState([]);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [highlightIndex, setHighlightIndex] = useState(-1);
-
-  const inputRef = useRef(null);
-  const dropdownRef = useRef(null);
-  const abortRef = useRef(null);
+  const sentinelRef = useRef(null);
 
   // ------------------------------------------------------------
-  // Load search history
+  // Fetch search results
   // ------------------------------------------------------------
-  useEffect(() => {
+  async function fetchResults(pageToken = "") {
     try {
-      const saved = JSON.parse(localStorage.getItem("searchHistory") || "[]");
-      if (Array.isArray(saved)) setHistory(saved);
-    } catch {
-      setHistory([]);
-    }
-  }, []);
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=${encodeURIComponent(
+        query
+      )}&key=${window.YT_API_KEY || ""}${pageToken ? `&pageToken=${pageToken}` : ""}`;
 
-  // ------------------------------------------------------------
-  // Save search history
-  // ------------------------------------------------------------
-  const saveHistory = (term) => {
-    if (!term || typeof term !== "string") return;
+      const res = await fetch(url);
+      const data = await res.json();
 
-    const updated = [term, ...history.filter((h) => h !== term)].slice(0, 10);
-    setHistory(updated);
-    localStorage.setItem("searchHistory", JSON.stringify(updated));
-  };
+      if (data.error) throw new Error(data.error.message);
 
-  // ------------------------------------------------------------
-  // Debounced autocomplete with cancellation
-  // ------------------------------------------------------------
-  useEffect(() => {
-    if (!q.trim()) {
-      setSuggestions([]);
-      return;
-    }
+      const mapped = data.items.map((item) => ({
+        id: item.id.videoId,
+        title: item.snippet.title,
+        channel: item.snippet.channelTitle,
+        channelId: item.snippet.channelId,
+        thumb: item.snippet.thumbnails.medium.url,
+        published: item.snippet.publishedAt,
+      }));
 
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    const t = setTimeout(async () => {
-      try {
-        const res = await fetch(
-          `https://suggestqueries.google.com/complete/search?client=firefox&ds=yt&q=${encodeURIComponent(
-            q
-          )}`,
-          { signal: controller.signal }
-        );
-        const data = await res.json();
-        setSuggestions(Array.isArray(data[1]) ? data[1] : []);
-      } catch (err) {
-        if (err.name !== "AbortError") console.error("Autocomplete error:", err);
-      }
-    }, 200);
-
-    return () => clearTimeout(t);
-  }, [q]);
-
-  // ------------------------------------------------------------
-  // Safe submit
-  // ------------------------------------------------------------
-  const submit = (term) => {
-    if (term && typeof term === "object") return;
-
-    const query = term || q.trim();
-    if (!query) return;
-
-    saveHistory(query);
-    onSearch(query);
-
-    setShowDropdown(false);
-    setHighlightIndex(-1);
-  };
-
-  // ------------------------------------------------------------
-  // Keyboard navigation
-  // ------------------------------------------------------------
-  const handleKeyDown = (e) => {
-    const list = q.trim() ? [...history, ...suggestions] : TRENDING;
-    const hasItems = list.length > 0;
-
-    if (e.key === "/") {
-      e.preventDefault();
-      inputRef.current?.focus();
-      return;
-    }
-
-    if (e.key === "Escape") {
-      setShowDropdown(false);
-      return;
-    }
-
-    if (!showDropdown || !hasItems) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlightIndex((i) => (i + 1) % list.length);
-    }
-
-    if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlightIndex((i) => (i - 1 + list.length) % list.length);
-    }
-
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (highlightIndex >= 0) {
-        submit(list[highlightIndex]);
+      if (pageToken) {
+        setResults((prev) => [...prev, ...mapped]);
       } else {
-        submit();
+        setResults(mapped);
       }
+
+      setNextPage(data.nextPageToken || null);
+      setError(null);
+    } catch (err) {
+      console.error("Search error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
     }
-  };
+  }
 
   // ------------------------------------------------------------
-  // Close dropdown when clicking outside
+  // Initial load
   // ------------------------------------------------------------
   useEffect(() => {
-    const handler = (e) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target) &&
-        !inputRef.current.contains(e.target)
-      ) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+    setLoading(true);
+    setResults([]);
+    fetchResults();
+  }, [query]);
+
+  // ------------------------------------------------------------
+  // Infinite scroll observer
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (!sentinelRef.current || !nextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore) {
+          setLoadingMore(true);
+          fetchResults(nextPage);
+        }
+      },
+      { rootMargin: "300px" }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [nextPage, loadingMore]);
+
+  // ------------------------------------------------------------
+  // Skeleton loader
+  // ------------------------------------------------------------
+  const Skeleton = () => (
+    <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+      <div
+        style={{
+          width: 168,
+          height: 94,
+          background: "#222",
+          borderRadius: 8,
+        }}
+      />
+      <div style={{ flex: 1 }}>
+        <div style={{ height: 16, background: "#222", marginBottom: 8 }} />
+        <div style={{ height: 14, background: "#222", width: "60%" }} />
+      </div>
+    </div>
+  );
 
   // ------------------------------------------------------------
   // Render
   // ------------------------------------------------------------
-  const list = q.trim()
-    ? [...history, ...suggestions]
-    : TRENDING;
-
   return (
-    <div style={{ width: "80%", maxWidth: 520, position: "relative" }}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submit();
-        }}
-        style={{
-          display: "flex",
-          borderRadius: 999,
-          overflow: "hidden",
-          border: "1px solid #333",
-          background: "#000",
-          alignItems: "center",
-        }}
-      >
-        {/* Search Icon */}
-        <div
-          style={{
-            paddingLeft: 12,
-            paddingRight: 8,
-            color: "#888",
-            fontSize: 18,
-          }}
-        >
-          🔍
-        </div>
+    <div style={{ padding: "16px 12px", color: "#fff" }}>
+      <h2 style={{ marginBottom: 16 }}>Results for "{query}"</h2>
 
-        <input
-          ref={inputRef}
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setShowDropdown(true);
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder="Search YouTube"
-          style={{
-            flex: 1,
-            padding: "10px 8px",
-            border: "none",
-            outline: "none",
-            background: "transparent",
-            color: "#fff",
-            fontSize: "1rem",
-          }}
-        />
+      {loading &&
+        [...Array(8)].map((_, i) => <Skeleton key={i} />)}
 
-        {/* Clear button */}
-        {q.length > 0 && (
-          <div
-            onMouseDown={(e) => {
-              e.preventDefault();
-              setQ("");
-              setSuggestions([]);
-              setShowDropdown(false);
-            }}
+      {error && (
+        <div style={{ color: "red", marginTop: 20 }}>
+          Error: {error}
+          <button
+            onClick={() => fetchResults()}
             style={{
-              padding: "0 12px",
+              marginLeft: 12,
+              padding: "6px 12px",
+              background: "#ff0000",
+              border: "none",
+              color: "#fff",
               cursor: "pointer",
-              color: "#aaa",
-              fontSize: 18,
-              userSelect: "none",
             }}
           >
-            ✕
-          </div>
-        )}
-
-        <button
-          type="submit"
-          style={{
-            padding: "0 16px",
-            border: "none",
-            background: "#ff0000",
-            color: "#fff",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          Search
-        </button>
-      </form>
-
-      {/* Dropdown */}
-      {showDropdown && list.length > 0 && (
-        <div
-          ref={dropdownRef}
-          style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
-            background: "#111",
-            border: "1px solid #333",
-            borderTop: "none",
-            zIndex: 999,
-            maxHeight: 300,
-            overflowY: "auto",
-            animation: "fadeIn 0.15s ease-out",
-          }}
-        >
-          {list.map((item, i) => (
-            <div
-              key={i}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                submit(item);
-              }}
-              style={{
-                padding: "12px 14px",
-                cursor: "pointer",
-                background: i === highlightIndex ? "#222" : "transparent",
-                color: "#fff",
-                fontSize: 15,
-                userSelect: "none",
-              }}
-            >
-              {item}
-            </div>
-          ))}
+            Retry
+          </button>
         </div>
       )}
 
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-4px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+      {!loading &&
+        results.map((v) => (
+          <Link
+            key={v.id}
+            to={`/watch/${v.id}`}
+            style={{
+              display: "flex",
+              gap: 12,
+              marginBottom: 20,
+              textDecoration: "none",
+              color: "inherit",
+            }}
+          >
+            <div style={{ position: "relative" }}>
+              <img
+                src={v.thumb}
+                alt=""
+                style={{
+                  width: 168,
+                  height: 94,
+                  borderRadius: 8,
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>{v.title}</div>
+              <div style={{ fontSize: 13, color: "#aaa", marginTop: 4 }}>
+                {v.channel}
+              </div>
+            </div>
+          </Link>
+        ))}
+
+      {/* Infinite scroll sentinel */}
+      <div ref={sentinelRef} style={{ height: 1 }} />
+
+      {loadingMore && (
+        <div style={{ marginTop: 20 }}>
+          <Skeleton />
+          <Skeleton />
+        </div>
+      )}
     </div>
   );
 }
