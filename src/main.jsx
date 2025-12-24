@@ -1,6 +1,8 @@
 // File: src/main.jsx
 // PCC v3.0 — Clean root + global error logging + API key init
 
+window.__fatalErrors = window.__fatalErrors || [];
+
 import "./initApiKey";
 import React from "react";
 import ReactDOM from "react-dom/client";
