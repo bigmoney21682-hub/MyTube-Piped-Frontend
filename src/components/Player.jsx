@@ -1,6 +1,5 @@
 // File: src/components/Player.jsx
-// PCC v10.0 — Minimalist Premium Player (C2 weight)
-// UI-only overlay for the global YouTube iframe player
+// PCC v11.0 — Crash-proof minimalist overlay for global YouTube player
 
 import React, { useEffect, useRef, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -11,12 +10,16 @@ export default function Player() {
     togglePlay,
     playNext,
     playPrev,
-    seekTo,
-    duration,
-    currentTime,
-    buffered,
-    playerState,
   } = usePlayer();
+
+  // ------------------------------------------------------------
+  // SAFE DEFAULTS (PlayerContext does not yet provide these)
+  // ------------------------------------------------------------
+  const seekTo = () => {};
+  const duration = 0;
+  const currentTime = 0;
+  const buffered = 0;
+  const playerState = "loading";
 
   // ------------------------------------------------------------
   // UI State
@@ -30,7 +33,7 @@ export default function Player() {
   const containerRef = useRef(null);
 
   // ------------------------------------------------------------
-  // Auto-hide controls (T2 = 3 seconds)
+  // Auto-hide controls
   // ------------------------------------------------------------
   const showControls = () => {
     setControlsVisible(true);
@@ -63,7 +66,6 @@ export default function Player() {
     const isLeft = x < rect.width / 2;
     const skipAmount = isLeft ? -10 : 10;
 
-    // Ripple animation
     setRipple({
       x,
       y: e.clientY - rect.top,
@@ -316,7 +318,7 @@ export default function Player() {
 }
 
 // ------------------------------------------------------------
-// Icon style (C2 weight)
+// Icon style
 // ------------------------------------------------------------
 const iconStyle = {
   background: "none",
