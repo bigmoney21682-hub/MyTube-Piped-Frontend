@@ -118,8 +118,7 @@ export default function App() {
             </Routes>
           </div>
 
-          {/* SINGLE DebugOverlay */}
-          <DebugOverlay pageName={pageName} />
+    
 
           <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} />
           <Footer />
