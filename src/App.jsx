@@ -1,138 +1,102 @@
 // File: src/App.jsx
-// PCC v12.2 — Stable routing, ChannelPage added, MiniPlayer disabled for debugging
-// Crash-proof PlayerContext destructuring
+// PCC v7.0 — Stable Routes + Rebuild Marker + Safe Boot
+// rebuild-router-1
 
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import Home from "./pages/Home";
+import Watch from "./pages/Watch";
+import ChannelPage from "./pages/ChannelPage";
 import Playlists from "./pages/Playlists";
 import Playlist from "./pages/Playlist";
+import Subscriptions from "./pages/Subscriptions";
 import SettingsPage from "./pages/SettingsPage";
-import Watch from "./pages/Watch";
-import SubscriptionsPage from "./pages/Subscriptions";
-import DebugEnv from "./pages/DebugEnv";
-import ChannelPage from "./pages/ChannelPage";
 
-import BootSplash from "./components/BootSplash";
-import BootJosh from "./components/BootJosh";
-import Footer from "./components/Footer";
 import Header from "./components/Header";
-import MiniPlayer from "./components/MiniPlayer";
-import GlobalPlayer from "./components/GlobalPlayer";
+import Footer from "./components/Footer";
+import DebugOverlay from "./components/DebugOverlay";
 
-import { clearAllCaches } from "./utils/cacheManager";
-import { usePlayer } from "./contexts/PlayerContext";
+// ------------------------------------------------------------
+// SAFETY: Prevent invalid route params from crashing components
+// ------------------------------------------------------------
+function safeId(id) {
+  if (!id || id === "undefined" || id === "[object Object]") return null;
+  return id;
+}
 
 export default function App() {
-  const [ready, setReady] = useState(false);
-  const [joshDone, setJoshDone] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // ------------------------------------------------------------
-  // SAFE PlayerContext destructuring (prevents "right side cannot be destructured")
-  // ------------------------------------------------------------
-  const playerCtx = usePlayer() || {};
-
-  const {
-    currentVideo = null,
-    playing = false,
-    setPlaying = () => {},
-    stopVideo = () => {},
-  } = playerCtx;
-
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const log = (msg) => window.debugLog?.(`App: ${msg}`);
-
-  const prevVideoRef = useRef(null);
-  const prevPlayingRef = useRef(null);
-
-  const getPageName = () => {
-    if (location.pathname.startsWith("/watch")) return "Watch";
-    if (location.pathname.startsWith("/playlist")) return "Playlist";
-    if (location.pathname.startsWith("/playlists")) return "Playlists";
-    if (location.pathname.startsWith("/settings")) return "Settings";
-    if (location.pathname.startsWith("/subs")) return "Subscriptions";
-    if (location.pathname.startsWith("/debug-env")) return "DebugEnv";
-    if (location.pathname.startsWith("/channel")) return "Channel";
-    return "Home";
-  };
-
-  const pageName = getPageName();
-
-  // Log video changes
-  useEffect(() => {
-    if (prevVideoRef.current !== currentVideo) {
-      const id = currentVideo?.id || currentVideo?.id?.videoId || "null";
-      log(`currentVideo changed -> ${id}`);
-      prevVideoRef.current = currentVideo;
-    }
-  }, [currentVideo]);
-
-  // Log playing changes
-  useEffect(() => {
-    if (prevPlayingRef.current !== playing) {
-      log(`isPlaying changed -> ${playing}`);
-      prevPlayingRef.current = playing;
-    }
-  }, [playing]);
-
-  // Boot + auto-clear
-  useEffect(() => {
-    const t = setTimeout(() => setReady(true), 2000);
-
-    const autoClear = localStorage.getItem("autoClearCache") === "true";
-    if (autoClear) {
-      log("Auto-clearing caches");
-      clearAllCaches();
-    }
-
-    return () => clearTimeout(t);
-  }, []);
-
-  const handleSearch = (query) => {
-    log(`Search requested: ${query}`);
-    setSearchQuery(query);
-    navigate("/");
-  };
-
-  const togglePlay = () => setPlaying((prev) => !prev);
-  const closePlayer = () => {
-    log("closePlayer -> stopVideo");
-    stopVideo();
-  };
-
   return (
     <>
-      <BootSplash ready={ready} />
-      {ready && !joshDone && <BootJosh onDone={() => setJoshDone(true)} />}
+      <Header />
+      <DebugOverlay />
 
-      {ready && joshDone && (
-        <div className="app-root">
-          <Header onSearch={handleSearch} />
+      <div
+        style={{
+          paddingTop: "var(--header-height)",
+          paddingBottom: "var(--footer-height)",
+          minHeight: "100vh",
+          background: "#000",
+          color: "#fff",
+        }}
+      >
+        <Routes>
+          {/* HOME */}
+          <Route path="/" element={<Home />} />
 
-          <GlobalPlayer />
+          {/* WATCH — safe param */}
+          <Route
+            path="/watch/:id"
+            element={<WatchWrapper />}
+          />
 
-          <div className="app-content">
-            <Routes>
-              <Route path="/" element={<Home searchQuery={searchQuery} />} />
-              <Route path="/playlists" element={<Playlists />} />
-              <Route path="/playlist/:id" element={<Playlist />} />
-              <Route path="/watch/:id" element={<Watch />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/subs" element={<SubscriptionsPage />} />
-              <Route path="/debug-env" element={<DebugEnv />} />
-              <Route path="/channel/:id" element={<ChannelPage />} />
-            </Routes>
-          </div>
+          {/* CHANNEL — safe param */}
+          <Route
+            path="/channel/:id"
+            element={<ChannelWrapper />}
+          />
 
-          {/* MiniPlayer disabled for debugging */}
-          {/* <MiniPlayer onTogglePlay={togglePlay} onClose={closePlayer} /> */}
-          <Footer />
-        </div>
-      )}
+          {/* PLAYLISTS */}
+          <Route path="/playlists" element={<Playlists />} />
+
+          {/* SINGLE PLAYLIST */}
+          <Route
+            path="/playlist/:id"
+            element={<PlaylistWrapper />}
+          />
+
+          {/* SUBSCRIPTIONS */}
+          <Route path="/subscriptions" element={<Subscriptions />} />
+
+          {/* SETTINGS */}
+          <Route path="/settings" element={<SettingsPage />} />
+
+          {/* FALLBACK → HOME */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+
+      <Footer />
     </>
   );
+}
+
+// ------------------------------------------------------------
+// WRAPPERS — prevent destructuring crashes from invalid params
+// ------------------------------------------------------------
+function WatchWrapper() {
+  const id = safeId(window.location.hash.split("/watch/")[1]);
+  if (!id) return <Navigate to="/" replace />;
+  return <Watch id={id} />;
+}
+
+function ChannelWrapper() {
+  const id = safeId(window.location.hash.split("/channel/")[1]);
+  if (!id) return <Navigate to="/" replace />;
+  return <ChannelPage id={id} />;
+}
+
+function PlaylistWrapper() {
+  const id = safeId(window.location.hash.split("/playlist/")[1]);
+  if (!id) return <Navigate to="/" replace />;
+  return <Playlist id={id} />;
 }
