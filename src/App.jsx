@@ -1,5 +1,5 @@
 // File: src/App.jsx
-// PCC v12.0 — Stable routing, ChannelPage added, MiniPlayer disabled for debugging
+// PCC v12.1 — Stable routing, ChannelPage added, MiniPlayer disabled for debugging
 
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
@@ -11,12 +11,11 @@ import SettingsPage from "./pages/SettingsPage";
 import Watch from "./pages/Watch";
 import SubscriptionsPage from "./pages/Subscriptions";
 import DebugEnv from "./pages/DebugEnv";
-import ChannelPage from "./pages/ChannelPage"; // ✅ Corrected import
+import ChannelPage from "./pages/ChannelPage";
 
 import BootSplash from "./components/BootSplash";
 import BootJosh from "./components/BootJosh";
 import Footer from "./components/Footer";
-import DebugOverlay from "./components/DebugOverlay";
 import Header from "./components/Header";
 import MiniPlayer from "./components/MiniPlayer";
 import GlobalPlayer from "./components/GlobalPlayer";
@@ -111,7 +110,7 @@ export default function App() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/subs" element={<SubscriptionsPage />} />
               <Route path="/debug-env" element={<DebugEnv />} />
-              <Route path="/channel/:id" element={<ChannelPage />} /> {/* ✅ Added */}
+              <Route path="/channel/:id" element={<ChannelPage />} />
             </Routes>
           </div>
 
