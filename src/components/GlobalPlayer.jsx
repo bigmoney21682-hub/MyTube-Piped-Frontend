@@ -1,6 +1,6 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v6.0 — Single global YouTube iframe player (no Invidious, no <audio>)
-// Uses YouTube IFrame Player API as the sole playback engine.
+// PCC v7.0 — FIXED YouTube API readiness + guaranteed player creation
+// Single global YouTube iframe player (no Invidious, no <audio>)
 
 import { useEffect, useRef } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -32,9 +32,9 @@ export default function GlobalPlayer() {
   // Load YouTube IFrame API once
   // -------------------------------
   useEffect(() => {
+    // If API already loaded, do NOT mark ready yet — wait for onReady
     if (window.YT && window.YT.Player) {
-      log("YouTube IFrame API already loaded");
-      apiReadyRef.current = true;
+      log("YouTube IFrame API already present — waiting for onReady");
       return;
     }
 
@@ -112,15 +112,16 @@ export default function GlobalPlayer() {
   // -------------------------------
   useEffect(() => {
     const player = playerRef.current;
-    if (!player) return;
+    if (!player) {
+      log("Video change ignored — player not ready yet");
+      return;
+    }
 
     if (!videoId) {
       log("No videoId -> stopping player");
       try {
         player.stopVideo();
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
       return;
     }
 
@@ -128,7 +129,6 @@ export default function GlobalPlayer() {
     try {
       player.loadVideoById(videoId);
       if (!playing) {
-        // If context says "not playing", pause immediately after load
         player.pauseVideo();
       }
     } catch (e) {
