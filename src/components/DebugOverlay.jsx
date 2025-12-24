@@ -45,7 +45,7 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
   }, []);
 
   // ------------------------------------------------------------
-  // Load persistent fatal errors (from main.jsx crash logger)
+  // Load persistent fatal errors (from global crash logger / ErrorBoundary)
   // ------------------------------------------------------------
   useEffect(() => {
     try {
@@ -83,11 +83,6 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
     setLogs([]);
     window.__debugBuffer = [];
   };
-
-  // ------------------------------------------------------------
-  // Minimize toggle
-  // ------------------------------------------------------------
-  const toggleMinimize = () => setMinimized((m) => !m);
 
   // ------------------------------------------------------------
   // Drag handling for the toggle "handle"
@@ -175,7 +170,7 @@ export default function DebugOverlay({ pageName = "Unknown", sourceUsed = null }
         }}
         onClick={(e) => {
           e.stopPropagation();
-          if (!dragging) toggleMinimize();
+          if (!dragging) setMinimized((m) => !m);
         }}
       >
         {minimized ? "▣" : "–"}
