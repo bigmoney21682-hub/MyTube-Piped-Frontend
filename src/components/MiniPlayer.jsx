@@ -1,12 +1,12 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v7.0 — YouTube-style MiniPlayer (H1 height, draggable on press+hold)
+// PCC v8.0 — YouTube-style MiniPlayer (H1 height, draggable on press+hold)
 
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "../contexts/PlayerContext";
 
 export default function MiniPlayer() {
-  const { current, playing, togglePlay, playNext } = usePlayer();
+  const { currentVideo, playing, togglePlay, playNext } = usePlayer();
   const navigate = useNavigate();
 
   const [position, setPosition] = useState({ x: 8, y: 0 });
@@ -17,18 +17,31 @@ export default function MiniPlayer() {
   const dragStartRef = useRef({ x: 0, y: 0, pointerX: 0, pointerY: 0 });
   const containerRef = useRef(null);
 
+  const log = (msg) => window.debugLog?.(`MiniPlayer: ${msg}`);
+
+  // Normalize ID consistently with the rest of the app
+  const getId = (video) => {
+    if (!video) return null;
+    if (typeof video.id === "string") return video.id;
+    if (typeof video.id?.videoId === "string") return video.id.videoId;
+    return null;
+  };
+
   // Initialize position near bottom
   useEffect(() => {
     const h = window.innerHeight || 800;
     setPosition({ x: 8, y: h - 72 });
   }, []);
 
-  if (!current) return null;
+  const video = currentVideo;
+  const videoId = getId(video);
+
+  if (!video || !videoId) return null;
 
   const handleNavigate = () => {
     if (isDragging) return;
-    if (!current.id) return;
-    navigate(`/watch/${current.id}`);
+    log(`navigate to /watch/${videoId}`);
+    navigate(`/watch/${videoId}`);
   };
 
   const clearPressTimer = () => {
@@ -100,9 +113,9 @@ export default function MiniPlayer() {
     handleNavigate();
   };
 
-  const title = current.title || "Unknown Title";
-  const author = current.author || "Unknown Channel";
-  const thumb = current.thumbnail;
+  const title = video.title || "Unknown Title";
+  const author = video.author || "Unknown Channel";
+  const thumb = video.thumbnail;
 
   return (
     <div
@@ -220,7 +233,7 @@ const iconButtonStyle = {
   background: "none",
   border: "none",
   color: "#fff",
-  fontSize: 22, // C2 weight feeling
+  fontSize: 22,
   fontWeight: 500,
   cursor: "pointer",
   padding: 4,
@@ -228,3 +241,4 @@ const iconButtonStyle = {
   alignItems: "center",
   justifyContent: "center",
 };
+
