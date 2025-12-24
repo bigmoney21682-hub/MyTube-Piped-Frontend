@@ -2,6 +2,8 @@
 // PCC v10.0 — Bundle Hash Bump (no behavior change)
 // rebuild-bundle-1
 // rebuild-bundle-2
+// rebuild-bundle-3
+
 
 // ------------------------------------------------------------
 // GLOBAL YT API KEY INJECTION (runs before ANY imports)
