@@ -1,10 +1,12 @@
 // File: src/pages/DebugEnv.jsx
-// PCC v7.0 — Full crash cockpit: fatal errors, cache inspector, player inspector, system info
+// PCC v7.1 — Crash cockpit: fatal errors, cache inspector, player inspector, system info
 
 import { useEffect, useState } from "react";
 import DebugOverlay from "../components/DebugOverlay";
+
 import { getCached, setCached } from "../utils/youtubeCache";
 import { clearAllCaches } from "../utils/cacheManager";
+
 import { usePlayer } from "../contexts/PlayerContext";
 
 export default function DebugEnv() {
@@ -35,7 +37,7 @@ export default function DebugEnv() {
   }, []);
 
   // ------------------------------------------------------------
-  // Load cache keys
+  // Load cache keys (localStorage-based YouTube caches)
   // ------------------------------------------------------------
   useEffect(() => {
     try {
@@ -70,9 +72,6 @@ export default function DebugEnv() {
     log("Cleared all caches");
   };
 
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
   return (
     <>
       <DebugOverlay pageName="DebugEnv" />
@@ -80,9 +79,7 @@ export default function DebugEnv() {
       <div style={{ padding: 16, color: "#fff" }}>
         <h1 style={{ marginBottom: 16 }}>Debug Environment</h1>
 
-        {/* ================================
-            SYSTEM INFO
-        ================================= */}
+        {/* SYSTEM INFO */}
         <section style={{ marginBottom: 32 }}>
           <h2>System Info</h2>
           <div style={{ opacity: 0.8, fontSize: 14 }}>
@@ -93,9 +90,7 @@ export default function DebugEnv() {
           </div>
         </section>
 
-        {/* ================================
-            FATAL ERROR LOGS
-        ================================= */}
+        {/* FATAL ERROR LOGS */}
         <section style={{ marginBottom: 32 }}>
           <h2>Fatal Crash Logs</h2>
 
@@ -153,9 +148,7 @@ export default function DebugEnv() {
           </button>
         </section>
 
-        {/* ================================
-            CACHE INSPECTOR
-        ================================= */}
+        {/* CACHE INSPECTOR */}
         <section style={{ marginBottom: 32 }}>
           <h2>Cache Inspector</h2>
 
@@ -220,9 +213,7 @@ export default function DebugEnv() {
           </button>
         </section>
 
-        {/* ================================
-            PLAYER CONTEXT INSPECTOR
-        ================================= */}
+        {/* PLAYER CONTEXT INSPECTOR */}
         <section style={{ marginBottom: 32 }}>
           <h2>PlayerContext Inspector</h2>
 
@@ -243,9 +234,7 @@ export default function DebugEnv() {
           </div>
         </section>
 
-        {/* ================================
-            GLOBAL PLAYER INSPECTOR
-        ================================= */}
+        {/* GLOBAL PLAYER INSPECTOR */}
         <section style={{ marginBottom: 32 }}>
           <h2>GlobalPlayer Inspector</h2>
 
