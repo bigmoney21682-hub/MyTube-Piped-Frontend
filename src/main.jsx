@@ -23,6 +23,7 @@ import { HashRouter } from "react-router-dom";
 import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { PlayerProvider } from "./contexts/PlayerContext";
+console.log("bundle rebuild", Date.now());
 
 // ------------------------------------------------------------
 // GLOBAL CRASH LOGGER (PERSISTENT)
