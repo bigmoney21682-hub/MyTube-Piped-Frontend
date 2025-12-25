@@ -1,213 +1,161 @@
 // File: src/pages/Watch.jsx
-// PCC v10.1 — Crash‑proof, ID‑safe, metadata‑safe Watch page with detailed API error logging
+// PCC v13.0 — Full Telemetry Watch Page
+// rebuild-watch-13
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import DebugOverlay from "../components/DebugOverlay";
 import { usePlayer } from "../contexts/PlayerContext";
+import { getApiKey } from "../utils/getApiKey";
+import { fetchWithCache } from "../utils/youtubeCache";
 
 export default function Watch() {
-  const { id: rawId } = useParams();
+  const { id } = useParams();
+  const {
+    playVideo,
+    setRelatedVideos,
+    relatedVideos,
+    currentVideo,
+  } = usePlayer();
+
+  const [loading, setLoading] = useState(true);
+  const [meta, setMeta] = useState(null);
 
   // ------------------------------------------------------------
-  // SAFELY normalize the ID
+  // Logging helper
   // ------------------------------------------------------------
-  const cleanId =
-    typeof rawId === "string" && rawId.trim().length > 0
-      ? rawId.trim()
-      : null;
-
-  const log = (msg) => window.debugLog?.(`Watch(${cleanId}): ${msg}`);
-
-  const playerCtx = usePlayer() || {};
-  const { playVideo = () => {}, setRelatedList = () => {} } = playerCtx;
-
-  const [video, setVideo] = useState(null);
-  const [related, setRelated] = useState([]);
-  const [error, setError] = useState("");
+  const log = (msg, category = "API") => {
+    if (window.debugEvent) window.debugEvent(msg, category);
+    else window.debugLog?.(msg, category);
+  };
 
   // ------------------------------------------------------------
-  // Fetch main video metadata
+  // Fetch metadata + related videos
   // ------------------------------------------------------------
   useEffect(() => {
-    if (!cleanId) {
-      log("INVALID VIDEO ID");
-      setError("Invalid video ID");
-      return;
-    }
+    if (!id) return;
 
-    const key = window.__ytKey;
-    if (!key) {
-      log("Missing API key");
-      setError("Missing API key");
-      return;
-    }
+    let cancelled = false;
+    setLoading(true);
 
-    const fetchVideo = async () => {
+    (async () => {
+      log(`Watch.jsx → loading video ${id}`, "ROUTER");
+
+      // -----------------------------
+      // 1. Fetch metadata
+      // -----------------------------
       try {
-        log("Fetching video metadata…");
+        const key = getApiKey();
+        const metaURL =
+          `https://www.googleapis.com/youtube/v3/videos?` +
+          `part=snippet,contentDetails,statistics&id=${id}&key=${key}`;
 
-        const url =
-          "https://www.googleapis.com/youtube/v3/videos" +
-          `?part=snippet,contentDetails,statistics&id=${cleanId}` +
-          `&key=${key}`;
+        log(`META URL → ${metaURL}`, "API");
 
-        const res = await fetch(url);
-        if (!res.ok) {
-          const text = await res.text();
-          log(`Metadata fetch failed: ${res.status} ${text}`);
-          setError("Metadata fetch failed");
-          return;
+        const metaRes = await fetchWithCache(metaURL);
+
+        if (!metaRes.ok) {
+          const body = await safeBody(metaRes);
+          log(`META ERROR → status=${metaRes.status}`, "ERROR");
+          log(`META BODY → ${body}`, "ERROR");
         }
 
-        const data = await res.json();
-        const item = data.items?.[0];
-
-        if (!item) {
-          log("No metadata found — using fallback");
-          setVideo({
-            id: cleanId,
-            title: "Unknown Video",
-            author: "Unknown",
-            description: "",
-          });
-          return;
+        const metaJson = await metaRes.json();
+        if (!cancelled) {
+          setMeta(metaJson.items?.[0] || null);
+          log(`META OK → title="${metaJson.items?.[0]?.snippet?.title}"`, "API");
         }
-
-        const mapped = {
-          id: cleanId,
-          title: item.snippet?.title || "Untitled",
-          author: item.snippet?.channelTitle || "Unknown",
-          description: item.snippet?.description || "",
-        };
-
-        log("Metadata loaded");
-        setVideo(mapped);
       } catch (err) {
-        log(`Exception: ${err.message}`);
-        setError("Network error");
+        log(`META FETCH EXCEPTION → ${err.message}`, "ERROR");
       }
-    };
 
-    fetchVideo();
-  }, [cleanId]);
-
-  // ------------------------------------------------------------
-  // Fetch related videos (with detailed error logging)
-  // ------------------------------------------------------------
-  useEffect(() => {
-    if (!cleanId) return;
-
-    const key = window.__ytKey;
-    if (!key) return;
-
-    const fetchRelated = async () => {
+      // -----------------------------
+      // 2. Fetch related videos
+      // -----------------------------
       try {
-        log("Fetching related videos…");
+        const key = getApiKey();
+        const relURL =
+          `https://www.googleapis.com/youtube/v3/search?` +
+          `part=snippet&type=video&relatedToVideoId=${id}&maxResults=25&key=${key}`;
 
-        const url =
-          "https://www.googleapis.com/youtube/v3/search" +
-          `?part=snippet&type=video&maxResults=20&relatedToVideoId=${cleanId}` +
-          `&key=${key}`;
+        log(`RELATED URL → ${relURL}`, "API");
 
-        const res = await fetch(url);
-        if (!res.ok) {
-          const text = await res.text();
-          log(`Related fetch failed: ${res.status} ${text}`);
-          return;
+        const relRes = await fetchWithCache(relURL);
+
+        if (!relRes.ok) {
+          const body = await safeBody(relRes);
+          log(`RELATED ERROR → status=${relRes.status}`, "ERROR");
+          log(`RELATED BODY → ${body}`, "ERROR");
         }
 
-        const data = await res.json();
-        const items = Array.isArray(data.items) ? data.items : [];
-
-        const mapped = items.map((item) => ({
-          id: item.id?.videoId || null,
-          title: item.snippet?.title || "",
-          author: item.snippet?.channelTitle || "",
-          thumbnail:
-            item.snippet?.thumbnails?.medium?.url ||
-            item.snippet?.thumbnails?.default?.url ||
-            "",
-        }));
-
-        log(`Loaded ${mapped.length} related videos`);
-        setRelated(mapped);
-        setRelatedList(mapped);
+        const relJson = await relRes.json();
+        if (!cancelled) {
+          const mapped = (relJson.items || []).map((i) => ({
+            id: i.id.videoId,
+            title: i.snippet.title,
+            thumb: i.snippet.thumbnails?.medium?.url,
+          }));
+          setRelatedVideos(mapped);
+          log(`RELATED OK → ${mapped.length} items`, "API");
+        }
       } catch (err) {
-        log(`Related exception: ${err.message}`);
+        log(`RELATED FETCH EXCEPTION → ${err.message}`, "ERROR");
       }
+
+      // -----------------------------
+      // 3. Autoplay current video
+      // -----------------------------
+      if (!cancelled && meta) {
+        playVideo({ id, title: meta?.snippet?.title });
+      }
+
+      if (!cancelled) setLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+      log(`Watch.jsx unmounted`, "UI");
     };
-
-    fetchRelated();
-  }, [cleanId]);
+  }, [id]);
 
   // ------------------------------------------------------------
-  // Auto‑play when metadata is ready
+  // Render
   // ------------------------------------------------------------
-  useEffect(() => {
-    if (!cleanId) return;
-    if (!video) return;
-
-    log("Calling playVideo()");
-    playVideo(video);
-  }, [video]);
-
-  // ------------------------------------------------------------
-  // UI
-  // ------------------------------------------------------------
-  if (!cleanId) {
-    return (
-      <div style={{ padding: 20, color: "#fff" }}>
-        INVALID VIDEO ID
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ padding: 20, color: "#fff" }}>
-        Error: {error}
-      </div>
-    );
-  }
-
-  if (!video) {
-    return (
-      <div style={{ padding: 20, color: "#fff" }}>
-        Loading video…
-      </div>
-    );
-  }
-
   return (
-    <div style={{ padding: 16, color: "#fff" }}>
-      <h2>{video.title}</h2>
-      <div style={{ opacity: 0.7 }}>{video.author}</div>
+    <div style={{ padding: 16 }}>
+      <DebugOverlay pageName="Watch" sourceUsed="YouTube API" />
 
-      <div style={{ marginTop: 20 }}>
-        <h3>Related Videos</h3>
-        {related.map((v) => (
-          <div
-            key={v.id}
-            onClick={() => (v.id ? playVideo(v) : null)}
-            style={{
-              display: "flex",
-              gap: 12,
-              marginBottom: 16,
-              cursor: "pointer",
-            }}
-          >
-            <img
-              src={v.thumbnail}
-              alt=""
-              style={{ width: 160, height: 90, borderRadius: 6 }}
-            />
-            <div>
-              <div style={{ fontWeight: "bold" }}>{v.title}</div>
-              <div style={{ opacity: 0.7 }}>{v.author}</div>
+      {loading && <div style={{ color: "#fff" }}>Loading…</div>}
+
+      {!loading && meta && (
+        <>
+          <h2 style={{ color: "#fff" }}>{meta.snippet?.title}</h2>
+          <p style={{ color: "#aaa" }}>{meta.snippet?.channelTitle}</p>
+
+          <h3 style={{ color: "#fff", marginTop: 24 }}>Related Videos</h3>
+          {relatedVideos.length === 0 && (
+            <div style={{ color: "#888" }}>No related videos found.</div>
+          )}
+
+          {relatedVideos.map((v) => (
+            <div key={v.id} style={{ marginBottom: 12 }}>
+              <img src={v.thumb} width={160} />
+              <div style={{ color: "#fff" }}>{v.title}</div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </>
+      )}
     </div>
   );
+}
+
+// ------------------------------------------------------------
+// Safe body reader
+// ------------------------------------------------------------
+async function safeBody(res) {
+  try {
+    return await res.text();
+  } catch {
+    return "<unreadable>";
+  }
 }
