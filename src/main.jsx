@@ -7,6 +7,14 @@
 // rebuild-bundle-5
 // rebuild-bundle-7
 // rebuild-bundle-8
+// Kill ALL service workers
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    for (const reg of regs) {
+      reg.unregister();
+    }
+  });
+}
 
 // ------------------------------------------------------------
 // GLOBAL YT API KEY INJECTION (runs before ANY imports)
