@@ -28,19 +28,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: MyTube-Piped-Frontend/MyTube-Piped-Frontend/package-lock.json
 
       - name: Install dependencies
-        working-directory: ./MyTube-Piped-Frontend
+        working-directory: ./MyTube-Piped-Frontend/MyTube-Piped-Frontend
         run: npm ci
 
       - name: Build Vite app
-        working-directory: ./MyTube-Piped-Frontend
+        working-directory: ./MyTube-Piped-Frontend/MyTube-Piped-Frontend
         run: npm run build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./MyTube-Piped-Frontend/dist
+          path: ./MyTube-Piped-Frontend/MyTube-Piped-Frontend/dist
 
   deploy:
     runs-on: ubuntu-latest
