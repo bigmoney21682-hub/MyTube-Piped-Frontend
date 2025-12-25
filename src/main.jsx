@@ -24,6 +24,9 @@ import App from "./App";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { PlayerProvider } from "./contexts/PlayerContext";
 console.log("bundle rebuild", Date.now());
+import { API_KEYS } from "./config/keys";
+
+window.__ytKey = API_KEYS.primary || API_KEYS.fallback1;
 
 // ------------------------------------------------------------
 // GLOBAL CRASH LOGGER (PERSISTENT)
