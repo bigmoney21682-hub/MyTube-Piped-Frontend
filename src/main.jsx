@@ -1,48 +1,36 @@
 // File: src/main.jsx
-// PCC v10.0 — Bundle Hash Bump (no behavior change)
-// rebuild-bundle-1
-// rebuild-bundle-2
-// rebuild-bundle-3
-// rebuild-bundle-4
-// rebuild-bundle-5
-// rebuild-bundle-7
-// rebuild-bundle-8
-// Kill ALL service workers
+// PCC v11.0 — Clean, crash‑proof main entry
+// rebuild-main-11
+
 // ------------------------------------------------------------
-// KILL ALL SERVICE WORKERS BEFORE ANYTHING ELSE RUNS
+// Kill ALL service workers (safety for GitHub Pages)
 // ------------------------------------------------------------
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((regs) => {
-    for (const reg of regs) {
-      reg.unregister();
-    }
+    for (const reg of regs) reg.unregister();
   });
 }
 
-
-
 // ------------------------------------------------------------
-// GLOBAL YT API KEY INJECTION (runs before ANY imports)
+// GLOBAL YT API KEY (runs before ANY imports)
 // ------------------------------------------------------------
 window.YT_API_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 
 // ------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------
-// ------------------------------------------------------------
-// IMPORTS
-// ------------------------------------------------------------
 import "./initApiKey";
-import "./initDebug";   // ← add this
+import "./initDebug";
+
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
+import { HashRouter } from "react-router-dom";
 
+import App from "./App";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { PlayerProvider } from "./contexts/PlayerContext";
 
 console.log("bundle rebuild", Date.now());
-
-
-window.__ytKey = API_KEYS.primary || API_KEYS.fallback1;
 
 // ------------------------------------------------------------
 // GLOBAL CRASH LOGGER (PERSISTENT)
@@ -57,10 +45,8 @@ function persistError(type, message, extra) {
     time: new Date().toISOString(),
   };
 
-  // Save to memory
   window.__fatalErrors.push(entry);
 
-  // Save to localStorage (persists across reloads)
   try {
     const existing = JSON.parse(localStorage.getItem("fatal_errors") || "[]");
     existing.push(entry);
@@ -68,12 +54,10 @@ function persistError(type, message, extra) {
   } catch {}
 }
 
-// Catch synchronous JS errors
 window.onerror = function (msg, src, line, col, err) {
   persistError("window.onerror", msg, err?.stack || "");
 };
 
-// Catch async / promise errors
 window.onunhandledrejection = function (event) {
   persistError("unhandledrejection", event.reason, "");
 };
@@ -84,9 +68,6 @@ window.onunhandledrejection = function (event) {
 (function ensureCleanHash() {
   try {
     const h = window.location.hash || "";
-
-    // These corrupted states are the exact cause of:
-    // "Right side of assignment cannot be destructured"
     if (
       h.includes("undefined") ||
       h.includes("[object") ||
