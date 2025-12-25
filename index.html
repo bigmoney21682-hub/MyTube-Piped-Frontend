@@ -1,12 +1,6 @@
-<!-- File: index.html -->
-<!-- PCC v3.1 — Clean Vite Index + SW Terminator + cache marker -->
-<!-- rebuild-29 / cache-bust-002 -->
-
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- BUILD-MARKER-999 -->
-
     <meta charset="UTF-8" />
     <meta
       name="viewport"
@@ -25,7 +19,7 @@
 
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
 
-    <!-- 🔥 HARD SERVICE WORKER TERMINATOR -->
+    <!-- Hard service worker terminator -->
     <script>
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.getRegistrations().then((regs) => {
@@ -57,7 +51,6 @@
   <body>
     <div id="root"></div>
 
-    <!-- Vite dev entry (rewritten to hashed JS in dist) -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
