@@ -7,9 +7,12 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
 
-  // Must match your GitHub Pages repo name exactly
+  // IMPORTANT:
+  // This must match your GitHub Pages repo name exactly.
+  // Example: https://bigmoney21682-hub.github.io/MyTube-Piped-Frontend/
   base: "/MyTube-Piped-Frontend/",
 
+  // Optional: define environment variables if you use them
   define: {
     "import.meta.env.VITE_YT_API_PRIMARY": JSON.stringify(
       process.env.VITE_YT_API_PRIMARY
