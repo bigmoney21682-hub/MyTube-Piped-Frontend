@@ -40,8 +40,12 @@ jobs:
           VITE_YT_API_PRIMARY: ${{ secrets.VITE_YT_API_PRIMARY }}
           VITE_YT_API_FALLBACK1: ${{ secrets.VITE_YT_API_FALLBACK1 }}
 
-      - name: Build
-        run: npm run build
+  - name: Build
+  run: |
+    cd MyTube-Piped-Frontend
+    npm install
+    npm run build
+
         env:
           CI: false
           VITE_YT_API_PRIMARY: ${{ secrets.VITE_YT_API_PRIMARY }}
