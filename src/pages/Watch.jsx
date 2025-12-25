@@ -1,13 +1,9 @@
 // File: src/pages/Watch.jsx
-// PCC v10.0 — Crash‑proof, ID‑safe, metadata‑safe Watch page
+// PCC v10.1 — Crash‑proof, ID‑safe, metadata‑safe Watch page with detailed API error logging
 
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { usePlayer } from "../contexts/PlayerContext";
-import { API_KEYS } from "../config/keys";
-
-
-window.__ytKey = API_KEYS.primary || API_KEYS.fallback1;
 
 export default function Watch() {
   const { id: rawId } = useParams();
@@ -96,7 +92,7 @@ export default function Watch() {
   }, [cleanId]);
 
   // ------------------------------------------------------------
-  // Fetch related videos
+  // Fetch related videos (with detailed error logging)
   // ------------------------------------------------------------
   useEffect(() => {
     if (!cleanId) return;
@@ -115,7 +111,8 @@ export default function Watch() {
 
         const res = await fetch(url);
         if (!res.ok) {
-          log("Related fetch failed");
+          const text = await res.text();
+          log(`Related fetch failed: ${res.status} ${text}`);
           return;
         }
 
