@@ -4,6 +4,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { usePlayer } from "../contexts/PlayerContext";
+import { API_KEYS } from "./config/keys";
+
+window.__ytKey = API_KEYS.primary || API_KEYS.fallback1;
 
 export default function Watch() {
   const { id: rawId } = useParams();
