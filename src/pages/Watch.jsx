@@ -1,12 +1,11 @@
 // File: src/pages/Watch.jsx
-// PCC v13.0 — Full Telemetry Watch Page
+// PCC v13.1 — Full Telemetry Watch Page (Global API Key)
 // rebuild-watch-13
 
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import DebugOverlay from "../components/DebugOverlay";
 import { usePlayer } from "../contexts/PlayerContext";
-import { getApiKey } from "../utils/getApiKey";
 import { fetchWithCache } from "../utils/youtubeCache";
 
 export default function Watch() {
@@ -15,23 +14,16 @@ export default function Watch() {
     playVideo,
     setRelatedVideos,
     relatedVideos,
-    currentVideo,
   } = usePlayer();
 
   const [loading, setLoading] = useState(true);
   const [meta, setMeta] = useState(null);
 
-  // ------------------------------------------------------------
-  // Logging helper
-  // ------------------------------------------------------------
   const log = (msg, category = "API") => {
     if (window.debugEvent) window.debugEvent(msg, category);
     else window.debugLog?.(msg, category);
   };
 
-  // ------------------------------------------------------------
-  // Fetch metadata + related videos
-  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
 
@@ -45,7 +37,7 @@ export default function Watch() {
       // 1. Fetch metadata
       // -----------------------------
       try {
-        const key = getApiKey();
+        const key = window.YT_API_KEY;
         const metaURL =
           `https://www.googleapis.com/youtube/v3/videos?` +
           `part=snippet,contentDetails,statistics&id=${id}&key=${key}`;
@@ -73,7 +65,7 @@ export default function Watch() {
       // 2. Fetch related videos
       // -----------------------------
       try {
-        const key = getApiKey();
+        const key = window.YT_API_KEY;
         const relURL =
           `https://www.googleapis.com/youtube/v3/search?` +
           `part=snippet&type=video&relatedToVideoId=${id}&maxResults=25&key=${key}`;
@@ -118,9 +110,6 @@ export default function Watch() {
     };
   }, [id]);
 
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
   return (
     <div style={{ padding: 16 }}>
       <DebugOverlay pageName="Watch" sourceUsed="YouTube API" />
@@ -149,9 +138,6 @@ export default function Watch() {
   );
 }
 
-// ------------------------------------------------------------
-// Safe body reader
-// ------------------------------------------------------------
 async function safeBody(res) {
   try {
     return await res.text();
