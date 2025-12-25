@@ -1,6 +1,3 @@
-# File: .github/workflows/deploy.yml
-# PCC v4.0 — Official GitHub Pages + Vite pipeline
-
 name: Deploy MyTube to GitHub Pages
 
 on:
@@ -32,17 +29,20 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: MyTube-Piped-Frontend/package-lock.json
 
       - name: Install dependencies
+        working-directory: ./MyTube-Piped-Frontend
         run: npm ci
 
       - name: Build Vite app
+        working-directory: ./MyTube-Piped-Frontend
         run: npm run build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./MyTube-Piped-Frontend/dist
 
   deploy:
     runs-on: ubuntu-latest
