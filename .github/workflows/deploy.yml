@@ -28,7 +28,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: MyTube-Piped-Frontend/package-lock.json
 
       - name: Install dependencies
         working-directory: ./MyTube-Piped-Frontend
