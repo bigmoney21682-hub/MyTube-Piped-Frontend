@@ -32,12 +32,12 @@ window.YT_API_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 // ------------------------------------------------------------
 // IMPORTS
 // ------------------------------------------------------------
+import "./initApiKey";
+import "./initDebug";   // ← add this
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { HashRouter } from "react-router-dom";
 import App from "./App";
-import { PlayerProvider } from "./contexts/PlayerContext";
-import ErrorBoundary from "./components/ErrorBoundary";
+
 
 console.log("bundle rebuild", Date.now());
 
