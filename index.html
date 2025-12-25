@@ -1,8 +1,6 @@
 <!-- File: index.html -->
-<!-- PCC v3.0 — Clean Vite Index + SW Terminator -->
-<!-- rebuild-28 -->
-<!-- cache-bust-001 -->
-<!-- cache-bust-002-->
+<!-- PCC v3.1 — Clean Vite Index + SW Terminator + cache marker -->
+<!-- rebuild-29 / cache-bust-002 -->
 
 <!doctype html>
 <html lang="en">
@@ -19,7 +17,10 @@
 
     <!-- iOS / PWA friendliness -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="MyTube" />
 
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
@@ -56,7 +57,7 @@
   <body>
     <div id="root"></div>
 
-    <!-- Vite dev entry (Vite rewrites this in dist) -->
+    <!-- Vite dev entry (rewritten to hashed JS in dist) -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
