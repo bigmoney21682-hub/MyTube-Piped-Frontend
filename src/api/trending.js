@@ -1,16 +1,19 @@
 /**
  * File: trending.js
  * Path: src/api/trending.js
- * Description: Fetches trending videos using YouTube Data API v3 (videos.list with chart=mostPopular).
+ * Description: Wrapper for YouTube trending videos using youtube.js API client.
  */
 
-import { ytGet } from "./youtube";
+import { getTrending } from "./youtube";
 
-export async function getTrending() {
-  return ytGet("videos", {
-    part: "snippet,contentDetails,statistics",
-    chart: "mostPopular",
-    maxResults: 25,
-    regionCode: "US"
-  });
+export async function fetchTrendingVideos(region = "US", maxResults = 25) {
+  try {
+    const data = await getTrending(region, maxResults);
+
+    // Normalize items (YouTube returns items array)
+    return data?.items || [];
+  } catch (err) {
+    window.bootDebug?.error("Failed to load trending", err);
+    return [];
+  }
 }
