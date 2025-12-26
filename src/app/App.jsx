@@ -1,24 +1,44 @@
 /**
  * File: App.jsx
- * Path: src/app/App.jsx
- * Description: App shell with router, error boundary, and DebugOverlay v3.
+ * Path: src/App.jsx
+ * Description: Root application shell with routing + DebugOverlay v3 integration.
  */
 
-import { BrowserRouter } from "react-router-dom";
-import ErrorBoundary from "../debug/ErrorBoundary";
-import DebugOverlay from "../debug/DebugOverlay";
-import Routes from "./routes";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+
+import Home from "./pages/Home/Home";
+import Watch from "./pages/Watch/Watch";
+
+import DebugOverlay from "./debug/DebugOverlay";
 
 export default function App() {
-  return (
-    <BrowserRouter basename="/MyTube-Piped-Frontend">
-      <ErrorBoundary>
-        {/* Main application routes */}
-        <Routes />
+  // Boot logs
+  useEffect(() => {
+    window.bootDebug?.boot("App.jsx mounted — initializing router");
+  }, []);
 
-        {/* Global debug overlay (always mounted) */}
-        <DebugOverlay />
-      </ErrorBoundary>
-    </BrowserRouter>
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+        background: "#000",
+        color: "#fff",
+        position: "relative"
+      }}
+    >
+      {/* Router */}
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/watch/:id" element={<Watch />} />
+        </Routes>
+      </BrowserRouter>
+
+      {/* Debug Overlay */}
+      <DebugOverlay />
+    </div>
   );
 }
