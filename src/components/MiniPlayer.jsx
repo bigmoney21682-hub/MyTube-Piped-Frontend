@@ -1,125 +1,136 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v1.0 — Minimalist Premium MiniPlayer
+// MiniPlayer with full debug instrumentation + scroll awareness
 
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
+import { useNavigate } from "react-router-dom";
+import { debugPlayer, debugLog } from "../utils/debug";
 
 export default function MiniPlayer() {
+  const { currentVideo } = usePlayer();
   const navigate = useNavigate();
-  const { currentVideo, playerMetrics, pause, play, stop } = usePlayer();
 
-  // Hidden when nothing is playing
-  if (!currentVideo) return null;
+  const [visible, setVisible] = useState(false);
 
-  const isPlaying = playerMetrics.state === "playing";
+  // ------------------------------------------------------------
+  // Mount / Unmount logging
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (currentVideo?.id) {
+      debugPlayer(`MiniPlayer mounted for id=${currentVideo.id}`);
+      setVisible(true);
+    } else {
+      debugPlayer("MiniPlayer unmounted (no current video)");
+      setVisible(false);
+    }
+  }, [currentVideo?.id]);
+
+  // ------------------------------------------------------------
+  // Scroll-triggered transition logging
+  // ------------------------------------------------------------
+  useEffect(() => {
+    function onScroll() {
+      const scrollY = window.scrollY;
+
+      // When user scrolls down → MiniPlayer should appear
+      if (scrollY > 120 && !visible) {
+        debugPlayer("MiniPlayer → visible (scroll threshold passed)");
+        setVisible(true);
+      }
+
+      // When user scrolls to top → MiniPlayer should hide
+      if (scrollY < 40 && visible) {
+        debugPlayer("MiniPlayer → hidden (near top)");
+        setVisible(false);
+      }
+    }
+
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [visible]);
+
+  // ------------------------------------------------------------
+  // Expand → navigate to Watch
+  // ------------------------------------------------------------
+  const handleExpand = () => {
+    if (!currentVideo?.id) return;
+
+    debugPlayer(`MiniPlayer expand → /watch?v=${currentVideo.id}`);
+    navigate(`/watch?v=${currentVideo.id}`);
+  };
+
+  if (!currentVideo?.id || !visible) return null;
 
   return (
     <div
+      id="yt-mini-player"
+      onClick={handleExpand}
       style={{
         position: "fixed",
-        bottom: "calc(env(safe-area-inset-bottom) + 0px)",
+        bottom: "var(--footer-height)",
         left: 0,
         right: 0,
         height: 64,
-        background: "#111",
-        borderTop: "1px solid #222",
+        background: "rgba(18,18,18,0.98)",
         display: "flex",
         alignItems: "center",
-        padding: "0 12px",
-        zIndex: 99990,
-        transition: "transform 0.25s ease",
-        transform: "translateY(0)",
+        padding: "8px 12px",
+        boxSizing: "border-box",
+        borderTop: "1px solid rgba(255,255,255,0.08)",
+        zIndex: 99980, // below GlobalPlayer (99990), below DebugOverlay (99999)
+        cursor: "pointer",
+        backdropFilter: "blur(8px)",
       }}
     >
-      {/* Thumbnail */}
       <div
-        onClick={() => navigate(`/watch?v=${currentVideo.id}`)}
         style={{
-          width: 48,
-          height: 48,
-          borderRadius: 6,
+          width: 96,
+          height: 54,
+          background: "#000",
+          borderRadius: 8,
           overflow: "hidden",
-          flexShrink: 0,
           marginRight: 12,
+          flexShrink: 0,
         }}
       >
-        <img
-          src={currentVideo.thumbnail}
-          alt=""
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
-        />
+        {currentVideo.thumbnail && (
+          <img
+            src={currentVideo.thumbnail}
+            alt=""
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        )}
       </div>
 
-      {/* Title + channel */}
-      <div
-        onClick={() => navigate(`/watch?v=${currentVideo.id}`)}
-        style={{
-          flexGrow: 1,
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-        }}
-      >
+      <div style={{ flexGrow: 1, minWidth: 0 }}>
         <div
           style={{
             color: "#fff",
             fontSize: 14,
-            fontWeight: 500,
+            fontWeight: 600,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
         >
-          {currentVideo.title}
+          {currentVideo.title || "Playing…"}
         </div>
         <div
           style={{
             color: "#aaa",
             fontSize: 12,
+            marginTop: 2,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
         >
-          {currentVideo.channelTitle}
+          {currentVideo.channelTitle || currentVideo.channel || ""}
         </div>
-      </div>
-
-      {/* Controls */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {/* Play/Pause */}
-        <button
-          onClick={() => (isPlaying ? pause() : play())}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: "#222",
-            border: "1px solid #333",
-            color: "#fff",
-            fontSize: 14,
-          }}
-        >
-          {isPlaying ? "❚❚" : "▶"}
-        </button>
-
-        {/* Close */}
-        <button
-          onClick={stop}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: "#222",
-            border: "1px solid #333",
-            color: "#fff",
-            fontSize: 14,
-          }}
-        >
-          ✕
-        </button>
       </div>
     </div>
   );
