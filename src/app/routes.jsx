@@ -5,9 +5,9 @@
  */
 
 import { Routes as Switch, Route, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import Home from "../pages/Home/Home";
 import Watch from "../pages/Watch/Watch";
-import { useEffect } from "react";
 import { logRouter } from "../debug/debugBus";
 
 function RouterEvents() {
@@ -15,7 +15,7 @@ function RouterEvents() {
 
   useEffect(() => {
     logRouter("Route changed", { path: location.pathname });
-    bootDebug.info("ROUTER → " + location.pathname);
+    window.bootDebug?.info("ROUTER → " + location.pathname);
   }, [location]);
 
   return null;
