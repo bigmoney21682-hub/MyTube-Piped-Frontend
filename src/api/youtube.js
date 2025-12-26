@@ -1,44 +1,111 @@
 /**
  * File: youtube.js
  * Path: src/api/youtube.js
- * Description: Base YouTube Data API client. Handles API key, base URL, and GET requests with debug logging.
+ * Description: YouTube Data API v3 client with primary + fallback API keys,
+ * automatic retry chain, and DebugOverlay v3 logging.
  */
 
-import { debugLog } from "../debug/debugBus";
+const PRIMARY = import.meta.env.VITE_YT_API_PRIMARY;
+const FALLBACK1 = import.meta.env.VITE_YT_API_FALLBACK1;
 
-const API_KEY = import.meta.env.VITE_YT_API_KEY;
-const BASE = "https://www.googleapis.com/youtube/v3";
+const API_KEYS = [
+  { key: PRIMARY, label: "PRIMARY" },
+  { key: FALLBACK1, label: "FALLBACK1" }
+];
 
-export async function ytGet(endpoint, params = {}) {
-  const url = new URL(`${BASE}/${endpoint}`);
-
-  // Add API key
-  url.searchParams.set("key", API_KEY);
-
-  // Add all other params
-  Object.entries(params).forEach(([k, v]) => {
-    if (v !== undefined && v !== null) url.searchParams.set(k, v);
+/**
+ * Build a YouTube API URL with a given key.
+ */
+function buildUrl(endpoint, params, key) {
+  const query = new URLSearchParams({
+    key,
+    ...params
   });
 
-  debugLog("API", "YouTube Request → " + url.toString());
+  return `https://www.googleapis.com/youtube/v3/${endpoint}?${query.toString()}`;
+}
 
-  try {
-    const res = await fetch(url.toString());
+/**
+ * Fetch with automatic fallback across multiple API keys.
+ */
+async function fetchWithFallback(endpoint, params) {
+  for (const { key, label } of API_KEYS) {
+    if (!key) continue;
 
-    if (!res.ok) {
-      debugLog("ERROR", "YouTube API failed", {
-        url: url.toString(),
+    const url = buildUrl(endpoint, params, key);
+
+    try {
+      const res = await fetch(url);
+
+      // Log network attempt
+      window.bootDebug?.info(`YouTube API request (${label}) → ${endpoint}`, {
+        url
+      });
+
+      if (res.ok) {
+        window.bootDebug?.info(`YouTube API success using ${label}`);
+        return await res.json();
+      }
+
+      // Log failure
+      window.bootDebug?.error(`YouTube API failed (${label})`, {
+        url,
         status: res.status
       });
-      throw new Error("YouTube API error: " + res.status);
+    } catch (err) {
+      // Log exception
+      window.bootDebug?.error(`YouTube API exception (${label})`, {
+        endpoint,
+        err
+      });
     }
-
-    const data = await res.json();
-    debugLog("API", "YouTube Response OK", { endpoint, data });
-
-    return data;
-  } catch (err) {
-    debugLog("ERROR", "YouTube API exception", { endpoint, err });
-    throw err;
   }
+
+  throw new Error("All YouTube API keys failed");
+}
+
+/**
+ * Get trending videos.
+ */
+export async function getTrending(region = "US", maxResults = 25) {
+  return fetchWithFallback("videos", {
+    part: "snippet,contentDetails,statistics",
+    chart: "mostPopular",
+    maxResults,
+    regionCode: region
+  });
+}
+
+/**
+ * Search videos.
+ */
+export async function searchVideos(query, maxResults = 25) {
+  return fetchWithFallback("search", {
+    part: "snippet",
+    q: query,
+    type: "video",
+    maxResults
+  });
+}
+
+/**
+ * Get video details.
+ */
+export async function getVideoDetails(id) {
+  return fetchWithFallback("videos", {
+    part: "snippet,contentDetails,statistics",
+    id
+  });
+}
+
+/**
+ * Get related videos.
+ */
+export async function getRelatedVideos(id, maxResults = 25) {
+  return fetchWithFallback("search", {
+    part: "snippet",
+    relatedToVideoId: id,
+    type: "video",
+    maxResults
+  });
 }
