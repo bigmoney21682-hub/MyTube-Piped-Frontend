@@ -1,7 +1,8 @@
 /**
  * File: DebugOverlay.jsx
  * Path: src/debug/DebugOverlay.jsx
- * Description: Unified debug overlay with collapse toggle, clear button, and network inspector.
+ * Description: Unified debug overlay with collapse toggle, clear button, network inspector,
+ *              player state inspector, and router event inspector.
  */
 
 import { useEffect, useState } from "react";
@@ -10,9 +11,8 @@ import { subscribeToDebugBus } from "./debugBus";
 export default function DebugOverlay() {
   const [logs, setLogs] = useState([]);
   const [collapsed, setCollapsed] = useState(false);
-  const [showNet, setShowNet] = useState(false);
+  const [filter, setFilter] = useState("ALL");
 
-  // Merge boot logs + subscribe to runtime logs
   useEffect(() => {
     const boot = window.bootDebug?._buffer || [];
     setLogs(boot);
@@ -31,12 +31,13 @@ export default function DebugOverlay() {
     BOOT: "#0af",
     API: "#0ff",
     UI: "#f0f",
-    NET: "#ffa500"
+    NET: "#ffa500",
+    PLAYER: "#00eaff",
+    ROUTER: "#ff66ff"
   };
 
-  const filtered = showNet
-    ? logs.filter((l) => l.level === "NET")
-    : logs;
+  const filtered =
+    filter === "ALL" ? logs : logs.filter((l) => l.level === filter);
 
   return (
     <div
@@ -56,28 +57,29 @@ export default function DebugOverlay() {
         transition: "max-height 0.2s ease"
       }}
     >
-      {/* Header Controls */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 6 }}>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          style={btnStyle}
-        >
+      {/* Controls */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+        <button onClick={() => setCollapsed(!collapsed)} style={btn}>
           {collapsed ? "Expand" : "Collapse"}
         </button>
 
-        <button
-          onClick={() => setLogs([])}
-          style={btnStyle}
-        >
-          Clear Logs
+        <button onClick={() => setLogs([])} style={btn}>
+          Clear
         </button>
 
-        <button
-          onClick={() => setShowNet(!showNet)}
-          style={btnStyle}
+        <select
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          style={btn}
         >
-          {showNet ? "Show All Logs" : "Network Only"}
-        </button>
+          <option value="ALL">All</option>
+          <option value="NET">Network</option>
+          <option value="PLAYER">Player</option>
+          <option value="ROUTER">Router</option>
+          <option value="API">API</option>
+          <option value="UI">UI</option>
+          <option value="ERROR">Errors</option>
+        </select>
       </div>
 
       {/* Log Output */}
@@ -91,7 +93,7 @@ export default function DebugOverlay() {
   );
 }
 
-const btnStyle = {
+const btn = {
   padding: "4px 8px",
   background: "#222",
   border: "1px solid #555",
