@@ -5,6 +5,12 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { usePlayer } from "../contexts/PlayerContext";
+import {
+  debugFetch,
+  debugLog,
+  debugError,
+  debugApi,
+} from "../utils/debug";
 
 export default function Watch() {
   const [params] = useSearchParams();
@@ -30,15 +36,14 @@ export default function Watch() {
     try {
       const key = import.meta.env.VITE_YT_API_PRIMARY;
 
-      const yt = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${id}&key=${key}`
-      );
-
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${id}&key=${key}`;
+      const yt = await debugFetch(url);
       const data = await yt.json();
-      window.debugApi?.("/youtube/video", key);
+
+      debugApi("/youtube/video", key);
 
       if (!data.items || data.items.length === 0) {
-        window.debugLog?.(`No video found for id=${id}`, "ERROR");
+        debugError(`No video found for id=${id}`);
         setLoadingVideo(false);
         return;
       }
@@ -64,10 +69,7 @@ export default function Watch() {
 
       setLoadingVideo(false);
     } catch (err) {
-      window.debugLog?.(
-        `Error fetching video for id=${id}: ${err.message}`,
-        "ERROR"
-      );
+      debugError(`Error fetching video for id=${id}: ${err.message}`);
       setLoadingVideo(false);
     }
   }
@@ -84,16 +86,24 @@ export default function Watch() {
     try {
       const key = import.meta.env.VITE_YT_API_PRIMARY;
 
-      // FIXED: YouTube requires BOTH "relatedToVideoId" AND "type=video"
-      const yt = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${id}&type=video&maxResults=25&key=${key}`
-      );
-
+      const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${id}&type=video&maxResults=25&key=${key}`;
+      const yt = await debugFetch(url);
       const data = await yt.json();
-      window.debugApi?.("/youtube/related", key);
+
+      debugApi("/youtube/related", key);
+
+      if (!yt.ok) {
+        const msg =
+          data?.error?.message || `status=${yt.status}`;
+        debugError(
+          `Related API error for id=${id}: ${msg}`
+        );
+        setLoadingRelated(false);
+        return;
+      }
 
       if (!data.items) {
-        window.debugLog?.(`No related videos for id=${id}`, "ERROR");
+        debugError(`No related videos for id=${id}`);
         setLoadingRelated(false);
         return;
       }
@@ -108,9 +118,8 @@ export default function Watch() {
       setRelated(mapped);
       setLoadingRelated(false);
     } catch (err) {
-      window.debugLog?.(
-        `Error fetching related for id=${id}: ${err.message}`,
-        "ERROR"
+      debugError(
+        `Error fetching related for id=${id}: ${err.message}`
       );
       setLoadingRelated(false);
     }
@@ -121,7 +130,7 @@ export default function Watch() {
   // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
-    window.debugLog?.(`Watch mounted for id=${id}`, "WATCH");
+    debugLog(`Watch mounted for id=${id}`, "WATCH");
     fetchVideo();
     fetchRelated();
   }, [id]);
@@ -172,7 +181,9 @@ export default function Watch() {
       </div>
 
       {loadingRelated && (
-        <div style={{ color: "#fff", padding: 16 }}>Loading related…</div>
+        <div style={{ color: "#fff", padding: 16 }}>
+          Loading related…
+        </div>
       )}
 
       {!loadingRelated &&
