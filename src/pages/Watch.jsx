@@ -1,4 +1,5 @@
 // File: src/pages/Watch.jsx
+// YouTube-only Watch page wired to PlayerContext.playVideo
 
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -9,227 +10,202 @@ export default function Watch() {
   const id = params.get("v");
 
   const navigate = useNavigate();
-  const { loadVideo } = usePlayer();
+  const { playVideo } = usePlayer();
 
   const [video, setVideo] = useState(null);
   const [related, setRelated] = useState([]);
+  const [loadingVideo, setLoadingVideo] = useState(true);
+  const [loadingRelated, setLoadingRelated] = useState(true);
 
+  // ------------------------------------------------------------
+  // Fetch main video details (YouTube Data API)
+  // ------------------------------------------------------------
   async function fetchVideo() {
+    if (!id) return;
+
+    setLoadingVideo(true);
     setVideo(null);
 
-    // PIPED
-    try {
-      const piped = await fetch(
-        `https://pipedapi.kavin.rocks/streams/${id}`
-      );
-      if (piped.ok) {
-        const data = await piped.json();
-        window.debugApi("/piped/streams", "PIPED");
-
-        setVideo({
-          id,
-          title: data.title,
-          channel: data.uploader,
-          thumbnail: data.thumbnailUrl,
-          url: data.hls || data.videoStreams?.[0]?.url,
-        });
-
-        loadVideo({
-          id,
-          title: data.title,
-          channelTitle: data.uploader,
-          thumbnail: data.thumbnailUrl,
-          url: data.hls || data.videoStreams?.[0]?.url,
-        });
-
-        return;
-      }
-    } catch {}
-
-    // INVIDIOUS
-    try {
-      const inv = await fetch(`https://yewtu.be/api/v1/videos/${id}`);
-      if (inv.ok) {
-        const data = await inv.json();
-        window.debugApi("/invidious/video", "INVIDIOUS");
-
-        setVideo({
-          id,
-          title: data.title,
-          channel: data.author,
-          thumbnail: data.videoThumbnails?.[0]?.url,
-          url: data.formatStreams?.[0]?.url,
-        });
-
-        loadVideo({
-          id,
-          title: data.title,
-          channelTitle: data.author,
-          thumbnail: data.videoThumbnails?.[0]?.url,
-          url: data.formatStreams?.[0]?.url,
-        });
-
-        return;
-      }
-    } catch {}
-
-    // YOUTUBE DATA API
     try {
       const key = import.meta.env.VITE_YT_API_PRIMARY;
       const yt = await fetch(
         `https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails&id=${id}&key=${key}`
       );
+
       const data = await yt.json();
-      window.debugApi("/youtube/video", key);
+      window.debugApi?.("/youtube/video", key);
+
+      if (!data.items || data.items.length === 0) {
+        window.debugLog?.(`No video found for id=${id}`, "ERROR");
+        setLoadingVideo(false);
+        return;
+      }
 
       const v = data.items[0];
 
-      setVideo({
+      const videoObj = {
         id,
         title: v.snippet.title,
         channel: v.snippet.channelTitle,
-        thumbnail: v.snippet.thumbnails.medium.url,
-        url: null, // YouTube API does NOT provide playable URL
-      });
+        thumbnail: v.snippet.thumbnails?.medium?.url,
+        // IMPORTANT: no direct URL in YouTube-only architecture
+      };
 
-      loadVideo({
+      setVideo(videoObj);
+
+      // Tell the global player to play this video by ID
+      playVideo({
         id,
         title: v.snippet.title,
         channelTitle: v.snippet.channelTitle,
-        thumbnail: v.snippet.thumbnails.medium.url,
-        url: null,
+        thumbnail: v.snippet.thumbnails?.medium?.url,
       });
-    } catch {}
+
+      setLoadingVideo(false);
+    } catch (err) {
+      window.debugLog?.(
+        `Error fetching video for id=${id}: ${err.message}`,
+        "ERROR"
+      );
+      setLoadingVideo(false);
+    }
   }
 
+  // ------------------------------------------------------------
+  // Fetch related videos (YouTube Data API)
+  // ------------------------------------------------------------
   async function fetchRelated() {
-    try {
-      const piped = await fetch(
-        `https://pipedapi.kavin.rocks/related/${id}`
-      );
-      if (piped.ok) {
-        const data = await piped.json();
-        window.debugApi("/piped/related", "PIPED");
+    if (!id) return;
 
-        setRelated(
-          data.relatedStreams.map((v) => ({
-            id: v.url.split("v=")[1],
-            title: v.title,
-            channel: v.uploaderName,
-            thumbnail: v.thumbnail,
-          }))
-        );
-        return;
-      }
-    } catch {}
-
-    try {
-      const inv = await fetch(
-        `https://yewtu.be/api/v1/videos/${id}`
-      );
-      if (inv.ok) {
-        const data = await inv.json();
-        window.debugApi("/invidious/related", "INVIDIOUS");
-
-        setRelated(
-          data.recommendedVideos.map((v) => ({
-            id: v.videoId,
-            title: v.title,
-            channel: v.author,
-            thumbnail: v.videoThumbnails?.[0]?.url,
-          }))
-        );
-        return;
-      }
-    } catch {}
+    setLoadingRelated(true);
+    setRelated([]);
 
     try {
       const key = import.meta.env.VITE_YT_API_PRIMARY;
       const yt = await fetch(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${id}&type=video&maxResults=25&key=${key}`
       );
-      const data = await yt.json();
-      window.debugApi("/youtube/related", key);
 
-      setRelated(
-        data.items.map((v) => ({
-          id: v.id.videoId,
-          title: v.snippet.title,
-          channel: v.snippet.channelTitle,
-          thumbnail: v.snippet.thumbnails.medium.url,
-        }))
+      const data = await yt.json();
+      window.debugApi?.("/youtube/related", key);
+
+      if (!data.items) {
+        window.debugLog?.(`No related videos for id=${id}`, "ERROR");
+        setLoadingRelated(false);
+        return;
+      }
+
+      const mapped = data.items.map((v) => ({
+        id: v.id.videoId,
+        title: v.snippet.title,
+        channel: v.snippet.channelTitle,
+        thumbnail: v.snippet.thumbnails?.medium?.url,
+      }));
+
+      setRelated(mapped);
+      setLoadingRelated(false);
+    } catch (err) {
+      window.debugLog?.(
+        `Error fetching related for id=${id}: ${err.message}`,
+        "ERROR"
       );
-    } catch {}
+      setLoadingRelated(false);
+    }
   }
 
+  // ------------------------------------------------------------
+  // React to ID changes
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
+    window.debugLog?.(`Watch mounted for id=${id}`, "WATCH");
     fetchVideo();
     fetchRelated();
   }, [id]);
 
-  if (!id) return <div style={{ color: "#fff" }}>Invalid video</div>;
+  if (!id) {
+    return (
+      <div style={{ color: "#fff", padding: 16 }}>
+        Invalid video
+      </div>
+    );
+  }
 
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
   return (
     <div style={{ paddingTop: 68, paddingBottom: 68 }}>
-      {!video && (
+      {/* Main video metadata */}
+      {loadingVideo && (
         <div style={{ color: "#fff", padding: 16 }}>Loading…</div>
       )}
 
-      {video && (
+      {!loadingVideo && video && (
         <div style={{ padding: 12 }}>
-          <div style={{ color: "#fff", fontSize: 20, fontWeight: 700 }}>
+          <div
+            style={{
+              color: "#fff",
+              fontSize: 20,
+              fontWeight: 700,
+              marginBottom: 4,
+            }}
+          >
             {video.title}
           </div>
-          <div style={{ color: "#aaa", marginTop: 4 }}>
-            {video.channel}
-          </div>
+          <div style={{ color: "#aaa" }}>{video.channel}</div>
         </div>
       )}
 
+      {/* Related section */}
       <div style={{ padding: 12, color: "#fff", fontSize: 18 }}>
         Related
       </div>
 
-      {related.map((v) => (
-        <div
-          key={v.id}
-          onClick={() => navigate(`/watch?v=${v.id}`)}
-          style={{
-            display: "flex",
-            marginBottom: 12,
-            cursor: "pointer",
-          }}
-        >
-          <img
-            src={v.thumbnail}
-            style={{
-              width: 160,
-              height: 90,
-              borderRadius: 8,
-              objectFit: "cover",
-              marginRight: 12,
-            }}
-            alt=""
-          />
+      {loadingRelated && (
+        <div style={{ color: "#fff", padding: 16 }}>Loading related…</div>
+      )}
 
-          <div style={{ flexGrow: 1 }}>
-            <div
+      {!loadingRelated &&
+        related.map((v) => (
+          <div
+            key={v.id}
+            onClick={() => navigate(`/watch?v=${v.id}`)}
+            style={{
+              display: "flex",
+              marginBottom: 12,
+              cursor: "pointer",
+            }}
+          >
+            <img
+              src={v.thumbnail}
               style={{
-                color: "#fff",
-                fontSize: 15,
-                fontWeight: 600,
-                marginBottom: 4,
+                width: 160,
+                height: 90,
+                borderRadius: 8,
+                objectFit: "cover",
+                marginRight: 12,
               }}
-            >
-              {v.title}
-            </div>
-            <div style={{ color: "#aaa", fontSize: 13 }}>
-              {v.channel}
+              alt=""
+            />
+
+            <div style={{ flexGrow: 1 }}>
+              <div
+                style={{
+                  color: "#fff",
+                  fontSize: 15,
+                  fontWeight: 600,
+                  marginBottom: 4,
+                }}
+              >
+                {v.title}
+              </div>
+              <div style={{ color: "#aaa", fontSize: 13 }}>
+                {v.channel}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
     </div>
   );
 }
