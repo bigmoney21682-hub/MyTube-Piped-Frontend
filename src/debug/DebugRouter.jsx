@@ -1,0 +1,56 @@
+/**
+ * File: DebugRouter.jsx
+ * Path: src/debug/DebugRouter.jsx
+ * Description: Router inspector for DebugOverlay v3.
+ * Shows route changes and detects basename mismatches.
+ */
+
+export default function DebugRouter({ logs, colors, formatTime }) {
+  // Detect basename mismatch (GitHub Pages issue)
+  const basename = "/MyTube-Piped-Frontend";
+  const currentPath = window.location.pathname;
+
+  const mismatch =
+    !currentPath.startsWith(basename) &&
+    currentPath !== "/" &&
+    currentPath !== "";
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 6,
+        overflowX: "hidden",
+        overflowY: "auto",
+        width: "100%",
+        boxSizing: "border-box",
+        whiteSpace: "normal",
+        wordBreak: "break-word",
+        minWidth: 0
+      }}
+    >
+      {/* Basename mismatch warning */}
+      {mismatch && (
+        <div
+          style={{
+            background: "#330000",
+            border: "1px solid #660000",
+            padding: 8,
+            borderRadius: 4,
+            color: "#ff6666",
+            fontSize: 12
+          }}
+        >
+          <strong>Router Basename Mismatch Detected</strong>
+          <br />
+          URL path: <code>{currentPath}</code>
+          <br />
+          Expected to start with: <code>{basename}</code>
+          <br />
+          This can cause blank screens on GitHub Pages.
+        </div>
+      )}
+
+      {/* No router events */}
+      {logs.length ===
