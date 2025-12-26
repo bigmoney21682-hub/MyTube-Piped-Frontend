@@ -1,72 +1,40 @@
-// File: src/components/Footer.jsx
-// PCC v3.0 — Now Playing button wired to current video
+// File: src/components/Header.jsx
 
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { usePlayer } from "../contexts/PlayerContext";
 
-export default function Footer() {
+export default function Header() {
   const navigate = useNavigate();
-  const { currentVideo } = usePlayer();
-
-  const hasVideo = !!currentVideo;
-  const videoId =
-    typeof currentVideo?.id === "string"
-      ? currentVideo.id
-      : currentVideo?.id?.videoId;
 
   return (
-    <footer
+    <div
       style={{
         position: "fixed",
-        bottom: 0,
+        top: "calc(env(safe-area-inset-top) + 0px)",
         left: 0,
         right: 0,
-        height: "var(--footer-height)",
-        background: "var(--app-bg)",
-        borderTop: "1px solid #222",
+        height: 56,
+        background: "#111",
+        borderBottom: "1px solid #222",
         display: "flex",
-        justifyContent: "space-around",
         alignItems: "center",
-        zIndex: 1000,
+        padding: "0 16px",
+        zIndex: 99990
       }}
     >
-      <FooterButton
-        label="Playlists"
-        icon="📁"
-        onClick={() => navigate("/playlists")}
-      />
-
-      <FooterButton label="Home" icon="🏠" onClick={() => navigate("/")} />
-
-      <FooterButton
-        label="Now Playing"
-        icon="🎵"
-        disabled={!hasVideo}
-        onClick={() => {
-          if (!hasVideo) return;
-          navigate(`/watch/${videoId}`);
+      <div
+        onClick={() => navigate("/")}
+        style={{
+          fontSize: 20,
+          fontWeight: 700,
+          background: "linear-gradient(90deg, #ff4d00, #ff9900)",
+          WebkitBackgroundClip: "text",
+          color: "transparent",
+          cursor: "pointer"
         }}
-      />
-    </footer>
-  );
-}
-
-function FooterButton({ icon, label, onClick, disabled }) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        background: "none",
-        border: "none",
-        color: "#fff",
-        cursor: disabled ? "default" : "pointer",
-        textAlign: "center",
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      <div style={{ fontSize: 18 }}>{icon}</div>
-      <div style={{ fontSize: 11, opacity: 0.7 }}>{label}</div>
-    </button>
+      >
+        MyTube
+      </div>
+    </div>
   );
 }
