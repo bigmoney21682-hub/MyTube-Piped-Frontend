@@ -10,9 +10,6 @@ import App from "./app/App";
 
 
 
-// Debug system (bootDebug, debugBus, etc.)
-import "./debug/debugBoot";
-
 function mount() {
   // Log root mount
   window.bootDebug?.boot("main.jsx → React root mounting");
