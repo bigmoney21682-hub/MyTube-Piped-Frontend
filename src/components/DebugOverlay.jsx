@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v13.6 — Full-width, color-coded, scroll-only debug panel
+// PCC v13.7 — TEST MODE (always visible, top layer, bright)
 
 import React, { useEffect, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -7,34 +7,34 @@ import { usePlayer } from "../contexts/PlayerContext";
 export default function DebugOverlay() {
   const { currentVideo, playerMetrics } = usePlayer();
 
-  const [visible, setVisible] = useState(false);
   const [logs, setLogs] = useState([]);
   const [apiKeyUsed, setApiKeyUsed] = useState("—");
   const [lastEndpoint, setLastEndpoint] = useState("—");
   const [apiCalls, setApiCalls] = useState(0);
 
-  // ------------------------------------------------------------
-  // Color map for categories
-  // ------------------------------------------------------------
+  // Log mount event
+  useEffect(() => {
+    console.log("DEBUG OVERLAY MOUNTED (TEST MODE)");
+  }, []);
+
+  // Color map
   const colorFor = (category) => {
     switch (category) {
       case "API":
-        return "#4dd0e1"; // cyan
+        return "#4dd0e1";
       case "ERROR":
-        return "#ff5252"; // red
+        return "#ff5252";
       case "HOME":
       case "WATCH":
       case "SEARCH":
       case "PLAYER":
-        return "#ffeb3b"; // yellow
+        return "#ffeb3b";
       default:
-        return "#bdbdbd"; // gray
+        return "#bdbdbd";
     }
   };
 
-  // ------------------------------------------------------------
-  // Global debug hooks
-  // ------------------------------------------------------------
+  // Global hooks
   useEffect(() => {
     window.debugLog = (msg, category = "LOG") => {
       setLogs((prev) => [
@@ -51,96 +51,60 @@ export default function DebugOverlay() {
     };
   }, []);
 
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
   return (
-    <>
-      {/* Floating toggle button */}
-      <button
-        onClick={() => setVisible((v) => !v)}
-        style={{
-          position: "fixed",
-          right: 16,
-          bottom: 16,
-          padding: "8px 14px",
-          background: "#222",
-          color: "#fff",
-          border: "1px solid #444",
-          borderRadius: 6,
-          pointerEvents: "auto",
-          fontSize: 12,
-          zIndex: 99999,
-        }}
-      >
-        {visible ? "Hide Debug" : "Debug"}
-      </button>
+    <div
+      style={{
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        width: "100%",
+        maxWidth: "100%",
+        background: "rgba(0,0,0,0.95)",
+        color: "#0f0",
+        padding: 12,
+        borderTop: "3px solid #ff00ff",
+        maxHeight: "50vh",
+        overflowY: "auto",
+        overflowX: "hidden",
+        fontFamily: "monospace",
+        fontSize: 12,
+        pointerEvents: "auto",
+        boxSizing: "border-box",
+        wordBreak: "break-word",
+        zIndex: 9999999, // ← TOP OF THE ENTIRE APP
+      }}
+    >
+      <div style={{ marginBottom: 8, fontWeight: "bold", color: "#ff00ff" }}>
+        DEBUG OVERLAY — TEST MODE (ALWAYS VISIBLE)
+      </div>
 
-      {/* Panel */}
-      {visible && (
+      <div>API Key Used: {apiKeyUsed}</div>
+      <div>API Calls: {apiCalls}</div>
+      <div>Last Endpoint: {lastEndpoint}</div>
+
+      <div style={{ marginTop: 8, fontWeight: "bold" }}>Player State</div>
+      <div>Video: {currentVideo?.id || "—"}</div>
+      <div>State: {playerMetrics.state}</div>
+      <div>
+        Time: {playerMetrics.currentTime} / {playerMetrics.duration}
+      </div>
+
+      <div style={{ marginTop: 8, fontWeight: "bold" }}>Logs</div>
+
+      {logs.map((l, i) => (
         <div
+          key={i}
           style={{
-            position: "fixed",
-            bottom: 60,
-            left: 0,
-            right: 0,
-            width: "100%",
-            maxWidth: "100%",
-            background: "rgba(0,0,0,0.9)",
-            color: "#0f0",
-            padding: 12,
-            borderTop: "1px solid #333",
-            maxHeight: "45vh",
-            overflowY: "auto",
-            overflowX: "hidden",
-            fontFamily: "monospace",
-            fontSize: 12,
-            pointerEvents: "auto",
-            boxSizing: "border-box",
+            color: colorFor(l.category),
+            marginBottom: 2,
+            whiteSpace: "pre-wrap",
             wordBreak: "break-word",
-            zIndex: 99998,
           }}
         >
-          {/* Header */}
-          <div style={{ marginBottom: 8, fontWeight: "bold" }}>
-            Debug Panel
-          </div>
-
-          {/* API summary */}
-          <div>API Key Used: {apiKeyUsed}</div>
-          <div>API Calls: {apiCalls}</div>
-          <div style={{ wordBreak: "break-word" }}>
-            Last Endpoint: {lastEndpoint}
-          </div>
-
-          {/* Player state */}
-          <div style={{ marginTop: 8, fontWeight: "bold" }}>
-            Player State
-          </div>
-          <div>Video: {currentVideo?.id || "—"}</div>
-          <div>State: {playerMetrics.state}</div>
-          <div>
-            Time: {playerMetrics.currentTime} / {playerMetrics.duration}
-          </div>
-
-          {/* Logs */}
-          <div style={{ marginTop: 8, fontWeight: "bold" }}>Logs</div>
-
-          {logs.map((l, i) => (
-            <div
-              key={i}
-              style={{
-                color: colorFor(l.category),
-                marginBottom: 2,
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
-              [{l.time}] [{l.category}] {l.msg}
-            </div>
-          ))}
+          [{l.time}] [{l.category}] {l.msg}
         </div>
-      )}
-    </>
+      ))}
+    </div>
   );
 }
