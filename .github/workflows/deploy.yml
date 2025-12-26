@@ -1,12 +1,11 @@
-name: Deploy Vite App
+name: Deploy Vite App to GitHub Pages
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches: ["main"]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -15,10 +14,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          path: MyTube-Piped-Frontend
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -26,23 +23,18 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        working-directory: MyTube-Piped-Frontend
-        run: |
-          npm install
-          npm install react-router-dom
+        run: npm install
 
-      - name: Build Vite app
-        working-directory: MyTube-Piped-Frontend
+      - name: Build with Vite
+        env:
+          VITE_YT_API_PRIMARY: ${{ secrets.VITE_YT_API_PRIMARY }}
+          VITE_YT_API_FALLBACK1: ${{ secrets.VITE_YT_API_FALLBACK1 }}
         run: npm run build
-
-      - name: List dist folder
-        working-directory: MyTube-Piped-Frontend
-        run: ls -al dist
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: MyTube-Piped-Frontend/dist
+          path: dist
 
   deploy:
     needs: build
