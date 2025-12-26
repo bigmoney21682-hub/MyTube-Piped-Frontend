@@ -1,5 +1,5 @@
 // File: src/components/DebugOverlay.jsx
-// PCC v13.4 — Color-coded global debug panel
+// PCC v13.6 — Full-width, color-coded, scroll-only debug panel
 
 import React, { useEffect, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -13,7 +13,9 @@ export default function DebugOverlay() {
   const [lastEndpoint, setLastEndpoint] = useState("—");
   const [apiCalls, setApiCalls] = useState(0);
 
+  // ------------------------------------------------------------
   // Color map for categories
+  // ------------------------------------------------------------
   const colorFor = (category) => {
     switch (category) {
       case "API":
@@ -23,12 +25,16 @@ export default function DebugOverlay() {
       case "HOME":
       case "WATCH":
       case "SEARCH":
+      case "PLAYER":
         return "#ffeb3b"; // yellow
       default:
         return "#bdbdbd"; // gray
     }
   };
 
+  // ------------------------------------------------------------
+  // Global debug hooks
+  // ------------------------------------------------------------
   useEffect(() => {
     window.debugLog = (msg, category = "LOG") => {
       setLogs((prev) => [
@@ -45,6 +51,9 @@ export default function DebugOverlay() {
     };
   }, []);
 
+  // ------------------------------------------------------------
+  // Render
+  // ------------------------------------------------------------
   return (
     <div
       style={{
@@ -52,6 +61,9 @@ export default function DebugOverlay() {
         bottom: 60,
         left: 0,
         right: 0,
+        width: "100%",
+        maxWidth: "100%",
+        overflowX: "hidden",
         zIndex: 9999,
         pointerEvents: "none",
       }}
@@ -84,20 +96,24 @@ export default function DebugOverlay() {
             borderTop: "1px solid #333",
             maxHeight: "45vh",
             overflowY: "auto",
+            overflowX: "hidden",
             fontFamily: "monospace",
             fontSize: 12,
             pointerEvents: "auto",
+            width: "100%",
+            boxSizing: "border-box",
+            wordBreak: "break-word",
           }}
         >
           {/* Header */}
-          <div style={{ marginBottom: 8, display: "flex", gap: 8 }}>
-            <span style={{ fontWeight: "bold" }}>Debug Panel</span>
+          <div style={{ marginBottom: 8, fontWeight: "bold" }}>
+            Debug Panel
           </div>
 
           {/* API summary */}
           <div>API Key Used: {apiKeyUsed}</div>
           <div>API Calls: {apiCalls}</div>
-          <div style={{ wordBreak: "break-all" }}>
+          <div style={{ wordBreak: "break-word" }}>
             Last Endpoint: {lastEndpoint}
           </div>
 
@@ -113,6 +129,7 @@ export default function DebugOverlay() {
 
           {/* Logs */}
           <div style={{ marginTop: 8, fontWeight: "bold" }}>Logs</div>
+
           {logs.map((l, i) => (
             <div
               key={i}
@@ -120,6 +137,7 @@ export default function DebugOverlay() {
                 color: colorFor(l.category),
                 marginBottom: 2,
                 whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
               }}
             >
               [{l.time}] [{l.category}] {l.msg}
