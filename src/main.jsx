@@ -1,15 +1,23 @@
 // File: src/main.jsx
-console.log("MAIN: React bundle loaded");
+// Root entry point — initializes debug + API keys BEFORE React mounts.
+
+import "./initDebug";      // must load first (global debug hooks)
+import "./initApiKey";     // safe: only loads env keys, never throws
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
+import { BrowserRouter } from "react-router-dom";
 
-// Global styles (optional but recommended)
-import "./index.css";
+import App from "./App";
+import "./index.css";      // global styles
+
+// Optional sanity log to confirm boot sequence
+console.log("MAIN: React bundle loaded");
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </React.StrictMode>
 );
