@@ -1,9 +1,15 @@
 /**
  * File: youtube.js
  * Path: src/api/youtube.js
- * Description: YouTube Data API v3 client with primary + fallback API keys,
- * automatic retry chain, and DebugOverlay v3 logging.
+ * Description: YouTube API client with primary/fallback keys + quota tracking.
  */
+
+import {
+  recordCall,
+  recordQuotaError,
+  getQuotaSummary,
+  getLastKeyUsed
+} from "../debug/quotaTracker";
 
 const PRIMARY = import.meta.env.VITE_YT_API_PRIMARY;
 const FALLBACK1 = import.meta.env.VITE_YT_API_FALLBACK1;
@@ -13,21 +19,11 @@ const API_KEYS = [
   { key: FALLBACK1, label: "FALLBACK1" }
 ];
 
-/**
- * Build a YouTube API URL with a given key.
- */
 function buildUrl(endpoint, params, key) {
-  const query = new URLSearchParams({
-    key,
-    ...params
-  });
-
-  return `https://www.googleapis.com/youtube/v3/${endpoint}?${query.toString()}`;
+  const query = new URLSearchParams({ key, ...params });
+  return `https://www.googleapis.com/youtube/v3/${endpoint}?${query}`;
 }
 
-/**
- * Fetch with automatic fallback across multiple API keys.
- */
 async function fetchWithFallback(endpoint, params) {
   for (const { key, label } of API_KEYS) {
     if (!key) continue;
@@ -37,36 +33,38 @@ async function fetchWithFallback(endpoint, params) {
     try {
       const res = await fetch(url);
 
-      // Log network attempt
-      window.bootDebug?.info(`YouTube API request (${label}) → ${endpoint}`, {
-        url
-      });
+      // Track quota usage
+      recordCall(`${endpoint}.list`, label);
+
+      // Log quota summary to console
+      window.bootDebug?.info(getQuotaSummary());
+
+      // Log request
+      window.bootDebug?.info(`FETCH → ${url}`);
 
       if (res.ok) {
-        window.bootDebug?.info(`YouTube API success using ${label}`);
+        window.bootDebug?.info(`FETCH OK ← ${url} (${res.status})`);
         return await res.json();
       }
 
-      // Log failure
-      window.bootDebug?.error(`YouTube API failed (${label})`, {
+      // Detect quotaExceeded
+      if (res.status === 403) {
+        recordQuotaError();
+        window.bootDebug?.error("[QUOTA] quotaExceeded");
+      }
+
+      window.bootDebug?.error(`FETCH FAIL (${label})`, {
         url,
         status: res.status
       });
     } catch (err) {
-      // Log exception
-      window.bootDebug?.error(`YouTube API exception (${label})`, {
-        endpoint,
-        err
-      });
+      window.bootDebug?.error(`FETCH EXCEPTION (${label})`, { err });
     }
   }
 
   throw new Error("All YouTube API keys failed");
 }
 
-/**
- * Get trending videos.
- */
 export async function getTrending(region = "US", maxResults = 25) {
   return fetchWithFallback("videos", {
     part: "snippet,contentDetails,statistics",
@@ -76,9 +74,6 @@ export async function getTrending(region = "US", maxResults = 25) {
   });
 }
 
-/**
- * Search videos.
- */
 export async function searchVideos(query, maxResults = 25) {
   return fetchWithFallback("search", {
     part: "snippet",
@@ -88,9 +83,6 @@ export async function searchVideos(query, maxResults = 25) {
   });
 }
 
-/**
- * Get video details.
- */
 export async function getVideoDetails(id) {
   return fetchWithFallback("videos", {
     part: "snippet,contentDetails,statistics",
@@ -98,9 +90,6 @@ export async function getVideoDetails(id) {
   });
 }
 
-/**
- * Get related videos.
- */
 export async function getRelatedVideos(id, maxResults = 25) {
   return fetchWithFallback("search", {
     part: "snippet",
