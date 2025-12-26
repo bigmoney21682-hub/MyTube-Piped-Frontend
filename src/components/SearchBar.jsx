@@ -1,6 +1,3 @@
-// File: src/components/SearchBar.jsx
-// PCC v13.0 — Simple search bar that navigates to /search?q=...
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -35,7 +32,6 @@ export default function SearchBar() {
           border: "1px solid #333",
           background: "#111",
           color: "#fff",
-          fontSize: 16,
         }}
       />
 
@@ -48,7 +44,6 @@ export default function SearchBar() {
           background: "#fff",
           color: "#000",
           fontWeight: 600,
-          cursor: "pointer",
         }}
       >
         Go
