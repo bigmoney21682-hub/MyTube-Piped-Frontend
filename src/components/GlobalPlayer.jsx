@@ -1,28 +1,31 @@
 // File: src/components/GlobalPlayer.jsx
-// PCC v7.2 — Overlay-free YouTube player with safe PlayerContext usage
-// Single global YouTube iframe player (no Invidious, no <audio>)
+// PCC v13.0 — Full YouTube Engine + Metrics + Autonext
+// Changes:
+// - Added attachPlayerRef()
+// - Added 250ms polling loop
+// - Pushes duration/currentTime/buffered/state to PlayerContext
+// - Human-readable states
+// - Uses handleEnded() instead of manual playNext
+// - Safe guards for same-video reload
 
 import { useEffect, useRef } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
 
 export default function GlobalPlayer() {
-  // ------------------------------------------------------------
-  // SAFE CONTEXT DESTRUCTURING
-  // ------------------------------------------------------------
-  const playerCtx = usePlayer() || {};
-
   const {
-    currentVideo = null,
-    playing = false,
-    playNext = null,
-    setPlaying = null,
-  } = playerCtx;
+    currentVideo,
+    playing,
+    handleEnded,
+    setPlaying,
+    setPlayerMetrics,
+    attachPlayerRef,
+  } = usePlayer();
 
   const containerRef = useRef(null);
   const playerRef = useRef(null);
   const apiReadyRef = useRef(false);
 
-  const log = (msg) => window.debugLog?.(`GlobalPlayer(YT): ${msg}`);
+  const log = (msg) => window.debugLog?.(`GlobalPlayer: ${msg}`);
 
   const getVideoId = (video) => {
     if (!video) return null;
@@ -33,45 +36,36 @@ export default function GlobalPlayer() {
 
   const videoId = getVideoId(currentVideo);
 
-  // -------------------------------
-  // Load YouTube IFrame API once
-  // -------------------------------
+  // ------------------------------------------------------------
+  // LOAD YT API
+  // ------------------------------------------------------------
   useEffect(() => {
     if (window.YT && window.YT.Player) {
-      log("YouTube IFrame API already present — waiting for onReady");
+      apiReadyRef.current = true;
       return;
     }
 
-    if (window._ytApiLoading) {
-      log("YouTube IFrame API loading already in progress");
-      return;
-    }
-
-    log("Injecting YouTube IFrame API script");
+    if (window._ytApiLoading) return;
     window._ytApiLoading = true;
 
     const tag = document.createElement("script");
     tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName("script")[0];
-    firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    document.body.appendChild(tag);
 
     const prev = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
       if (typeof prev === "function") prev();
-      log("YouTube IFrame API ready");
       apiReadyRef.current = true;
     };
   }, []);
 
-  // -------------------------------
-  // Create the player once API is ready
-  // -------------------------------
+  // ------------------------------------------------------------
+  // CREATE PLAYER
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!apiReadyRef.current) return;
     if (!containerRef.current) return;
     if (playerRef.current) return;
-
-    log("Creating YouTube Player instance");
 
     playerRef.current = new window.YT.Player(containerRef.current, {
       width: "0",
@@ -91,88 +85,104 @@ export default function GlobalPlayer() {
       },
       events: {
         onReady: () => {
-          log("YouTube player ready");
+          attachPlayerRef(playerRef.current);
         },
         onStateChange: (event) => {
-          const state = event.data;
           const YT = window.YT;
           if (!YT) return;
 
-          // If context functions aren’t ready, don’t crash — just log
-          if (!setPlaying || !playNext) {
-            log("Context not ready in onStateChange, skipping control sync");
-            return;
-          }
+          const stateMap = {
+            [YT.PlayerState.UNSTARTED]: "unstarted",
+            [YT.PlayerState.ENDED]: "ended",
+            [YT.PlayerState.PLAYING]: "playing",
+            [YT.PlayerState.PAUSED]: "paused",
+            [YT.PlayerState.BUFFERING]: "buffering",
+            [YT.PlayerState.CUED]: "cued",
+          };
 
-          if (state === YT.PlayerState.ENDED) {
-            log("Player state = ENDED -> autonext");
-            const next = playNext();
-            if (!next) log("No autonext target, stopping");
-          } else if (state === YT.PlayerState.PLAYING) {
-            log("Player state = PLAYING");
-            if (!playing) setPlaying(true);
-          } else if (state === YT.PlayerState.PAUSED) {
-            log("Player state = PAUSED");
-            if (playing) setPlaying(false);
+          const readable = stateMap[event.data] || "unknown";
+
+          setPlayerMetrics((m) => ({
+            ...m,
+            state: readable,
+          }));
+
+          if (readable === "ended") {
+            handleEnded();
+          } else if (readable === "playing") {
+            setPlaying(true);
+          } else if (readable === "paused") {
+            setPlaying(false);
           }
         },
       },
     });
-  }, [playNext, playing, setPlaying]);
+  }, [attachPlayerRef, handleEnded, setPlaying, setPlayerMetrics]);
 
-  // -------------------------------
-  // React to video changes
-  // -------------------------------
-  useEffect(() => {
-    const player = playerRef.current;
-    if (!player) {
-      log("Video change ignored — player not ready yet");
-      return;
-    }
-
-    if (!videoId) {
-      log("No videoId -> stopping player");
-      try {
-        player.stopVideo();
-      } catch (e) {}
-      return;
-    }
-
-    log(`Loading videoId=${videoId} into global player`);
-    try {
-      player.loadVideoById(videoId);
-      if (!playing) player.pauseVideo();
-    } catch (e) {
-      log(`Error loading videoId=${videoId}: ${e}`);
-    }
-  }, [videoId]);
-
-  // -------------------------------
-  // React to play/pause changes
-  // -------------------------------
+  // ------------------------------------------------------------
+  // LOAD VIDEO
+  // ------------------------------------------------------------
   useEffect(() => {
     const player = playerRef.current;
     if (!player) return;
 
     if (!videoId) {
-      log("No videoId while toggling play/pause, skipping");
+      try {
+        player.stopVideo();
+      } catch {}
       return;
     }
 
     try {
-      if (playing) {
-        log("Context playing=true -> player.playVideo()");
-        player.playVideo();
-      } else {
-        log("Context playing=false -> player.pauseVideo()");
-        player.pauseVideo();
-      }
-    } catch (e) {
-      log(`Error syncing play/pause: ${e}`);
-    }
+      const current = player.getVideoData()?.video_id;
+      if (current === videoId) return;
+
+      player.loadVideoById(videoId);
+      if (!playing) player.pauseVideo();
+    } catch {}
+  }, [videoId]);
+
+  // ------------------------------------------------------------
+  // SYNC PLAY/PAUSE
+  // ------------------------------------------------------------
+  useEffect(() => {
+    const player = playerRef.current;
+    if (!player || !videoId) return;
+
+    try {
+      if (playing) player.playVideo();
+      else player.pauseVideo();
+    } catch {}
   }, [playing, videoId]);
 
-  // Hidden player container
+  // ------------------------------------------------------------
+  // METRIC POLLING (250ms)
+  // ------------------------------------------------------------
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const player = playerRef.current;
+      if (!player) return;
+
+      try {
+        const duration = player.getDuration() || 0;
+        const currentTime = player.getCurrentTime() || 0;
+
+        let buffered = 0;
+        const ranges = player.getVideoLoadedFraction?.();
+        if (typeof ranges === "number") buffered = ranges;
+
+        setPlayerMetrics((m) => ({
+          ...m,
+          duration,
+          currentTime,
+          buffered,
+        }));
+      } catch {}
+    }, 250);
+
+    return () => clearInterval(interval);
+  }, [setPlayerMetrics]);
+
   return (
     <div
       style={{
