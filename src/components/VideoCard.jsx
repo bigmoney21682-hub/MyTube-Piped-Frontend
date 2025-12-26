@@ -1,9 +1,8 @@
 // File: src/components/VideoCard.jsx
-// PCC v13.0 — Modern YouTube-style video card
+// PCC v13.3 — Modern YouTube-style video card
 // - Works with unified YouTube-only API shape
 // - Navigates to /watch?v=ID
 // - Clean mobile-first layout
-// - Safe thumbnail/title/channel extraction
 
 import { useNavigate } from "react-router-dom";
 
@@ -11,21 +10,30 @@ export default function VideoCard({ video }) {
   const navigate = useNavigate();
 
   // ------------------------------------------------------------
-  // Extract fields (YouTube-only API shape)
+  // Extract fields (supports all YouTube API shapes)
   // ------------------------------------------------------------
   const id =
     typeof video.id === "string"
       ? video.id
-      : video.id?.videoId || video.videoId || null;
+      : video.id?.videoId ||
+        video.videoId ||
+        null;
 
   const thumb =
     video.thumbnail ||
     video.snippet?.thumbnails?.medium?.url ||
-    video.snippet?.thumbnails?.high?.url;
+    video.snippet?.thumbnails?.high?.url ||
+    "";
 
-  const title = video.title || video.snippet?.title || "Untitled";
+  const title =
+    video.title ||
+    video.snippet?.title ||
+    "Untitled";
+
   const channel =
-    video.channelTitle || video.snippet?.channelTitle || "Unknown Channel";
+    video.channelTitle ||
+    video.snippet?.channelTitle ||
+    "Unknown Channel";
 
   // ------------------------------------------------------------
   // Render
