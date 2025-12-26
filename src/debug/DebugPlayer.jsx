@@ -1,17 +1,20 @@
 /**
  * File: DebugPlayer.jsx
  * Path: src/debug/DebugPlayer.jsx
- * Description: Player timeline inspector for DebugOverlay v3.
- * Shows player state transitions and events in chronological order.
+ * Description: Player inspector for DebugOverlay v3.
+ * Shows all player events: play, pause, buffer, seek, end, error, etc.
  */
 
 export default function DebugPlayer({ logs, colors, formatTime }) {
+  // Filter only player logs
+  const playerLogs = logs.filter((l) => l.level === "PLAYER");
+
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 6,
+        gap: 8,
         overflowX: "hidden",
         overflowY: "auto",
         width: "100%",
@@ -21,29 +24,54 @@ export default function DebugPlayer({ logs, colors, formatTime }) {
         minWidth: 0
       }}
     >
-      {logs.length === 0 && (
+      {playerLogs.length === 0 && (
         <div style={{ color: "#888", fontSize: 12 }}>
           No player events yet.
         </div>
       )}
 
-      {logs.map((log, i) => (
-        <div
-          key={i}
-          style={{
-            padding: "4px 0",
-            borderBottom: "1px solid #333",
-            color: colors.PLAYER,
-            fontSize: 12,
-            lineHeight: "16px"
-          }}
-        >
-          <div style={{ opacity: 0.6 }}>
-            {formatTime(log.ts)}
+      {playerLogs.map((log, i) => {
+        const { msg, data, ts } = log;
+
+        return (
+          <div
+            key={i}
+            style={{
+              padding: "6px 0",
+              borderBottom: "1px solid #333",
+              color: colors.PLAYER || "#ccc",
+              fontSize: 12,
+              lineHeight: "16px"
+            }}
+          >
+            {/* Timestamp */}
+            <div style={{ opacity: 0.6 }}>{formatTime(ts)}</div>
+
+            {/* Main message */}
+            <div style={{ fontWeight: "bold" }}>{msg}</div>
+
+            {/* Metadata */}
+            {data && (
+              <div
+                style={{
+                  marginTop: 4,
+                  background: "#111",
+                  padding: 6,
+                  borderRadius: 4,
+                  fontSize: 11,
+                  overflowX: "auto"
+                }}
+              >
+                {Object.entries(data).map(([key, value]) => (
+                  <div key={key} style={{ marginBottom: 4 }}>
+                    <strong>{key}:</strong> {String(value)}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          <div>{log.msg}</div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
