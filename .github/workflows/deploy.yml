@@ -1,49 +1,32 @@
-name: Deploy Vite App to GitHub Pages
+name: Deploy
 
 on:
   push:
-    branches: ["main"]
-
-permissions:
-  contents: write
-  pages: write
-  id-token: write
+    branches: [ main ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 18
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build with Vite
-        env:
-          VITE_YT_API_PRIMARY: ${{ secrets.VITE_YT_API_PRIMARY }}
-          VITE_YT_API_FALLBACK1: ${{ secrets.VITE_YT_API_FALLBACK1 }}
-        run: npm run build
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - run: npm install
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v2
         with:
           path: dist
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
-      - name: Deploy to GitHub Pages
+      - uses: actions/deploy-pages@v2
         id: deployment
-        uses: actions/deploy-pages@v4
