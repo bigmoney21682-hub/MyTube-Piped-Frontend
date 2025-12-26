@@ -1,178 +1,62 @@
 // File: src/components/MiniPlayer.jsx
-// PCC v8.0 — YouTube-style MiniPlayer (H1 height, draggable on press+hold)
+// PCC v1.0 — Minimalist Premium MiniPlayer
 
-import React, { useEffect, useRef, useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { usePlayer } from "../contexts/PlayerContext";
 
 export default function MiniPlayer() {
-  const { currentVideo, playing, togglePlay, playNext } = usePlayer();
   const navigate = useNavigate();
+  const { currentVideo, playerMetrics, pause, play, stop } = usePlayer();
 
-  const [position, setPosition] = useState({ x: 8, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [isPressing, setIsPressing] = useState(false);
+  // Hidden when nothing is playing
+  if (!currentVideo) return null;
 
-  const pressTimerRef = useRef(null);
-  const dragStartRef = useRef({ x: 0, y: 0, pointerX: 0, pointerY: 0 });
-  const containerRef = useRef(null);
-
-  const log = (msg) => window.debugLog?.(`MiniPlayer: ${msg}`);
-
-  // Normalize ID consistently with the rest of the app
-  const getId = (video) => {
-    if (!video) return null;
-    if (typeof video.id === "string") return video.id;
-    if (typeof video.id?.videoId === "string") return video.id.videoId;
-    return null;
-  };
-
-  // Initialize position near bottom
-  useEffect(() => {
-    const h = window.innerHeight || 800;
-    setPosition({ x: 8, y: h - 72 });
-  }, []);
-
-  const video = currentVideo;
-  const videoId = getId(video);
-
-  if (!video || !videoId) return null;
-
-  const handleNavigate = () => {
-    if (isDragging) return;
-    log(`navigate to /watch/${videoId}`);
-    navigate(`/watch/${videoId}`);
-  };
-
-  const clearPressTimer = () => {
-    if (pressTimerRef.current) {
-      clearTimeout(pressTimerRef.current);
-      pressTimerRef.current = null;
-    }
-  };
-
-  const handlePointerDown = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    setIsPressing(true);
-    const pointerX = e.clientX;
-    const pointerY = e.clientY;
-
-    dragStartRef.current = {
-      x: position.x,
-      y: position.y,
-      pointerX,
-      pointerY,
-    };
-
-    // Long press (250ms) to enter drag mode
-    pressTimerRef.current = setTimeout(() => {
-      setIsDragging(true);
-    }, 250);
-
-    containerRef.current?.setPointerCapture?.(e.pointerId);
-  };
-
-  const handlePointerMove = (e) => {
-    if (!isDragging) return;
-    e.preventDefault();
-
-    const { x, y, pointerX, pointerY } = dragStartRef.current;
-    const dx = e.clientX - pointerX;
-    const dy = e.clientY - pointerY;
-
-    const newX = x + dx;
-    const newY = y + dy;
-
-    const viewportWidth = window.innerWidth || 375;
-    const viewportHeight = window.innerHeight || 812;
-    const cardWidth = Math.min(480, viewportWidth - 16);
-    const cardHeight = 56;
-
-    const clampedX = Math.max(8, Math.min(newX, viewportWidth - cardWidth - 8));
-    const clampedY = Math.max(8, Math.min(newY, viewportHeight - cardHeight - 8));
-
-    setPosition({ x: clampedX, y: clampedY });
-  };
-
-  const handlePointerUp = (e) => {
-    clearPressTimer();
-    setIsPressing(false);
-    setIsDragging(false);
-    containerRef.current?.releasePointerCapture?.(e.pointerId);
-  };
-
-  const handleClick = (e) => {
-    // If we were dragging or long-pressing, ignore click
-    if (isDragging || pressTimerRef.current) {
-      e.stopPropagation();
-      clearPressTimer();
-      return;
-    }
-    handleNavigate();
-  };
-
-  const title = video.title || "Unknown Title";
-  const author = video.author || "Unknown Channel";
-  const thumb = video.thumbnail;
+  const isPlaying = playerMetrics.state === "playing";
 
   return (
     <div
-      ref={containerRef}
       style={{
         position: "fixed",
-        left: position.x,
-        top: position.y,
-        width: `min(480px, calc(100% - 16px))`,
-        height: 56,
-        borderRadius: 12,
+        bottom: "calc(env(safe-area-inset-bottom) + 0px)",
+        left: 0,
+        right: 0,
+        height: 64,
         background: "#111",
-        boxShadow: "0 4px 10px rgba(0,0,0,0.6)",
+        borderTop: "1px solid #222",
         display: "flex",
         alignItems: "center",
-        padding: "0 8px",
-        zIndex: 50,
-        cursor: isDragging ? "grabbing" : "pointer",
-        userSelect: "none",
+        padding: "0 12px",
+        zIndex: 99990,
+        transition: "transform 0.25s ease",
+        transform: "translateY(0)",
       }}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onPointerLeave={handlePointerUp}
-      onClick={handleClick}
     >
       {/* Thumbnail */}
       <div
+        onClick={() => navigate(`/watch?v=${currentVideo.id}`)}
         style={{
-          width: 56,
-          height: 40,
-          borderRadius: 8,
+          width: 48,
+          height: 48,
+          borderRadius: 6,
           overflow: "hidden",
-          background: "#000",
           flexShrink: 0,
+          marginRight: 12,
         }}
       >
-        {thumb && (
-          <img
-            src={thumb}
-            alt={title}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-        )}
+        <img
+          src={currentVideo.thumbnail}
+          alt=""
+          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        />
       </div>
 
       {/* Title + channel */}
       <div
+        onClick={() => navigate(`/watch?v=${currentVideo.id}`)}
         style={{
-          flex: 1,
-          minWidth: 0,
-          marginLeft: 8,
+          flexGrow: 1,
+          overflow: "hidden",
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
@@ -180,65 +64,63 @@ export default function MiniPlayer() {
       >
         <div
           style={{
-            fontSize: 14,
             color: "#fff",
+            fontSize: 14,
+            fontWeight: 500,
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
         >
-          {title}
+          {currentVideo.title}
         </div>
         <div
           style={{
+            color: "#aaa",
             fontSize: 12,
-            color: "rgba(255,255,255,0.7)",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}
         >
-          {author}
+          {currentVideo.channelTitle}
         </div>
       </div>
 
       {/* Controls */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginLeft: 8,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Play/Pause */}
         <button
-          onClick={() => togglePlay()}
-          style={iconButtonStyle}
+          onClick={() => (isPlaying ? pause() : play())}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            background: "#222",
+            border: "1px solid #333",
+            color: "#fff",
+            fontSize: 14,
+          }}
         >
-          {playing ? "⏸" : "▶"}
+          {isPlaying ? "❚❚" : "▶"}
         </button>
+
+        {/* Close */}
         <button
-          onClick={() => playNext()}
-          style={iconButtonStyle}
+          onClick={stop}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            background: "#222",
+            border: "1px solid #333",
+            color: "#fff",
+            fontSize: 14,
+          }}
         >
-          ⏭
+          ✕
         </button>
       </div>
     </div>
   );
 }
-
-const iconButtonStyle = {
-  background: "none",
-  border: "none",
-  color: "#fff",
-  fontSize: 22,
-  fontWeight: 500,
-  cursor: "pointer",
-  padding: 4,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
