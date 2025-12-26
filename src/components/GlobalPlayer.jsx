@@ -7,6 +7,7 @@ import { usePlayer } from "../contexts/PlayerContext";
 export default function GlobalPlayer() {
   const { currentVideo } = usePlayer();
 
+  // No video loaded → no player
   if (!currentVideo?.id) return null;
 
   return (
@@ -14,13 +15,13 @@ export default function GlobalPlayer() {
       id="yt-global-player"
       style={{
         position: "fixed",
-        top: "var(--header-height)",      // sits under your header
+        top: "var(--header-height)",      // sits directly under your header
         left: 0,
         width: "100%",
         height: "56.25vw",                // 16:9 responsive ratio
-        maxHeight: "360px",               // optional cap for large screens
+        maxHeight: "360px",               // optional cap for tablets/desktops
         background: "#000",
-        zIndex: 99990,                    // above content, below DebugOverlay
+        zIndex: 99990,                    // above app content, below DebugOverlay
       }}
     >
       <iframe
