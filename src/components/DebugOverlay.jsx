@@ -55,41 +55,37 @@ export default function DebugOverlay() {
   // Render
   // ------------------------------------------------------------
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: 60,
-        left: 0,
-        right: 0,
-        width: "100%",
-        maxWidth: "100%",
-        overflowX: "hidden",
-        zIndex: 9999,
-        pointerEvents: "none",
-      }}
-    >
-      {/* Toggle button */}
+    <>
+      {/* Floating toggle button */}
       <button
         onClick={() => setVisible((v) => !v)}
         style={{
-          position: "absolute",
+          position: "fixed",
           right: 16,
-          bottom: -40,
-          padding: "6px 12px",
+          bottom: 16,
+          padding: "8px 14px",
           background: "#222",
           color: "#fff",
           border: "1px solid #444",
           borderRadius: 6,
           pointerEvents: "auto",
           fontSize: 12,
+          zIndex: 99999,
         }}
       >
         {visible ? "Hide Debug" : "Debug"}
       </button>
 
-      {!visible ? null : (
+      {/* Panel */}
+      {visible && (
         <div
           style={{
+            position: "fixed",
+            bottom: 60,
+            left: 0,
+            right: 0,
+            width: "100%",
+            maxWidth: "100%",
             background: "rgba(0,0,0,0.9)",
             color: "#0f0",
             padding: 12,
@@ -100,9 +96,9 @@ export default function DebugOverlay() {
             fontFamily: "monospace",
             fontSize: 12,
             pointerEvents: "auto",
-            width: "100%",
             boxSizing: "border-box",
             wordBreak: "break-word",
+            zIndex: 99998,
           }}
         >
           {/* Header */}
@@ -145,6 +141,6 @@ export default function DebugOverlay() {
           ))}
         </div>
       )}
-    </div>
+    </>
   );
 }
