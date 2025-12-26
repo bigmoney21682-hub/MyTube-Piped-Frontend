@@ -14,13 +14,25 @@ export default function Home() {
   const [videos, setVideos] = useState([]);
   const navigate = useNavigate();
 
+  bootDebug.info("Home.jsx mounted");
+
   useEffect(() => {
     async function load() {
-      debugLog("UI", "Loading trending videos…");
-      const data = await getTrending();
-      setVideos(data.items || []);
-      debugLog("UI", "Trending videos loaded", data);
+      bootDebug.info("Fetching trending videos…");
+      debugLog("API", "Fetching trending videos…");
+
+      try {
+        const data = await getTrending();
+        setVideos(data.items || []);
+
+        bootDebug.info("Trending videos loaded");
+        debugLog("API", "Trending videos loaded", data);
+      } catch (err) {
+        bootDebug.error("Failed to load trending: " + err.message);
+        debugLog("ERROR", "Failed to load trending", err);
+      }
     }
+
     load();
   }, []);
 
@@ -32,7 +44,10 @@ export default function Home() {
         <VideoCard
           key={v.id}
           video={v}
-          onClick={() => navigate(`/watch/${v.id}`)}
+          onClick={() => {
+            bootDebug.info("Navigating to video " + v.id);
+            navigate(`/watch/${v.id}`);
+          }}
         />
       ))}
     </div>
