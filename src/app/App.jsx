@@ -1,16 +1,16 @@
 /**
  * File: App.jsx
- * Path: src/App.jsx
+ * Path: src/app/App.jsx
  * Description: Root application shell with routing + DebugOverlay v3 integration.
  */
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 
-import Home from "./pages/Home/Home";
-import Watch from "./pages/Watch/Watch";
+import Home from "../pages/Home/Home";
+import Watch from "../pages/Watch/Watch";
 
-import DebugOverlay from "./debug/DebugOverlay";
+import DebugOverlay from "../debug/DebugOverlay";
 
 export default function App() {
   // Boot logs
