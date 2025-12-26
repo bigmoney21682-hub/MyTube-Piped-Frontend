@@ -1,10 +1,12 @@
 // File: src/components/Player.jsx
-// PCC v12.0 — Minimal overlay for global YouTube player (wired to PlayerContext)
+// PCC v13.0 — Full Overlay Player UI (real metrics)
 // Changes:
-// - Switched from togglePlay (non-existent) to setPlaying from PlayerContext
-// - Wired double-tap skip to seekRelative from PlayerContext
-// - Kept duration/currentTime/buffered/playerState as safe placeholders
-// - Ensured no dependencies on removed utils or missing context fields
+// - Uses playerMetrics from context
+// - Real duration/currentTime/buffered
+// - Real loading state
+// - Real scrubbing
+// - Real ripple skip
+// - No placeholders
 
 import React, { useEffect, useRef, useState } from "react";
 import { usePlayer } from "../contexts/PlayerContext";
@@ -16,19 +18,16 @@ export default function Player() {
     playNext,
     playPrev,
     seekRelative,
+    playerMetrics,
   } = usePlayer();
 
-  // ------------------------------------------------------------
-  // SAFE DEFAULTS (will be upgraded when GlobalPlayer exposes metrics)
-  // ------------------------------------------------------------
-  const duration = 0;
-  const currentTime = 0;
-  const buffered = 0;
-  const playerState = "ready"; // avoid permanent "Preparing video…" overlay
+  const {
+    duration,
+    currentTime,
+    buffered,
+    state: playerState,
+  } = playerMetrics;
 
-  // ------------------------------------------------------------
-  // UI State
-  // ------------------------------------------------------------
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [scrubTime, setScrubTime] = useState(0);
@@ -38,7 +37,7 @@ export default function Player() {
   const containerRef = useRef(null);
 
   // ------------------------------------------------------------
-  // Auto-hide controls
+  // Controls visibility
   // ------------------------------------------------------------
   const showControls = () => {
     setControlsVisible(true);
@@ -54,7 +53,7 @@ export default function Player() {
   }, []);
 
   // ------------------------------------------------------------
-  // Loading overlay logic
+  // Loading state
   // ------------------------------------------------------------
   const isLoading =
     playerState === "unstarted" ||
@@ -62,7 +61,7 @@ export default function Player() {
     playerState === "loading";
 
   // ------------------------------------------------------------
-  // Double-tap skip (uses seekRelative from PlayerContext)
+  // Double-tap skip (left/right)
   // ------------------------------------------------------------
   const handleDoubleTap = (e) => {
     if (!containerRef.current) return;
@@ -79,13 +78,12 @@ export default function Player() {
       key: Date.now(),
     });
 
-    // Use context-level relative seek instead of local seekTo
     seekRelative(skipAmount);
     showControls();
   };
 
   // ------------------------------------------------------------
-  // Tap to toggle controls
+  // Single tap toggles controls
   // ------------------------------------------------------------
   const handleTap = () => {
     if (controlsVisible) {
@@ -97,7 +95,7 @@ export default function Player() {
   };
 
   // ------------------------------------------------------------
-  // Scrubbing (UI only for now; duration/currentTime are placeholders)
+  // Scrubbing
   // ------------------------------------------------------------
   const handleScrubStart = (e) => {
     if (!duration) return;
@@ -115,12 +113,16 @@ export default function Player() {
   };
 
   const handleScrubEnd = () => {
-    // When we wire real duration/currentTime, this should call a real seek
+    if (isScrubbing) {
+      // We convert absolute target time into a relative seek delta
+      const delta = scrubTime - currentTime;
+      seekRelative(delta);
+    }
     setIsScrubbing(false);
   };
 
   // ------------------------------------------------------------
-  // Format time
+  // Time formatting
   // ------------------------------------------------------------
   const fmt = (t) => {
     if (!t || isNaN(t)) return "0:00";
@@ -151,7 +153,7 @@ export default function Player() {
       onClick={handleTap}
       onDoubleClick={handleDoubleTap}
     >
-      {/* Loading Overlay */}
+      {/* Loading overlay */}
       {isLoading && (
         <div
           style={{
@@ -162,7 +164,6 @@ export default function Player() {
             alignItems: "center",
             justifyContent: "center",
             zIndex: 20,
-            transition: "opacity 0.3s",
           }}
         >
           <p style={{ color: "#fff", fontSize: 18, opacity: 0.8 }}>
@@ -189,7 +190,7 @@ export default function Player() {
         />
       )}
 
-      {/* Controls */}
+      {/* Controls overlay */}
       <div
         style={{
           position: "absolute",
@@ -229,7 +230,7 @@ export default function Player() {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              setPlaying((prev) => !prev);
+              setPlaying((p) => !p);
               showControls();
             }}
             style={iconStyle}
