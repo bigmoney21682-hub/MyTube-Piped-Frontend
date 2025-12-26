@@ -27,7 +27,9 @@ jobs:
 
       - name: Install dependencies
         working-directory: MyTube-Piped-Frontend
-        run: npm install
+        run: |
+          npm install
+          npm install react-router-dom
 
       - name: Build Vite app
         working-directory: MyTube-Piped-Frontend
