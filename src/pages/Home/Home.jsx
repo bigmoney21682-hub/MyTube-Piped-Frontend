@@ -1,4 +1,4 @@
-// File: src/pages/Home/Home.jsx
+// File: Home.jsx
 // Path: src/pages/Home/Home.jsx
 // Description: Home page that loads YouTube trending videos using the
 // quota-tracked getTrendingVideos() wrapper. Includes loading, error,
@@ -7,11 +7,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { getTrendingVideos } from "../../api/youtube"; // CORRECT WRAPPER
-import { debugBus } from "../../debug/debugBus";        // For console logging
-
-// If you have a VideoCard component, import it here:
-// import VideoCard from "../../components/VideoCard";
+import { getTrendingVideos } from "../../api/youtube";   // Correct wrapper
+import { debugBus } from "../../debug/debugBus";         // Now exported correctly
 
 export default function Home() {
   const navigate = useNavigate();
@@ -27,7 +24,7 @@ export default function Home() {
     let isMounted = true;
 
     async function loadTrending() {
-      debugBus.log("[HOME] Fetching trending videos…");
+      debugBus.log("INFO", "[HOME] Fetching trending videos…");
 
       try {
         const result = await getTrendingVideos();
@@ -35,16 +32,19 @@ export default function Home() {
         if (!isMounted) return;
 
         if (!result || !Array.isArray(result.items)) {
-          debugBus.log("[HOME] Invalid trending response", result);
+          debugBus.error("[HOME] Invalid trending response", result);
           setError("Invalid response from API");
           setLoading(false);
           return;
         }
 
-        debugBus.log(`[HOME] Trending loaded → ${result.items.length} items`);
+        debugBus.info(
+          `[HOME] Trending loaded → ${result.items.length} items`
+        );
+
         setVideos(result.items);
       } catch (err) {
-        debugBus.log("[HOME] Trending fetch failed", err);
+        debugBus.error("[HOME] Trending fetch failed", err);
         setError("Failed to load trending videos");
       } finally {
         if (isMounted) setLoading(false);
@@ -99,6 +99,8 @@ export default function Home() {
       {videos.map((v) => {
         const id = v.id || v.videoId;
         const title = v.title || v.snippet?.title || "Untitled";
+        const thumb =
+          v.thumbnail || v.snippet?.thumbnails?.medium?.url;
 
         return (
           <div
@@ -106,11 +108,13 @@ export default function Home() {
             style={styles.card}
             onClick={() => openVideo(id)}
           >
-            <img
-              src={v.thumbnail || v.snippet?.thumbnails?.medium?.url}
-              alt={title}
-              style={styles.thumbnail}
-            />
+            {thumb && (
+              <img
+                src={thumb}
+                alt={title}
+                style={styles.thumbnail}
+              />
+            )}
             <p style={styles.title}>{title}</p>
           </div>
         );
