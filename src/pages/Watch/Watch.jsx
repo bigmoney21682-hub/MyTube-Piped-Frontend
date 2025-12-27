@@ -4,7 +4,7 @@
  * Description: Video watch page with ReactPlayer, metadata loading,
  *              quota tracking, and DebugOverlay logging.
  */
-
+import { debugBus } from "../../debug/debugBus";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import ReactPlayer from "react-player";
