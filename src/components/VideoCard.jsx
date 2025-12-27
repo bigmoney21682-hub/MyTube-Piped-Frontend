@@ -3,6 +3,7 @@
  * Path: src/components/VideoCard.jsx
  * Description: Clickable video card that navigates to /watch/:id
  */
+window.bootDebug?.boot("VideoCard.jsx file loaded");
 
 import { useNavigate } from "react-router-dom";
 
