@@ -1,20 +1,31 @@
+<!--
+  File: index.html
+  Path: index.html
+  Description: Main SPA entry for MyTube. Includes Vite mount point,
+               GitHub Pages–safe asset paths, and debug boot script.
+-->
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <title>MyTube</title>
 
-    <!-- Correct public path -->
-    <script src="debug-boot.js"></script>
+    <!-- Favicon (served from /public/) -->
+    <link rel="icon" href="/MyTube-Piped-Frontend/favicon.png" />
+
+    <!-- Debug boot script (must be module for Vite) -->
+    <script type="module" src="/MyTube-Piped-Frontend/debug-boot.js"></script>
+
+    <!-- Vite injects JS/CSS automatically -->
   </head>
 
-  <body style="margin: 0; background: #000;">
+  <body>
     <div id="root"></div>
 
-    <!-- Vite entry point -->
-    <script type="module" src="/src/main.jsx"></script>
+    <!-- Main Vite entry -->
+    <script type="module" src="/MyTube-Piped-Frontend/src/main.jsx"></script>
   </body>
 </html>
