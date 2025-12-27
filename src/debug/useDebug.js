@@ -1,5 +1,6 @@
 // src/debug/useDebug.js
-import { debugLog } from "./debugBus";
+import { debugLog } from "./debugBus.js";
+
 
 export function useDebug() {
   return {
