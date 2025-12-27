@@ -12,7 +12,7 @@ import {
   getQuotaSummary
 } from "../debug/quotaTracker";
 
-const API_KEY = import.meta.env.VITE_YT_API_KEY;
+const API_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 const BASE = "https://www.googleapis.com/youtube/v3";
 
 /* -------------------------------------------------------
