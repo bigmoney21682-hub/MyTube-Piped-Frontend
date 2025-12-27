@@ -8,28 +8,21 @@ window.bootDebug?.boot("Home.jsx file loaded");
 
 import { useEffect, useState } from "react";
 import { fetchTrendingVideos } from "../../api/trending";
-
 import VideoCard from "../../components/VideoCard";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
 
-  // ------------------------------------------------------------
-  // Load trending videos
-  // ------------------------------------------------------------
   useEffect(() => {
     window.bootDebug?.home("Home.jsx mounted");
     window.bootDebug?.home("Fetching trending…");
 
-    getTrending("US", 25).then((items) => {
+    fetchTrendingVideos("US", 25).then((items) => {
       setVideos(items);
       window.bootDebug?.home(`Trending loaded: ${items.length}`);
     });
   }, []);
 
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
   return (
     <div style={styles.container}>
       <h2 style={styles.header}>Trending</h2>
@@ -43,23 +36,18 @@ export default function Home() {
   );
 }
 
-// ------------------------------------------------------------
-// Styles
-// ------------------------------------------------------------
 const styles = {
   container: {
     padding: "16px",
-    paddingBottom: "200px", // space above DebugOverlay
+    paddingBottom: "200px",
     maxWidth: "900px",
     margin: "0 auto"
   },
-
   header: {
     marginBottom: "16px",
     fontSize: "20px",
     fontWeight: "bold"
   },
-
   list: {
     display: "flex",
     flexDirection: "column",
