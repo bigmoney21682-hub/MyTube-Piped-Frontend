@@ -1,161 +1,66 @@
-// File: Home.jsx
-// Path: src/pages/Home/Home.jsx
-// Description: Home page that loads YouTube trending videos using the
-// quota-tracked getTrendingVideos() wrapper. Includes loading, error,
-// and empty states. Fully compatible with DebugOverlay v3.
+/**
+ * File: Home.jsx
+ * Path: src/pages/Home/Home.jsx
+ * Description: Home page that loads trending videos and displays them
+ *              using VideoCard. Fully wired to debugBus + youtube.js.
+ */
 
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-
-import { getTrendingVideos } from "../../api/youtube";   // Correct wrapper
-import { debugBus } from "../../debug/debugBus.js";
-         // Now exported correctly
+import { useEffect, useState } from "react";
+import { getTrending } from "../../api/youtube";
+import VideoCard from "../../components/VideoCard";
 
 export default function Home() {
-  const navigate = useNavigate();
-
   const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   // ------------------------------------------------------------
-  // Load Trending Videos (Quota-tracked)
+  // Load trending videos
   // ------------------------------------------------------------
   useEffect(() => {
-    let isMounted = true;
+    window.bootDebug?.home("Home.jsx mounted");
+    window.bootDebug?.home("Fetching trending…");
 
-    async function loadTrending() {
-      debugBus.log("INFO", "[HOME] Fetching trending videos…");
-
-      try {
-        const result = await getTrendingVideos();
-
-        if (!isMounted) return;
-
-        if (!result || !Array.isArray(result.items)) {
-          debugBus.error("[HOME] Invalid trending response", result);
-          setError("Invalid response from API");
-          setLoading(false);
-          return;
-        }
-
-        debugBus.info(
-          `[HOME] Trending loaded → ${result.items.length} items`
-        );
-
-        setVideos(result.items);
-      } catch (err) {
-        debugBus.error("[HOME] Trending fetch failed", err);
-        setError("Failed to load trending videos");
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    }
-
-    loadTrending();
-    return () => (isMounted = false);
+    getTrending("US", 25).then((items) => {
+      setVideos(items);
+      window.bootDebug?.home(`Trending loaded: ${items.length}`);
+    });
   }, []);
 
   // ------------------------------------------------------------
-  // Navigation handler
-  // ------------------------------------------------------------
-  function openVideo(videoId) {
-    if (!videoId) return;
-    navigate(`/watch?v=${videoId}`);
-  }
-
-  // ------------------------------------------------------------
-  // UI STATES
-  // ------------------------------------------------------------
-
-  if (loading) {
-    return (
-      <div style={styles.center}>
-        <p style={styles.text}>Loading trending videos…</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={styles.center}>
-        <p style={styles.text}>Error: {error}</p>
-      </div>
-    );
-  }
-
-  if (!videos.length) {
-    return (
-      <div style={styles.center}>
-        <p style={styles.text}>No trending videos found.</p>
-      </div>
-    );
-  }
-
-  // ------------------------------------------------------------
-  // MAIN RENDER
+  // Render
   // ------------------------------------------------------------
   return (
     <div style={styles.container}>
-      {videos.map((v) => {
-        const id = v.id || v.videoId;
-        const title = v.title || v.snippet?.title || "Untitled";
-        const thumb =
-          v.thumbnail || v.snippet?.thumbnails?.medium?.url;
+      <h2 style={styles.header}>Trending</h2>
 
-        return (
-          <div
-            key={id}
-            style={styles.card}
-            onClick={() => openVideo(id)}
-          >
-            {thumb && (
-              <img
-                src={thumb}
-                alt={title}
-                style={styles.thumbnail}
-              />
-            )}
-            <p style={styles.title}>{title}</p>
-          </div>
-        );
-      })}
+      <div style={styles.list}>
+        {videos.map((v) => (
+          <VideoCard key={v.id} video={v} />
+        ))}
+      </div>
     </div>
   );
 }
 
 // ------------------------------------------------------------
-// Inline Styles (temporary until your UI shell is rebuilt)
+// Styles
 // ------------------------------------------------------------
 const styles = {
   container: {
     padding: "16px",
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-    gap: "16px",
+    paddingBottom: "200px", // space above DebugOverlay
+    maxWidth: "900px",
+    margin: "0 auto"
   },
-  card: {
-    cursor: "pointer",
-    background: "#111",
-    borderRadius: "8px",
-    overflow: "hidden",
-    paddingBottom: "8px",
+
+  header: {
+    marginBottom: "16px",
+    fontSize: "20px",
+    fontWeight: "bold"
   },
-  thumbnail: {
-    width: "100%",
-    display: "block",
-  },
-  title: {
-    color: "#fff",
-    fontSize: "14px",
-    padding: "8px",
-  },
-  center: {
-    padding: "40px",
-    textAlign: "center",
-  },
-  text: {
-    color: "#fff",
-    fontSize: "16px",
-  },
+
+  list: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "14px"
+  }
 };
