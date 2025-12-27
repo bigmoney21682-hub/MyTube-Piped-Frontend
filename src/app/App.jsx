@@ -1,15 +1,20 @@
 /**
  * File: App.jsx
  * Path: src/app/App.jsx
- * Description: Minimal App shell that renders Home directly (router bypassed for debugging).
+ * Description: Full App shell with BrowserRouter, Home, Watch, ErrorBoundary,
+ *              and global DebugOverlay. No ReactPlayer anywhere.
  */
 
 import React, { useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import DebugOverlay from "../debug/DebugOverlay";
-
-// Directly import Home, ignore Watch/router for now
 import Home from "../pages/Home/Home";
+import Watch from "../pages/Watch/Watch";
 
+// ------------------------------------------------------------
+// Error Boundary
+// ------------------------------------------------------------
 class AppErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -40,16 +45,24 @@ class AppErrorBoundary extends React.Component {
   }
 }
 
+// ------------------------------------------------------------
+// Main App Component
+// ------------------------------------------------------------
 export default function App() {
   useEffect(() => {
-    window.bootDebug?.boot("App.jsx mounted — NO ROUTER, rendering <Home /> directly");
+    window.bootDebug?.boot("App.jsx mounted — Router active");
   }, []);
 
   return (
     <>
-      <AppErrorBoundary>
-        <Home />
-      </AppErrorBoundary>
+      <BrowserRouter>
+        <AppErrorBoundary>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/watch/:id" element={<Watch />} />
+          </Routes>
+        </AppErrorBoundary>
+      </BrowserRouter>
 
       <DebugOverlay />
     </>
