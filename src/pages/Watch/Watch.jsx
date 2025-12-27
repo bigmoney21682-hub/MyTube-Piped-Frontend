@@ -4,6 +4,8 @@
  * Description: Video watch page with ReactPlayer, metadata loading,
  *              quota tracking, and DebugOverlay logging.
  */
+window.bootDebug?.boot("Watch.jsx file loaded");
+
 import { debugBus } from "../../debug/debugBus.js";
 import { useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
