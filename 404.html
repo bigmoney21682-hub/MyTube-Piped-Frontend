@@ -1,18 +1,52 @@
-<script>
-  (function () {
-    var l = window.location;
-    var repo = "/MyTube-Piped-Frontend";
+<!--
+  File: 404.html
+  Path: 404.html
+  Description: GitHub Pages SPA redirect for BrowserRouter (no hash).
+-->
 
-    // Remove the repo prefix
-    var stripped = l.pathname.replace(repo, "");
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirecting…</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    // Redirect to a REAL pathname that BrowserRouter can read
-    var redirect = repo + stripped + l.search + l.hash;
+    <script>
+      (function () {
+        var l = window.location;
+        var repo = "/MyTube-Piped-Frontend";
 
-    console.log("[404] Original:", l.pathname);
-    console.log("[404] Stripped:", stripped);
-    console.log("[404] Redirect:", redirect);
+        console.log("[404] Original pathname:", l.pathname);
 
-    window.location.replace(redirect);
-  })();
-</script>
+        // Remove repo prefix
+        var stripped = l.pathname.replace(repo, "");
+        console.log("[404] Stripped pathname:", stripped);
+
+        // Redirect to a REAL pathname BrowserRouter can read
+        var redirect = repo + stripped + l.search + l.hash;
+        console.log("[404] Final redirect URL:", redirect);
+
+        window.location.replace(redirect);
+      })();
+    </script>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 40px;
+        font-family: system-ui, sans-serif;
+        background: #000;
+        color: #fff;
+        text-align: center;
+      }
+      a {
+        color: #ff4444;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h2>Redirecting…</h2>
+    <p>If you are not redirected automatically, <a href="/MyTube-Piped-Frontend/">click here</a>.</p>
+  </body>
+</html>
