@@ -1,22 +1,14 @@
 /**
  * File: App.jsx
  * Path: src/app/App.jsx
- * Description: Main app shell with router + real Home/Watch pages and DebugOverlay.
- */
-// src/pages/Home/Home.jsx
-/**
- * File: App.jsx
- * Path: src/app/App.jsx
- * Description: App shell with router, error boundary, and DebugOverlay.
+ * Description: Minimal App shell that renders Home directly (router bypassed for debugging).
  */
 
 import React, { useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import DebugOverlay from "../debug/DebugOverlay";
 
-// Real pages
+// Directly import Home, ignore Watch/router for now
 import Home from "../pages/Home/Home";
-import Watch from "../pages/Watch/Watch";
 
 class AppErrorBoundary extends React.Component {
   constructor(props) {
@@ -50,22 +42,16 @@ class AppErrorBoundary extends React.Component {
 
 export default function App() {
   useEffect(() => {
-    window.bootDebug?.boot("App.jsx mounted — initializing router");
+    window.bootDebug?.boot("App.jsx mounted — NO ROUTER, rendering <Home /> directly");
   }, []);
 
   return (
     <>
-      <BrowserRouter>
-        <AppErrorBoundary>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/watch/:id" element={<Watch />} />
-          </Routes>
-        </AppErrorBoundary>
-      </BrowserRouter>
+      <AppErrorBoundary>
+        <Home />
+      </AppErrorBoundary>
 
       <DebugOverlay />
     </>
   );
 }
-
