@@ -1,7 +1,7 @@
 <!--
   File: 404.html
   Path: 404.html
-  Description: GitHub Pages SPA redirect for MyTube.
+  Description: GitHub Pages SPA redirect for MyTube with diagnostics.
 -->
 
 <!DOCTYPE html>
@@ -13,27 +13,30 @@
 
     <script>
       /*
-        GitHub Pages SPA Redirect Logic
-        --------------------------------
-        When a user loads a deep link like:
-          /MyTube-Piped-Frontend/watch/abc123
-
-        GitHub Pages serves 404.html.
-        This script reconstructs the original path and redirects to:
-          /MyTube-Piped-Frontend/index.html#!/watch/abc123
-
-        React Router then takes over.
+        GitHub Pages SPA Redirect (Diagnostic Version)
+        Logs:
+        - original pathname
+        - stripped pathname
+        - repo prefix
+        - final redirect URL
       */
 
       (function () {
         var l = window.location;
         var repo = "/MyTube-Piped-Frontend";
 
-        // Remove the repo prefix from the path
-        var path = l.pathname.replace(repo, "");
+        console.log("[404] Original pathname:", l.pathname);
+        console.log("[404] Repo prefix:", repo);
+
+        // Remove repo prefix
+        var stripped = l.pathname.replace(repo, "");
+        console.log("[404] Stripped pathname:", stripped);
 
         // Build redirect URL
-        var redirect = repo + "/index.html#!" + path + l.search + l.hash;
+        var redirect =
+          repo + "/index.html#!" + stripped + l.search + l.hash;
+
+        console.log("[404] Final redirect URL:", redirect);
 
         // Perform redirect
         window.location.replace(redirect);
