@@ -4,6 +4,7 @@
  * Description: Minimal app shell with router, DebugOverlay, and
  *              full lifecycle logging for high‑performance debugging.
  */
+window.bootDebug?.boot("App.jsx file loaded");
 
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
