@@ -1,66 +1,18 @@
-<!--
-  File: 404.html
-  Path: 404.html
-  Description: GitHub Pages SPA redirect for MyTube with diagnostics.
--->
+<script>
+  (function () {
+    var l = window.location;
+    var repo = "/MyTube-Piped-Frontend";
 
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Redirecting…</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    // Remove the repo prefix
+    var stripped = l.pathname.replace(repo, "");
 
-    <script>
-      /*
-        GitHub Pages SPA Redirect (Diagnostic Version)
-        Logs:
-        - original pathname
-        - stripped pathname
-        - repo prefix
-        - final redirect URL
-      */
+    // Redirect to a REAL pathname that BrowserRouter can read
+    var redirect = repo + stripped + l.search + l.hash;
 
-      (function () {
-        var l = window.location;
-        var repo = "/MyTube-Piped-Frontend";
+    console.log("[404] Original:", l.pathname);
+    console.log("[404] Stripped:", stripped);
+    console.log("[404] Redirect:", redirect);
 
-        console.log("[404] Original pathname:", l.pathname);
-        console.log("[404] Repo prefix:", repo);
-
-        // Remove repo prefix
-        var stripped = l.pathname.replace(repo, "");
-        console.log("[404] Stripped pathname:", stripped);
-
-        // Build redirect URL
-        var redirect =
-          repo + "/index.html#!" + stripped + l.search + l.hash;
-
-        console.log("[404] Final redirect URL:", redirect);
-
-        // Perform redirect
-        window.location.replace(redirect);
-      })();
-    </script>
-
-    <style>
-      body {
-        margin: 0;
-        padding: 40px;
-        font-family: system-ui, sans-serif;
-        background: #000;
-        color: #fff;
-        text-align: center;
-      }
-      a {
-        color: #ff4444;
-        text-decoration: underline;
-      }
-    </style>
-  </head>
-
-  <body>
-    <h2>Redirecting…</h2>
-    <p>If you are not redirected automatically, <a href="/MyTube-Piped-Frontend/">click here</a>.</p>
-  </body>
-</html>
+    window.location.replace(redirect);
+  })();
+</script>
