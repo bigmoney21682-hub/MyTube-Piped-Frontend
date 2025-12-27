@@ -11,7 +11,8 @@ import { useEffect } from "react";
 import Home from "../pages/Home/Home";
 import Watch from "../pages/Watch/Watch";
 
-import DebugOverlay from "./debug/DebugOverlay";
+import DebugOverlay from "../debug/DebugOverlay";
+
 
 export default function App() {
   // ------------------------------------------------------------
