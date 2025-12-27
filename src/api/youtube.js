@@ -4,6 +4,7 @@
  * Description: YouTube API client with trending + video details,
  *              quota tracking, and DebugOverlay logging.
  */
+window.bootDebug?.boot("youtube.js file loaded");
 
 import {
   recordCall,
