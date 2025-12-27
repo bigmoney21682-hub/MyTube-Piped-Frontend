@@ -1,47 +1,28 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
- * Description: Video watch page with ReactPlayer, metadata loading,
- *              quota tracking, and DebugOverlay logging.
+ * Description: Video watch page using YouTube IFrame API + DebugOverlay logging.
  */
 window.bootDebug?.boot("Watch.jsx file loaded");
 
-import { debugBus } from "../../debug/debugBus.js";
 import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
-import ReactPlayer from "react-player";
+import { useEffect, useRef, useState } from "react";
 import { getVideoDetails } from "../../api/youtube";
 
 export default function Watch() {
   const { id } = useParams();
-  const [videoUrl, setVideoUrl] = useState("");
+  const playerRef = useRef(null);
+  const iframeRef = useRef(null);
+
   const [details, setDetails] = useState(null);
 
   /* -------------------------------------------------------
-     MOUNT LOG
+     LOAD METADATA
   ------------------------------------------------------- */
   useEffect(() => {
+    if (!id) return;
+
     window.bootDebug?.watch("Watch.jsx mounted with id:", id);
-  }, [id]);
-
-  /* -------------------------------------------------------
-     BUILD VIDEO URL
-  ------------------------------------------------------- */
-  useEffect(() => {
-    if (!id) return;
-
-    const url = `https://www.youtube.com/watch?v=${id}`;
-    setVideoUrl(url);
-
-    window.bootDebug?.player("Watch.jsx → video URL set:", url);
-  }, [id]);
-
-  /* -------------------------------------------------------
-     FETCH METADATA
-  ------------------------------------------------------- */
-  useEffect(() => {
-    if (!id) return;
-
     window.bootDebug?.api("Watch.jsx → Fetching video details…");
 
     getVideoDetails(id).then((info) => {
@@ -49,6 +30,69 @@ export default function Watch() {
       window.bootDebug?.api("Watch.jsx → Metadata loaded:", info);
     });
   }, [id]);
+
+  /* -------------------------------------------------------
+     LOAD YOUTUBE IFRAME API
+  ------------------------------------------------------- */
+  useEffect(() => {
+    if (!id) return;
+
+    window.bootDebug?.player("Watch.jsx → Loading YouTube IFrame API");
+
+    // If API already loaded, initialize immediately
+    if (window.YT && window.YT.Player) {
+      createPlayer();
+      return;
+    }
+
+    // Otherwise inject script
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.body.appendChild(tag);
+
+    window.onYouTubeIframeAPIReady = () => {
+      window.bootDebug?.player("YouTube IFrame API ready");
+      createPlayer();
+    };
+  }, [id]);
+
+  /* -------------------------------------------------------
+     CREATE PLAYER
+  ------------------------------------------------------- */
+  function createPlayer() {
+    if (!iframeRef.current) return;
+
+    window.bootDebug?.player("Watch.jsx → Creating player instance");
+
+    playerRef.current = new window.YT.Player(iframeRef.current, {
+      videoId: id,
+      playerVars: {
+        autoplay: 1,
+        controls: 1,
+        rel: 0,
+        modestbranding: 1
+      },
+      events: {
+        onReady: () => {
+          window.bootDebug?.player("IFrame → ready");
+        },
+        onStateChange: (e) => {
+          const stateMap = {
+            "-1": "unstarted",
+            "0": "ended",
+            "1": "playing",
+            "2": "paused",
+            "3": "buffering",
+            "5": "cued"
+          };
+          window.bootDebug?.player("IFrame → " + stateMap[e.data]);
+        },
+        onError: (e) => {
+          window.bootDebug?.error("IFrame error:", e.data);
+        }
+      }
+    });
+  }
 
   /* -------------------------------------------------------
      RENDER
@@ -78,16 +122,10 @@ export default function Watch() {
           marginTop: "20px"
         }}
       >
-        <ReactPlayer
-          url={videoUrl}
-          playing={true}
-          controls={true}
-          width="100%"
-          height="100%"
-          onPlay={() => window.bootDebug?.player("ReactPlayer → play")}
-          onPause={() => window.bootDebug?.player("ReactPlayer → pause")}
-          onEnded={() => window.bootDebug?.player("ReactPlayer → ended")}
-          onError={(e) => window.bootDebug?.error("ReactPlayer error:", e)}
+        <div
+          ref={iframeRef}
+          id="yt-player"
+          style={{ width: "100%", height: "100%" }}
         />
       </div>
 
