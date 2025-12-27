@@ -3,25 +3,32 @@
  * Path: src/main.jsx
  * Description: React entry point with DebugOverlay v3 boot initialization.
  */
+
+import React from "react";
+import ReactDOM from "react-dom/client";
+
+// Initialize global debug system BEFORE anything else
+import "./debug/bootDebug";
+
+// Global error listeners (safe in production)
 window.addEventListener("error", (e) => {
   window.bootDebug?.error("GLOBAL ERROR → " + e.message);
 });
 
 window.addEventListener("unhandledrejection", (e) => {
-  window.bootDebug?.error("PROMISE REJECTION → " + (e.reason?.message || e.reason));
+  window.bootDebug?.error(
+    "PROMISE REJECTION → " + (e.reason?.message || e.reason)
+  );
 });
 
-import "./debug/bootDebug";
+// App root
 import App from "./app/App";
 
-
-
-
 function mount() {
-  // Log root mount
   window.bootDebug?.boot("main.jsx → React root mounting");
 
-  const root = ReactDOM.createRoot(document.getElementById("root"));
+  const rootElement = document.getElementById("root");
+  const root = ReactDOM.createRoot(rootElement);
 
   root.render(
     <React.StrictMode>
@@ -29,7 +36,6 @@ function mount() {
     </React.StrictMode>
   );
 
-  // Log completion
   window.bootDebug?.boot("main.jsx → React root mounted");
 }
 
