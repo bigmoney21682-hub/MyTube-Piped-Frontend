@@ -2,19 +2,11 @@
  * File: DebugRouter.jsx
  * Path: src/debug/DebugRouter.jsx
  * Description: Router inspector for DebugOverlay v3.
- * Shows route changes and detects basename mismatches.
+ * Shows route changes, params, and navigation direction.
+ * Fully compatible with HashRouter (GitHub Pages).
  */
 
 export default function DebugRouter({ logs, colors, formatTime }) {
-  // Detect basename mismatch (GitHub Pages issue)
-  const basename = "/MyTube-Piped-Frontend";
-  const currentPath = window.location.pathname;
-
-  const mismatch =
-    !currentPath.startsWith(basename) &&
-    currentPath !== "/" &&
-    currentPath !== "";
-
   return (
     <div
       style={{
@@ -30,28 +22,6 @@ export default function DebugRouter({ logs, colors, formatTime }) {
         minWidth: 0
       }}
     >
-      {/* Basename mismatch warning */}
-      {mismatch && (
-        <div
-          style={{
-            background: "#330000",
-            border: "1px solid #660000",
-            padding: 8,
-            borderRadius: 4,
-            color: "#ff6666",
-            fontSize: 12
-          }}
-        >
-          <strong>Router Basename Mismatch Detected</strong>
-          <br />
-          URL path: <code>{currentPath}</code>
-          <br />
-          Expected to start with: <code>{basename}</code>
-          <br />
-          This can cause blank screens on GitHub Pages.
-        </div>
-      )}
-
       {/* No router events */}
       {logs.length === 0 && (
         <div style={{ color: "#888", fontSize: 12 }}>
@@ -74,7 +44,15 @@ export default function DebugRouter({ logs, colors, formatTime }) {
           <div style={{ opacity: 0.6 }}>
             {formatTime(log.ts)}
           </div>
+
           <div>{log.msg}</div>
+
+          {/* Optional metadata */}
+          {log.meta && (
+            <div style={{ opacity: 0.7, fontSize: 11, marginTop: 2 }}>
+              {JSON.stringify(log.meta)}
+            </div>
+          )}
         </div>
       ))}
     </div>
