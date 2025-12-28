@@ -5,7 +5,7 @@
  *              related videos, autonext integration, and PlayerContext wiring.
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
@@ -17,15 +17,21 @@ export default function Watch() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const {
-    loadVideo,
-    queueAdd,
-    autonextMode,
-    setAutonextMode
-  } = usePlayer();
+  // Safe PlayerContext extraction
+  const player = usePlayer() ?? {};
+  const loadVideo = player.loadVideo ?? (() => {});
+  const queueAdd = player.queueAdd ?? (() => {});
+  const autonextMode = player.autonextMode ?? "related";
+  const setAutonextMode = player.setAutonextMode ?? (() => {});
 
   const [video, setVideo] = useState(null);
   const [related, setRelated] = useState([]);
+
+  // Keep a ref so autonext callback always sees latest related[]
+  const relatedRef = useRef([]);
+  useEffect(() => {
+    relatedRef.current = related;
+  }, [related]);
 
   // ------------------------------------------------------------
   // Load video on route change
@@ -38,27 +44,36 @@ export default function Watch() {
 
     fetchVideoDetails(id);
     fetchRelated(id);
+  }, [id]);
 
-    // Register autonext callback for "related" mode
+  // ------------------------------------------------------------
+  // Register autonext callback ONCE
+  // ------------------------------------------------------------
+  useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       debugBus.player("Watch.jsx → Autonext (related) triggered");
 
-      if (related.length > 0) {
-        const next =
-          related[0]?.id?.videoId ??
-          related[0]?.id ??
-          null;
-
-        if (next) {
-          debugBus.player("Watch.jsx → Autonext → " + next);
-          navigate(`/watch/${next}`);
-          loadVideo(next);
-        }
-      } else {
+      const list = relatedRef.current;
+      if (!Array.isArray(list) || list.length === 0) {
         debugBus.player("Watch.jsx → No related videos available");
+        return;
       }
+
+      const next =
+        list[0]?.id?.videoId ??
+        list[0]?.id ??
+        null;
+
+      if (!next) {
+        debugBus.player("Watch.jsx → Related[0] missing ID");
+        return;
+      }
+
+      debugBus.player("Watch.jsx → Autonext → " + next);
+      navigate(`/watch/${next}`);
+      loadVideo(next);
     });
-  }, [id, related]);
+  }, []); // register once
 
   // ------------------------------------------------------------
   // Fetch video details
@@ -72,13 +87,11 @@ export default function Watch() {
       const res = await fetch(url);
       const data = await res.json();
 
-      if (Array.isArray(data.items) && data.items.length > 0) {
-        setVideo(data.items[0]);
-      } else {
-        setVideo(null);
-      }
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setVideo(items[0] ?? null);
     } catch (err) {
-      debugBus.player("Watch.jsx → fetchVideoDetails error: " + err?.message);
+      debugBus.player("Watch.jsx → fetchVideoDetails error: " + (err?.message || err));
+      setVideo(null);
     }
   }
 
@@ -94,9 +107,10 @@ export default function Watch() {
       const res = await fetch(url);
       const data = await res.json();
 
-      setRelated(Array.isArray(data.items) ? data.items : []);
+      setRelated(Array.isArray(data?.items) ? data.items : []);
     } catch (err) {
-      debugBus.player("Watch.jsx → fetchRelated error: " + err?.message);
+      debugBus.player("Watch.jsx → fetchRelated error: " + (err?.message || err));
+      setRelated([]);
     }
   }
 
@@ -113,7 +127,6 @@ export default function Watch() {
 
   const sn = video?.snippet ?? {};
   const title = sn?.title ?? "Untitled";
-  const channel = sn?.channelTitle ?? "Unknown Channel";
 
   return (
     <div style={{ paddingBottom: "80px", color: "#fff" }}>
