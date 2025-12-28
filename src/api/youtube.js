@@ -1,140 +1,107 @@
 /**
  * File: youtube.js
  * Path: src/api/youtube.js
- * Description: Full YouTube IFrame Player wrapper with persistent instance,
- *              accurate event mapping, debugBus logging, and clean teardown.
+ * Description: Unified YouTube Data API v3 client with primary→fallback
+ *              key failover and DebugOverlay-friendly logging.
  */
 
-import { logPlayerState, logPlayerEvent } from "../player/playerDebug";
-import { debugBus } from "../debug/debugBus";
+import { debugBus } from "../debug/debugBus.js";
 
-let player = null;
-let apiReady = false;
-let pendingVideoId = null;
+const PRIMARY_KEY = import.meta.env.VITE_YT_API_PRIMARY;
+const FALLBACK_KEY = import.meta.env.VITE_YT_API_FALLBACK1;
 
-// ------------------------------------------------------------
-// Load YouTube IFrame API (only once)
-// ------------------------------------------------------------
-function loadYouTubeAPI() {
-  if (window.YT && window.YT.Player) {
-    apiReady = true;
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve) => {
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.body.appendChild(tag);
-
-    window.onYouTubeIframeAPIReady = () => {
-      apiReady = true;
-      resolve();
-    };
-  });
+if (!PRIMARY_KEY) {
+  console.error("VITE_YT_API_PRIMARY is not set");
+}
+if (!FALLBACK_KEY) {
+  console.warn("VITE_YT_API_FALLBACK1 is not set (fallback disabled)");
 }
 
-// ------------------------------------------------------------
-// Create or reuse player instance
-// ------------------------------------------------------------
-async function ensurePlayer(containerId) {
-  await loadYouTubeAPI();
+/**
+ * Core YouTube API fetch with primary→fallback failover.
+ *
+ * @param {string} endpoint - e.g. "videos"
+ * @param {Record<string, string>} params - query params (without key)
+ * @returns {Promise<any|null>} - parsed JSON or null on total failure
+ */
+export async function youtubeApiRequest(endpoint, params) {
+  const baseUrl = `https://www.googleapis.com/youtube/v3/${endpoint}`;
 
-  if (player) return player;
+  async function tryWithKey(key, label) {
+    const url = new URL(baseUrl);
 
-  player = new window.YT.Player(containerId, {
-    height: "100%",
-    width: "100%",
-    playerVars: {
-      autoplay: 1,
-      controls: 1,
-      rel: 0,
-      modestbranding: 1,
-      playsinline: 1
-    },
-    events: {
-      onReady: () => {
-        logPlayerState("ready");
-        debugBus.log("PLAYER", "IFrame ready");
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    url.searchParams.set("key", key);
 
-        if (pendingVideoId) {
-          player.loadVideoById(pendingVideoId);
-          pendingVideoId = null;
-        }
-      },
+    debugBus.log(
+      "NETWORK",
+      `YT API ${label} → ${url.pathname}?${url.searchParams.toString()}`
+    );
 
-      onStateChange: (e) => {
-        const stateMap = {
-          [window.YT.PlayerState.UNSTARTED]: "unstarted",
-          [window.YT.PlayerState.ENDED]: "ended",
-          [window.YT.PlayerState.PLAYING]: "playing",
-          [window.YT.PlayerState.PAUSED]: "paused",
-          [window.YT.PlayerState.BUFFERING]: "buffering",
-          [window.YT.PlayerState.CUED]: "cued"
-        };
+    const res = await fetch(url.toString());
 
-        const state = stateMap[e.data] || "unknown";
-        logPlayerState(state);
-        debugBus.log("PLAYER", "State → " + state);
-      },
-
-      onError: (e) => {
-        logPlayerEvent("error", { code: e.data });
-        debugBus.log("PLAYER", "Error → " + e.data);
-      }
+    if (!res.ok) {
+      debugBus.log(
+        "NETWORK",
+        `YT API ${label} ERROR → status=${res.status}`
+      );
+      return { ok: false, status: res.status, data: null };
     }
-  });
 
-  return player;
-}
+    const data = await res.json();
+    debugBus.log(
+      "NETWORK",
+      `YT API ${label} OK → endpoint=${endpoint}, items=${data.items?.length ?? 0}`
+    );
 
-// ------------------------------------------------------------
-// Public API
-// ------------------------------------------------------------
-export async function loadVideo(containerId, videoId) {
-  window.bootDebug?.player("loadVideo → " + videoId);
-
-  const p = await ensurePlayer(containerId);
-
-  if (!apiReady) {
-    pendingVideoId = videoId;
-    return;
+    return { ok: true, status: res.status, data };
   }
 
-  try {
-    p.loadVideoById(videoId);
-    logPlayerEvent("load", { videoId });
-  } catch (err) {
-    debugBus.log("PLAYER", "loadVideo error: " + err.message);
-  }
-}
-
-export function play() {
-  try {
-    player?.playVideo();
-    logPlayerEvent("play");
-  } catch (_) {}
-}
-
-export function pause() {
-  try {
-    player?.pauseVideo();
-    logPlayerEvent("pause");
-  } catch (_) {}
-}
-
-export function seek(seconds) {
-  try {
-    player?.seekTo(seconds, true);
-    logPlayerEvent("seek", { seconds });
-  } catch (_) {}
-}
-
-export function destroyPlayer() {
-  if (player) {
+  // 1) Try primary key
+  if (PRIMARY_KEY) {
     try {
-      player.destroy();
-      debugBus.log("PLAYER", "Player destroyed");
-    } catch (_) {}
+      const primary = await tryWithKey(PRIMARY_KEY, "PRIMARY");
+      if (primary.ok) return primary.data;
+
+      // Failover conditions: quota exceeded, invalid key, rate limit, generic error
+      if ([400, 403, 429].includes(primary.status)) {
+        debugBus.log(
+          "NETWORK",
+          `YT API → Primary key failed with status=${primary.status}, attempting fallback`
+        );
+      } else {
+        debugBus.log(
+          "NETWORK",
+          `YT API → Primary key non-success status=${primary.status}, attempting fallback`
+        );
+      }
+    } catch (err) {
+      debugBus.log(
+        "NETWORK",
+        `YT API PRIMARY EXCEPTION → ${err.message}`
+      );
+    }
   }
-  player = null;
+
+  // 2) Try fallback key if available
+  if (FALLBACK_KEY) {
+    try {
+      const fallback = await tryWithKey(FALLBACK_KEY, "FALLBACK1");
+      if (fallback.ok) return fallback.data;
+
+      debugBus.log(
+        "NETWORK",
+        `YT API → Fallback key failed with status=${fallback.status}`
+      );
+    } catch (err) {
+      debugBus.log(
+        "NETWORK",
+        `YT API FALLBACK1 EXCEPTION → ${err.message}`
+      );
+    }
+  }
+
+  // 3) Total failure
+  debugBus.log("NETWORK", "YT API → All keys failed for endpoint " + endpoint);
+  return null;
 }
