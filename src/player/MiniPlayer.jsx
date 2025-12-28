@@ -8,23 +8,24 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { usePlayer } from "../player/PlayerContext.jsx";
-import { GlobalPlayer } from "../player/GlobalPlayer.js";
 import { debugBus } from "../debug/debugBus.js";
 
 export default function MiniPlayer() {
-  const {
-    currentVideoId,
-    isPlaying,
-    togglePlay
-  } = usePlayer();
+  // Safely extract values from PlayerContext
+  const player = usePlayer() ?? {};
+
+  const currentVideoId = player.currentVideoId ?? null;
+  const isPlaying = player.isPlaying ?? false;
+  const togglePlay = player.togglePlay ?? (() => {});
 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide on watch page
+  // Hide if no video OR on watch page
   if (!currentVideoId) return null;
   if (location.pathname.startsWith("/watch/")) return null;
 
+  // Safe thumbnail
   const thumbnail = `https://i.ytimg.com/vi/${currentVideoId}/hqdefault.jpg`;
 
   function openFullPlayer() {
