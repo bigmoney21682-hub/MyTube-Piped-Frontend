@@ -11,21 +11,14 @@ export function installPlayerLogger() {
   if (window.__playerLoggerInstalled) return;
   window.__playerLoggerInstalled = true;
 
-  debugBus.log({
-    level: "PLAYER",
-    msg: "PlayerLogger → Installed",
-    ts: Date.now()
-  });
+  // Correct usage: debugBus.log(level, msg)
+  debugBus.log("PLAYER", "PlayerLogger → Installed");
 
   // ------------------------------------------------------------
   // Helper: safe log wrapper
   // ------------------------------------------------------------
   function log(msg) {
-    debugBus.log({
-      level: "PLAYER",
-      msg,
-      ts: Date.now()
-    });
+    debugBus.log("PLAYER", msg);
   }
 
   // ------------------------------------------------------------
@@ -53,12 +46,24 @@ export function installPlayerLogger() {
     video.addEventListener("pause", () => log("pause"));
     video.addEventListener("ended", () => log("ended"));
     video.addEventListener("waiting", () => log("buffering…"));
-    video.addEventListener("error", () => log("error → " + video.error?.message));
-    video.addEventListener("seeking", () => log("seeking → " + video.currentTime.toFixed(2)));
-    video.addEventListener("seeked", () => log("seeked → " + video.currentTime.toFixed(2)));
-    video.addEventListener("ratechange", () => log("ratechange → " + video.playbackRate));
-    video.addEventListener("volumechange", () => log("volumechange → " + video.volume));
-    video.addEventListener("durationchange", () => log("durationchange → " + video.duration));
+    video.addEventListener("error", () =>
+      log("error → " + video.error?.message)
+    );
+    video.addEventListener("seeking", () =>
+      log("seeking → " + video.currentTime.toFixed(2))
+    );
+    video.addEventListener("seeked", () =>
+      log("seeked → " + video.currentTime.toFixed(2))
+    );
+    video.addEventListener("ratechange", () =>
+      log("ratechange → " + video.playbackRate)
+    );
+    video.addEventListener("volumechange", () =>
+      log("volumechange → " + video.volume)
+    );
+    video.addEventListener("durationchange", () =>
+      log("durationchange → " + video.duration)
+    );
 
     video.addEventListener("timeupdate", () => throttledTimeLog(video));
   }
