@@ -2,7 +2,7 @@
  * File: main.jsx
  * Path: src/main.jsx
  * Description: React entry point with bootDebug, global error listeners,
- *              Network Diagnostic Logger, and clean React root mount.
+ *              Network Diagnostic Logger, Player Logger, and clean React root mount.
  */
 
 import React from "react";
@@ -11,18 +11,16 @@ import ReactDOM from "react-dom/client";
 // ------------------------------------------------------------
 // 1. Initialize global debug system BEFORE anything else
 // ------------------------------------------------------------
-import "./debug/bootDebug";
+import "./debug/bootDebug.js";
 
 // ------------------------------------------------------------
-// 2. Install Network Diagnostic Logger
+// 2. Install Network + Player Diagnostic Loggers
 // ------------------------------------------------------------
-import "./debug/bootDebug";
-import { installNetworkLogger } from "./debug/NetworkLogger";
-import { installPlayerLogger } from "./debug/PlayerLogger";
+import { installNetworkLogger } from "./debug/NetworkLogger.js";
+import { installPlayerLogger } from "./debug/PlayerLogger.js";
 
 installNetworkLogger();
 installPlayerLogger();
-
 
 // ------------------------------------------------------------
 // 3. Global error listeners (safe in production)
@@ -40,7 +38,7 @@ window.addEventListener("unhandledrejection", (e) => {
 // ------------------------------------------------------------
 // 4. App root
 // ------------------------------------------------------------
-import App from "./app/App";
+import App from "./app/App.jsx";
 
 function mount() {
   window.bootDebug?.boot("main.jsx → React root mounting");
