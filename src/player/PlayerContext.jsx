@@ -17,60 +17,90 @@ export function PlayerProvider({ children }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [autonextMode, setAutonextMode] = useState("related"); // "related" | "playlist"
-  const [queue, setQueue] = useState(QueueStore.getQueue());
+  const [queue, setQueue] = useState(() => {
+    try {
+      return QueueStore.getQueue() ?? [];
+    } catch {
+      return [];
+    }
+  });
 
+  // ------------------------------------------------------------
   // Keep queue in sync with QueueStore
+  // ------------------------------------------------------------
   useEffect(() => {
-    QueueStore.subscribe((newQueue) => {
-      setQueue([...newQueue]);
-    });
+    try {
+      QueueStore.subscribe((newQueue) => {
+        setQueue(Array.isArray(newQueue) ? [...newQueue] : []);
+      });
+    } catch (err) {
+      debugBus.player("PlayerContext → QueueStore.subscribe error: " + err?.message);
+    }
   }, []);
 
-  // Initialize global player once
+  // ------------------------------------------------------------
+  // Initialize GlobalPlayer once
+  // ------------------------------------------------------------
   useEffect(() => {
-    GlobalPlayer.init();
+    try {
+      GlobalPlayer.init();
+    } catch (err) {
+      debugBus.player("PlayerContext → GlobalPlayer.init error: " + err?.message);
+      return;
+    }
 
-    GlobalPlayer.onStateChange((state) => {
-      switch (state) {
-        case window.YT.PlayerState.PLAYING:
-          setIsPlaying(true);
-          setIsBuffering(false);
-          break;
+    // Safe guard: window.YT may not exist yet
+    const YTState = window?.YT?.PlayerState ?? {};
 
-        case window.YT.PlayerState.PAUSED:
-          setIsPlaying(false);
-          break;
+    try {
+      GlobalPlayer.onStateChange((state) => {
+        switch (state) {
+          case YTState.PLAYING:
+            setIsPlaying(true);
+            setIsBuffering(false);
+            break;
 
-        case window.YT.PlayerState.BUFFERING:
-          setIsBuffering(true);
-          break;
+          case YTState.PAUSED:
+            setIsPlaying(false);
+            break;
 
-        case window.YT.PlayerState.ENDED:
-          setIsPlaying(false);
-          break;
+          case YTState.BUFFERING:
+            setIsBuffering(true);
+            break;
 
-        default:
-          break;
-      }
-    });
+          case YTState.ENDED:
+            setIsPlaying(false);
+            break;
 
-    GlobalPlayer.onEnded(() => {
-      debugBus.player("PlayerContext → Video ended");
-
-      if (autonextMode === "playlist") {
-        const next = QueueStore.next();
-        if (next) {
-          debugBus.player("PlayerContext → Autonext (playlist) → " + next);
-          loadVideo(next);
+          default:
+            break;
         }
-        return;
-      }
+      });
+    } catch (err) {
+      debugBus.player("PlayerContext → onStateChange error: " + err?.message);
+    }
 
-      if (autonextMode === "related") {
-        debugBus.player("PlayerContext → Autonext (related) triggered");
-        // Watch.jsx will handle fetching related videos and calling loadVideo
-      }
-    });
+    try {
+      GlobalPlayer.onEnded(() => {
+        debugBus.player("PlayerContext → Video ended");
+
+        if (autonextMode === "playlist") {
+          const next = QueueStore.next?.() ?? null;
+          if (next) {
+            debugBus.player("PlayerContext → Autonext (playlist) → " + next);
+            loadVideo(next);
+          }
+          return;
+        }
+
+        if (autonextMode === "related") {
+          debugBus.player("PlayerContext → Autonext (related) triggered");
+          // Watch.jsx handles fetching related videos + calling loadVideo
+        }
+      });
+    } catch (err) {
+      debugBus.player("PlayerContext → onEnded error: " + err?.message);
+    }
   }, [autonextMode]);
 
   // ------------------------------------------------------------
@@ -78,28 +108,51 @@ export function PlayerProvider({ children }) {
   // ------------------------------------------------------------
 
   function loadVideo(videoId) {
+    if (!videoId) return;
+
     debugBus.player("PlayerContext.loadVideo → " + videoId);
     setCurrentVideoId(videoId);
-    GlobalPlayer.load(videoId);
+
+    try {
+      GlobalPlayer.load(videoId);
+    } catch (err) {
+      debugBus.player("PlayerContext → GlobalPlayer.load error: " + err?.message);
+    }
   }
 
   function togglePlay() {
-    if (isPlaying) GlobalPlayer.pause();
-    else GlobalPlayer.play();
+    try {
+      if (isPlaying) GlobalPlayer.pause();
+      else GlobalPlayer.play();
+    } catch (err) {
+      debugBus.player("PlayerContext → togglePlay error: " + err?.message);
+    }
   }
 
   function queueAdd(videoId) {
-    QueueStore.add(videoId);
+    try {
+      QueueStore.add(videoId);
+    } catch (err) {
+      debugBus.player("PlayerContext → queueAdd error: " + err?.message);
+    }
   }
 
   function queueNext() {
-    const next = QueueStore.next();
-    if (next) loadVideo(next);
+    try {
+      const next = QueueStore.next?.() ?? null;
+      if (next) loadVideo(next);
+    } catch (err) {
+      debugBus.player("PlayerContext → queueNext error: " + err?.message);
+    }
   }
 
   function queuePrev() {
-    const prev = QueueStore.prev();
-    if (prev) loadVideo(prev);
+    try {
+      const prev = QueueStore.prev?.() ?? null;
+      if (prev) loadVideo(prev);
+    } catch (err) {
+      debugBus.player("PlayerContext → queuePrev error: " + err?.message);
+    }
   }
 
   const value = {
@@ -124,5 +177,5 @@ export function PlayerProvider({ children }) {
 }
 
 export function usePlayer() {
-  return useContext(PlayerContext);
+  return useContext(PlayerContext) ?? {};
 }
