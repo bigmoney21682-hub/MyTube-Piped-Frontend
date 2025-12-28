@@ -2,7 +2,8 @@
  * File: main.jsx
  * Path: src/main.jsx
  * Description: React entry point with bootDebug, global error listeners,
- *              Network Diagnostic Logger, Player Logger, and clean React root mount.
+ *              and clean React root mount. Network + Player loggers are
+ *              already installed in index.html (before main.jsx).
  */
 
 import React from "react";
@@ -14,16 +15,7 @@ import ReactDOM from "react-dom/client";
 import "./debug/bootDebug.js";
 
 // ------------------------------------------------------------
-// 2. Install Network + Player Diagnostic Loggers
-// ------------------------------------------------------------
-import { installNetworkLogger } from "./debug/NetworkLogger.js";
-import { installPlayerLogger } from "./debug/PlayerLogger.js";
-
-installNetworkLogger();
-installPlayerLogger();
-
-// ------------------------------------------------------------
-// 3. Global error listeners (safe in production)
+// 2. Global error listeners (safe in production)
 // ------------------------------------------------------------
 window.addEventListener("error", (e) => {
   window.bootDebug?.error("GLOBAL ERROR → " + e.message);
@@ -36,7 +28,7 @@ window.addEventListener("unhandledrejection", (e) => {
 });
 
 // ------------------------------------------------------------
-// 4. App root
+// 3. App root
 // ------------------------------------------------------------
 import App from "./app/App.jsx";
 
@@ -44,15 +36,26 @@ function mount() {
   window.bootDebug?.boot("main.jsx → React root mounting");
 
   const rootElement = document.getElementById("root");
-  const root = ReactDOM.createRoot(rootElement);
 
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+  if (!rootElement) {
+    window.bootDebug?.error("main.jsx → ERROR: #root not found in DOM");
+    return;
+  }
 
-  window.bootDebug?.boot("main.jsx → React root mounted");
+  try {
+    const root = ReactDOM.createRoot(rootElement);
+
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+
+    window.bootDebug?.boot("main.jsx → React root mounted");
+  } catch (err) {
+    window.bootDebug?.error("main.jsx → React mount error: " + err?.message);
+    throw err;
+  }
 }
 
 mount();
