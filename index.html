@@ -38,7 +38,7 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <!-- ------------------------------------------------------------
-         BOOT ERROR OVERLAY
+         BOOT ERROR OVERLAY (with Continue + Copy Logs buttons)
     ------------------------------------------------------------- -->
     <script>
       (function () {
@@ -59,6 +59,42 @@
         overlay.style.whiteSpace = "pre-wrap";
         overlay.style.display = "none";
         document.body.appendChild(overlay);
+
+        // --- Continue button ---
+        const continueBtn = document.createElement("button");
+        continueBtn.innerText = "Continue";
+        continueBtn.style.position = "absolute";
+        continueBtn.style.top = "10px";
+        continueBtn.style.right = "10px";
+        continueBtn.style.padding = "6px 12px";
+        continueBtn.style.background = "#444";
+        continueBtn.style.color = "#fff";
+        continueBtn.style.border = "1px solid #666";
+        continueBtn.style.borderRadius = "4px";
+        continueBtn.style.cursor = "pointer";
+        continueBtn.style.zIndex = "1000000000";
+        continueBtn.onclick = () => {
+          overlay.style.display = "none";
+        };
+        overlay.appendChild(continueBtn);
+
+        // --- Copy Logs button ---
+        const copyBtn = document.createElement("button");
+        copyBtn.innerText = "Copy Logs";
+        copyBtn.style.position = "absolute";
+        copyBtn.style.top = "10px";
+        copyBtn.style.right = "110px";
+        copyBtn.style.padding = "6px 12px";
+        copyBtn.style.background = "#444";
+        copyBtn.style.color = "#fff";
+        copyBtn.style.border = "1px solid #666";
+        copyBtn.style.borderRadius = "4px";
+        copyBtn.style.cursor = "pointer";
+        copyBtn.style.zIndex = "1000000000";
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(overlay.innerText);
+        };
+        overlay.appendChild(copyBtn);
 
         function showError(msg) {
           overlay.style.display = "block";
@@ -88,7 +124,7 @@
     </script>
 
     <!-- ------------------------------------------------------------
-         BOOT RESOURCE MAP
+         BOOT RESOURCE MAP (auto-hide when __BOOT_READY is true)
     ------------------------------------------------------------- -->
     <script>
       (function () {
@@ -138,7 +174,7 @@
           }
         };
 
-        // 🔥 Auto-hide overlay when app signals ready
+        // Auto-hide when app signals ready
         const readyCheck = setInterval(() => {
           if (window.__BOOT_READY) {
             overlay.style.display = "none";
@@ -150,15 +186,11 @@
 
     <!-- ------------------------------------------------------------
          BOOT LOGGER (public/debug-boot.js)
-         Must load BEFORE Vite bundle.
     ------------------------------------------------------------- -->
     <script src="/MyTube-Piped-Frontend/debug-boot.js"></script>
 
     <!-- ------------------------------------------------------------
-         MAIN VITE BUNDLE (injected automatically in production)
-         DO NOT import /src/... here.
-         Vite will replace this with:
-         <script type="module" crossorigin src="/MyTube-Piped-Frontend/assets/index-xxxx.js"></script>
+         MAIN VITE BUNDLE (dev: loads /src/main.jsx, prod: Vite rewrites)
     ------------------------------------------------------------- -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
