@@ -56,10 +56,11 @@ export default function Watch() {
   // Fetch video details
   // ------------------------------------------------------------
   async function fetchVideoDetails(videoId) {
-    try:
-      const url =
-        `https://www.googleapis.com/youtube/v3/videos?` +
-        `part=snippet,statistics&id=${videoId}&key=${API_KEY}`;
+  try {
+    const url =
+      `https://www.googleapis.com/youtube/v3/videos?` +
+      `part=snippet,statistics&id=${videoId}&key=${API_KEY}`;
+
 
       const res = await fetch(url);
       const data = await res.json();
