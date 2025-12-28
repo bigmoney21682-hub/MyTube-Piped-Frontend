@@ -10,6 +10,7 @@ import { fetchTrendingVideos } from "../../api/trending.js";
 import { debugBus } from "../../debug/debugBus.js";
 import VideoCard from "../../components/VideoCard.jsx";
 
+
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
