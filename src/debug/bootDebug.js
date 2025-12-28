@@ -1,25 +1,36 @@
 /**
  * File: bootDebug.js
  * Path: src/debug/bootDebug.js
- * Description: Bridges public/debug-boot.js buffer into debugBus and
+ * Description: Bridges any pre-boot buffer into debugBus and
  *              defines runtime window.bootDebug with full category map.
  */
 
-import { debugBus } from "./debugBus";
+import { debugBus } from "./debugBus.js";
 
-// Drain boot buffer (from public/debug-boot.js)
-if (window.bootDebug?._buffer) {
+// ------------------------------------------------------------
+// Drain any existing boot buffer (if an earlier script wrote to window.bootDebug._buffer)
+// ------------------------------------------------------------
+if (window.bootDebug?._buffer && Array.isArray(window.bootDebug._buffer)) {
   for (const entry of window.bootDebug._buffer) {
-    debugBus.log(entry.level, entry.msg);
+    if (entry && typeof entry === "object") {
+      // Expecting { level, msg }
+      debugBus.log(entry.level || "BOOT", entry.msg || "");
+    } else if (typeof entry === "string") {
+      debugBus.log("BOOT", entry);
+    }
   }
 }
 
+// ------------------------------------------------------------
 // Helper to publish to debugBus
+// ------------------------------------------------------------
 function emit(level, ...args) {
   debugBus.log(level, args.join(" "));
 }
 
-// Full category map (restored)
+// ------------------------------------------------------------
+// Full category map
+// ------------------------------------------------------------
 window.bootDebug = {
   // Boot + lifecycle
   boot: (...msg) => emit("BOOT", ...msg),
