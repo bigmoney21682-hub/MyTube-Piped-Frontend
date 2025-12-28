@@ -1,4 +1,4 @@
-/**
+-/**
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
  * Description: Home page showing trending videos from YouTube Data API v3
@@ -8,7 +8,7 @@
 import React, { useEffect, useState } from "react";
 import { fetchTrendingVideos } from "../../api/trending.js";
 import { debugBus } from "../../debug/debugBus.js";
-import VideoCard from "../../components/VideoCard/VideoCard.jsx";
+import VideoCard from "../../components/VideoCard.jsx";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
