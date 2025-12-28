@@ -16,14 +16,17 @@ let subscribers = [];
 // Internal helpers
 // ------------------------------------------------------------
 
-function notify() {
-  subscribers.forEach((cb) => {
+function safeNotify() {
+  // Snapshot to avoid mutation during iteration
+  const subs = [...subscribers];
+
+  for (const cb of subs) {
     try {
-      cb(queue);
+      cb([...queue]); // always send a copy
     } catch (err) {
-      debugBus.player("QueueStore subscriber error: " + err?.message);
+      debugBus.player("QueueStore subscriber error: " + (err?.message || err));
     }
-  });
+  }
 }
 
 function clampPointer() {
@@ -40,114 +43,171 @@ export const QueueStore = {
    * Subscribe to queue changes.
    */
   subscribe(cb) {
-    if (typeof cb === "function") {
+    if (typeof cb !== "function") return;
+
+    // Prevent duplicate subscriptions
+    if (!subscribers.includes(cb)) {
       subscribers.push(cb);
     }
   },
 
   /**
-   * Get current queue array.
+   * Get current queue array (safe copy).
    */
   getQueue() {
-    return queue;
+    try {
+      return [...queue];
+    } catch {
+      return [];
+    }
   },
 
   /**
    * Add a video to the queue.
    */
   add(videoId) {
-    if (!videoId) return;
+    try {
+      if (!videoId || typeof videoId !== "string") return;
 
-    queue.push(videoId);
-    debugBus.player("QueueStore → Added: " + videoId);
+      queue.push(videoId);
+      debugBus.player("QueueStore → Added: " + videoId);
 
-    // If nothing is playing yet, set pointer to first item
-    if (pointer === -1) pointer = 0;
+      // If nothing is playing yet, set pointer to first item
+      if (pointer === -1) pointer = 0;
 
-    notify();
+      clampPointer();
+      safeNotify();
+    } catch (err) {
+      debugBus.player("QueueStore.add error: " + (err?.message || err));
+    }
   },
 
   /**
    * Remove a video from the queue.
    */
   remove(videoId) {
-    const index = queue.indexOf(videoId);
-    if (index === -1) return;
+    try {
+      const index = queue.indexOf(videoId);
+      if (index === -1) return;
 
-    queue.splice(index, 1);
-    debugBus.player("QueueStore → Removed: " + videoId);
+      queue.splice(index, 1);
+      debugBus.player("QueueStore → Removed: " + videoId);
 
-    if (pointer >= index) pointer -= 1;
-    clampPointer();
-    notify();
+      if (pointer >= index) pointer -= 1;
+
+      clampPointer();
+      safeNotify();
+    } catch (err) {
+      debugBus.player("QueueStore.remove error: " + (err?.message || err));
+    }
   },
 
   /**
    * Move an item within the queue.
    */
   move(from, to) {
-    if (from < 0 || from >= queue.length) return;
-    if (to < 0 || to >= queue.length) return;
+    try {
+      if (
+        typeof from !== "number" ||
+        typeof to !== "number" ||
+        from < 0 ||
+        to < 0 ||
+        from >= queue.length ||
+        to >= queue.length
+      ) {
+        return;
+      }
 
-    const item = queue.splice(from, 1)[0];
-    queue.splice(to, 0, item);
+      const item = queue[from];
+      if (!item) return;
 
-    debugBus.player(`QueueStore → Moved ${item} from ${from} to ${to}`);
+      queue.splice(from, 1);
+      queue.splice(to, 0, item);
 
-    if (pointer === from) pointer = to;
-    clampPointer();
-    notify();
+      debugBus.player(`QueueStore → Moved ${item} from ${from} to ${to}`);
+
+      if (pointer === from) pointer = to;
+
+      clampPointer();
+      safeNotify();
+    } catch (err) {
+      debugBus.player("QueueStore.move error: " + (err?.message || err));
+    }
   },
 
   /**
    * Clear the queue.
    */
   clear() {
-    queue = [];
-    pointer = -1;
-    debugBus.player("QueueStore → Cleared");
-    notify();
+    try {
+      queue = [];
+      pointer = -1;
+      debugBus.player("QueueStore → Cleared");
+      safeNotify();
+    } catch (err) {
+      debugBus.player("QueueStore.clear error: " + (err?.message || err));
+    }
   },
 
   /**
    * Get the next video in queue.
    */
   next() {
-    if (queue.length === 0) return null;
+    try {
+      if (queue.length === 0) return null;
 
-    if (pointer < queue.length - 1) {
-      pointer += 1;
-      const id = queue[pointer];
-      debugBus.player("QueueStore → Next: " + id);
-      notify();
-      return id;
+      if (pointer < queue.length - 1) {
+        pointer += 1;
+        clampPointer();
+
+        const id = queue[pointer] ?? null;
+        debugBus.player("QueueStore → Next: " + id);
+
+        safeNotify();
+        return id;
+      }
+
+      return null;
+    } catch (err) {
+      debugBus.player("QueueStore.next error: " + (err?.message || err));
+      return null;
     }
-
-    return null;
   },
 
   /**
    * Get the previous video in queue.
    */
   prev() {
-    if (queue.length === 0) return null;
+    try {
+      if (queue.length === 0) return null;
 
-    if (pointer > 0) {
-      pointer -= 1;
-      const id = queue[pointer];
-      debugBus.player("QueueStore → Prev: " + id);
-      notify();
-      return id;
+      if (pointer > 0) {
+        pointer -= 1;
+        clampPointer();
+
+        const id = queue[pointer] ?? null;
+        debugBus.player("QueueStore → Prev: " + id);
+
+        safeNotify();
+        return id;
+      }
+
+      return null;
+    } catch (err) {
+      debugBus.player("QueueStore.prev error: " + (err?.message || err));
+      return null;
     }
-
-    return null;
   },
 
   /**
    * Get the currently pointed video.
    */
   current() {
-    if (pointer === -1) return null;
-    return queue[pointer] || null;
+    try {
+      if (pointer === -1) return null;
+      return queue[pointer] ?? null;
+    } catch {
+      return null;
+    }
   }
 };
