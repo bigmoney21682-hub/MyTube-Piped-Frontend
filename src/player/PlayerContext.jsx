@@ -8,7 +8,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { GlobalPlayer } from "./GlobalPlayer.js";
 import { debugBus } from "../debug/debugBus.js";
-import { QueueStore } from "./QueueStore.js";
+import { QueueStore } from "./QueueStore.jsx";
 
 const PlayerContext = createContext(null);
 
