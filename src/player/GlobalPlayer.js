@@ -1,164 +1,154 @@
 /**
  * File: GlobalPlayer.js
  * Path: src/player/GlobalPlayer.js
- * Description: Singleton wrapper around YouTube IFrame API.
- *              Provides safe load/play/pause and event callbacks.
- *              Fully crash‑proof for iOS/Safari timing issues.
+ * Description: Singleton wrapper around the YouTube IFrame Player API.
+ *              Ensures:
+ *              - Only ONE player instance exists
+ *              - Safe initialization on iOS/Safari
+ *              - Safe load(id) calls even before ready
+ *              - Safe state callbacks
+ *              - No double init under React StrictMode
  */
 
 import { debugBus } from "../debug/debugBus.js";
 
-let player = null;
-let ready = false;
-let pendingLoad = null;
+class GlobalPlayerClass {
+  constructor() {
+    this.player = null;
+    this.ready = false;
+    this.pendingLoad = null;
+    this.onReady = null;
+    this.onStateChange = null;
 
-let stateChangeCallbacks = [];
-let endedCallbacks = [];
+    this._initStarted = false;
+  }
 
-// Prevent double init
-let initialized = false;
-
-export const GlobalPlayer = {
   /**
-   * Initialize YouTube IFrame API player.
-   * Safe to call multiple times — only initializes once.
+   * Initialize the YouTube player.
+   * Called ONCE from PlayerContext.
    */
-  init() {
-    if (initialized) {
-      debugBus.player("GlobalPlayer.init() skipped (already initialized)");
-      return;
-    }
-    initialized = true;
-
-    debugBus.player("GlobalPlayer.init() starting…");
-
-    // Ensure YT API exists
-    if (!window.YT || !window.YT.Player) {
-      debugBus.player("GlobalPlayer.init() → YT API not ready, waiting…");
-
-      const interval = setInterval(() => {
-        if (window.YT && window.YT.Player) {
-          clearInterval(interval);
-          debugBus.player("GlobalPlayer → YT API detected");
-          this._createPlayer();
-        }
-      }, 50);
-
+  init({ onReady, onStateChange }) {
+    if (this._initStarted) {
+      debugBus.player("GlobalPlayer → init() ignored (already started)");
       return;
     }
 
-    this._createPlayer();
-  },
+    this._initStarted = true;
+    this.onReady = onReady;
+    this.onStateChange = onStateChange;
+
+    debugBus.player("GlobalPlayer → Waiting for YT API…");
+
+    // YouTube API calls window.onYouTubeIframeAPIReady
+    window.onYouTubeIframeAPIReady = () => {
+      debugBus.player("GlobalPlayer → YT API ready");
+      this._createPlayer();
+    };
+
+    // If API already loaded (rare but possible)
+    if (window.YT && window.YT.Player) {
+      debugBus.player("GlobalPlayer → YT API already loaded");
+      this._createPlayer();
+    }
+  }
 
   /**
-   * Internal: create the iframe player safely.
+   * Create the hidden global player instance.
    */
   _createPlayer() {
-    try {
-      player = new window.YT.Player("global-player", {
-        height: "0",
-        width: "0",
-        videoId: "",
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          disablekb: 1,
-          modestbranding: 1,
-          rel: 0
+    if (this.player) {
+      debugBus.player("GlobalPlayer → Player already exists");
+      return;
+    }
+
+    const mount = document.getElementById("global-player");
+    if (!mount) {
+      debugBus.player("GlobalPlayer → ERROR: #global-player not found");
+      return;
+    }
+
+    debugBus.player("GlobalPlayer → Creating player…");
+
+    this.player = new window.YT.Player("global-player", {
+      height: "0",
+      width: "0",
+      videoId: "",
+      playerVars: {
+        autoplay: 0,
+        controls: 0,
+        rel: 0,
+        playsinline: 1
+      },
+      events: {
+        onReady: () => {
+          debugBus.player("GlobalPlayer → Player ready");
+          this.ready = true;
+
+          if (typeof this.onReady === "function") {
+            this.onReady();
+          }
+
+          if (this.pendingLoad) {
+            debugBus.player("GlobalPlayer → Running pending load: " + this.pendingLoad);
+            this.load(this.pendingLoad);
+            this.pendingLoad = null;
+          }
         },
-        events: {
-          onReady: () => {
-            debugBus.player("GlobalPlayer → onReady");
-            ready = true;
 
-            if (pendingLoad) {
-              debugBus.player("GlobalPlayer → Executing pending load: " + pendingLoad);
-              player.loadVideoById(pendingLoad);
-              pendingLoad = null;
-            }
-          },
+        onStateChange: (e) => {
+          const state = this._translateState(e.data);
+          debugBus.player("GlobalPlayer → State: " + state);
 
-          onStateChange: (event) => {
-            const state = event?.data;
-            debugBus.player("GlobalPlayer → onStateChange: " + state);
-
-            for (const cb of stateChangeCallbacks) {
-              try {
-                cb(state);
-              } catch (err) {
-                debugBus.player("GlobalPlayer → stateChange callback error: " + err?.message);
-              }
-            }
-
-            // Fire ended callbacks
-            if (state === window.YT.PlayerState.ENDED) {
-              for (const cb of endedCallbacks) {
-                try {
-                  cb();
-                } catch (err) {
-                  debugBus.player("GlobalPlayer → ended callback error: " + err?.message);
-                }
-              }
-            }
+          if (typeof this.onStateChange === "function") {
+            this.onStateChange(state);
           }
         }
-      });
-
-      debugBus.player("GlobalPlayer → Player created");
-    } catch (err) {
-      debugBus.player("GlobalPlayer._createPlayer error: " + err?.message);
-    }
-  },
+      }
+    });
+  }
 
   /**
-   * Load a video safely.
+   * Load a video by ID.
+   * Safe to call before ready — it will queue.
    */
-  load(videoId) {
-    if (!videoId) {
-      debugBus.player("GlobalPlayer.load() ignored (no videoId)");
-      return;
-    }
+  load(id) {
+    if (!id) return;
 
-    debugBus.player("GlobalPlayer.load(" + videoId + ")");
-
-    if (!ready || !player) {
-      debugBus.player("GlobalPlayer → Not ready, storing pending load");
-      pendingLoad = videoId;
+    if (!this.ready) {
+      debugBus.player("GlobalPlayer → Not ready, queuing load(" + id + ")");
+      this.pendingLoad = id;
       return;
     }
 
     try {
-      player.loadVideoById(videoId);
+      debugBus.player("GlobalPlayer → load(" + id + ")");
+      this.player.loadVideoById(id);
     } catch (err) {
-      debugBus.player("GlobalPlayer.load error: " + err?.message);
+      debugBus.player("GlobalPlayer.load error: " + (err?.message || err));
     }
-  },
-
-  play() {
-    if (!ready || !player) return;
-    try {
-      player.playVideo();
-    } catch (err) {
-      debugBus.player("GlobalPlayer.play error: " + err?.message);
-    }
-  },
-
-  pause() {
-    if (!ready || !player) return;
-    try {
-      player.pauseVideo();
-    } catch (err) {
-      debugBus.player("GlobalPlayer.pause error: " + err?.message);
-    }
-  },
-
-  onStateChange(cb) {
-    if (typeof cb !== "function") return;
-    stateChangeCallbacks.push(cb);
-  },
-
-  onEnded(cb) {
-    if (typeof cb !== "function") return;
-    endedCallbacks.push(cb);
   }
-};
+
+  /**
+   * Translate YT numeric states into readable strings.
+   */
+  _translateState(code) {
+    switch (code) {
+      case window.YT.PlayerState.UNSTARTED:
+        return "unstarted";
+      case window.YT.PlayerState.ENDED:
+        return "ended";
+      case window.YT.PlayerState.PLAYING:
+        return "playing";
+      case window.YT.PlayerState.PAUSED:
+        return "paused";
+      case window.YT.PlayerState.BUFFERING:
+        return "buffering";
+      case window.YT.PlayerState.CUED:
+        return "cued";
+      default:
+        return "unknown";
+    }
+  }
+}
+
+export const GlobalPlayer = new GlobalPlayerClass();
