@@ -1,16 +1,27 @@
 /**
  * File: main.jsx
  * Path: src/main.jsx
- * Description: React entry point with DebugOverlay v3 boot initialization.
+ * Description: React entry point with bootDebug, global error listeners,
+ *              Network Diagnostic Logger, and clean React root mount.
  */
 
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-// Initialize global debug system BEFORE anything else
+// ------------------------------------------------------------
+// 1. Initialize global debug system BEFORE anything else
+// ------------------------------------------------------------
 import "./debug/bootDebug";
 
-// Global error listeners (safe in production)
+// ------------------------------------------------------------
+// 2. Install Network Diagnostic Logger
+// ------------------------------------------------------------
+import { installNetworkLogger } from "./debug/NetworkLogger";
+installNetworkLogger();
+
+// ------------------------------------------------------------
+// 3. Global error listeners (safe in production)
+// ------------------------------------------------------------
 window.addEventListener("error", (e) => {
   window.bootDebug?.error("GLOBAL ERROR → " + e.message);
 });
@@ -21,7 +32,9 @@ window.addEventListener("unhandledrejection", (e) => {
   );
 });
 
-// App root
+// ------------------------------------------------------------
+// 4. App root
+// ------------------------------------------------------------
 import App from "./app/App";
 
 function mount() {
