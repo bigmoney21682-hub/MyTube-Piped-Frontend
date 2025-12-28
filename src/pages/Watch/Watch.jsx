@@ -2,7 +2,7 @@
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
  * Description: Full video watch page with safe destructuring, normalized IDs,
- *              related videos, autonext integration, and PlayerContext wiring.
+ *              related videos, autonext integration, and shared API key module.
  */
 
 import React, { useEffect, useState, useRef } from "react";
@@ -10,14 +10,14 @@ import { useParams, useNavigate } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { debugBus } from "../../debug/debugBus.js";
+import { getApiKey } from "../../api/getApiKey.js";
 
-const API_KEY = import.meta.env.VITE_YT_API_KEY;
+const API_KEY = getApiKey();
 
 export default function Watch() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Safe PlayerContext extraction
   const player = usePlayer() ?? {};
   const loadVideo = player.loadVideo ?? (() => {});
   const queueAdd = player.queueAdd ?? (() => {});
@@ -27,15 +27,11 @@ export default function Watch() {
   const [video, setVideo] = useState(null);
   const [related, setRelated] = useState([]);
 
-  // Keep a ref so autonext callback always sees latest related[]
   const relatedRef = useRef([]);
   useEffect(() => {
     relatedRef.current = related;
   }, [related]);
 
-  // ------------------------------------------------------------
-  // Load video on route change
-  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
 
@@ -46,9 +42,6 @@ export default function Watch() {
     fetchRelated(id);
   }, [id]);
 
-  // ------------------------------------------------------------
-  // Register autonext callback ONCE
-  // ------------------------------------------------------------
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       debugBus.player("Watch.jsx → Autonext (related) triggered");
@@ -73,11 +66,8 @@ export default function Watch() {
       navigate(`/watch/${next}`);
       loadVideo(next);
     });
-  }, []); // register once
+  }, []);
 
-  // ------------------------------------------------------------
-  // Fetch video details
-  // ------------------------------------------------------------
   async function fetchVideoDetails(videoId) {
     try {
       const url =
@@ -95,9 +85,6 @@ export default function Watch() {
     }
   }
 
-  // ------------------------------------------------------------
-  // Fetch related videos
-  // ------------------------------------------------------------
   async function fetchRelated(videoId) {
     try {
       const url =
@@ -114,9 +101,6 @@ export default function Watch() {
     }
   }
 
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
   if (!video) {
     return (
       <div style={{ padding: "16px", color: "#fff" }}>
@@ -130,10 +114,8 @@ export default function Watch() {
 
   return (
     <div style={{ paddingBottom: "80px", color: "#fff" }}>
-      {/* Title */}
       <h2 style={{ padding: "16px" }}>{title}</h2>
 
-      {/* Autonext toggle */}
       <div style={{ padding: "16px" }}>
         <label style={{ marginRight: "12px" }}>Autonext:</label>
         <select
@@ -146,7 +128,6 @@ export default function Watch() {
         </select>
       </div>
 
-      {/* Add to queue */}
       <div style={{ padding: "16px" }}>
         <button
           onClick={() => queueAdd(id)}
@@ -162,7 +143,6 @@ export default function Watch() {
         </button>
       </div>
 
-      {/* Related videos */}
       <div style={{ padding: "16px" }}>
         <h3>Related Videos</h3>
 
