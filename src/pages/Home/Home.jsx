@@ -14,7 +14,11 @@ const API_KEY = import.meta.env.VITE_YT_API_KEY;
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const navigate = useNavigate();
-  const { loadVideo, queueAdd } = usePlayer();
+
+  // Safe PlayerContext extraction
+  const player = usePlayer() ?? {};
+  const loadVideo = player.loadVideo ?? (() => {});
+  const queueAdd = player.queueAdd ?? (() => {});
 
   useEffect(() => {
     fetchTrending();
@@ -31,9 +35,11 @@ export default function Home() {
       const res = await fetch(url);
       const data = await res.json();
 
-      setVideos(Array.isArray(data.items) ? data.items : []);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setVideos(items);
     } catch (err) {
-      debugBus.player("Home.jsx → fetchTrending error: " + err?.message);
+      debugBus.player("Home.jsx → fetchTrending error: " + (err?.message || err));
+      setVideos([]);
     }
   }
 
