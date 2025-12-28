@@ -1,6 +1,6 @@
 /**
  * File: Watch.jsx
- * Path: src/pages/Watch.jsx
+ * Path: src/pages/Watch/Watch.jsx
  * Description: Full video watch page. Loads video via PlayerContext + GlobalPlayer,
  *              fetches video details + related videos, registers autonext callback,
  *              and provides queue + autonext controls.
@@ -9,8 +9,8 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext.jsx";
-import { AutonextEngine } from "../player/AutonextEngine.js";
-import { debugBus } from "../debug/debugBus.js";
+import { AutonextEngine } from "../../player/AutonextEngine.js";
+import { debugBus } from "../../debug/debugBus.js";
 
 const API_KEY = import.meta.env.VITE_YT_API_KEY;
 
@@ -50,17 +50,16 @@ export default function Watch() {
         debugBus.player("Watch.jsx → No related videos available");
       }
     });
-  }, [id]);
+  }, [id, related]);
 
   // ------------------------------------------------------------
   // Fetch video details
   // ------------------------------------------------------------
   async function fetchVideoDetails(videoId) {
-  try {
-    const url =
-      `https://www.googleapis.com/youtube/v3/videos?` +
-      `part=snippet,statistics&id=${videoId}&key=${API_KEY}`;
-
+    try {
+      const url =
+        `https://www.googleapis.com/youtube/v3/videos?` +
+        `part=snippet,statistics&id=${videoId}&key=${API_KEY}`;
 
       const res = await fetch(url);
       const data = await res.json();
