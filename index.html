@@ -1,29 +1,96 @@
 <!--
   File: index.html
   Path: index.html
-  Description: Main SPA entry for MyTube. Includes Vite mount point,
-               GitHub Pages–safe asset paths, and debug boot script.
+  Description: App entry HTML with Boot Error Overlay, bootDebug,
+               NetworkLogger, PlayerLogger, and React mount point.
 -->
 
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MyTube</title>
 
-    <!-- Favicon (served from /public/) -->
-    <link rel="icon" href="/MyTube-Piped-Frontend/favicon.png" />
+    <!-- ------------------------------------------------------------
+         BOOT ERROR OVERLAY (runs BEFORE React, BEFORE main.jsx)
+         Captures:
+         - Missing scripts (404)
+         - Syntax errors
+         - Promise rejections
+         - Any boot failure that prevents React from mounting
+    ------------------------------------------------------------- -->
+    <script>
+      (function () {
+        const overlay = document.createElement("div");
+        overlay.id = "boot-error-overlay";
+        overlay.style.position = "fixed";
+        overlay.style.top = "0";
+        overlay.style.left = "0";
+        overlay.style.right = "0";
+        overlay.style.bottom = "0";
+        overlay.style.background = "rgba(0,0,0,0.92)";
+        overlay.style.color = "#ff4444";
+        overlay.style.fontFamily = "monospace";
+        overlay.style.fontSize = "14px";
+        overlay.style.padding = "20px";
+        overlay.style.zIndex = "999999999";
+        overlay.style.overflowY = "auto";
+        overlay.style.whiteSpace = "pre-wrap";
+        overlay.style.display = "none";
+        document.body.appendChild(overlay);
 
-    <!-- Debug boot script (served from /public/) -->
-    <script type="module" src="/debug-boot.js"></script>
+        function showError(msg) {
+          overlay.style.display = "block";
+          overlay.innerText += msg + "\n";
+        }
+
+        // JS errors
+        window.addEventListener("error", (e) => {
+          showError("BOOT ERROR → " + e.message);
+        });
+
+        // Promise rejections
+        window.addEventListener("unhandledrejection", (e) => {
+          showError("BOOT PROMISE → " + (e.reason?.message || e.reason));
+        });
+
+        // Missing resources (404)
+        window.addEventListener(
+          "error",
+          (e) => {
+            if (e.target && (e.target.src || e.target.href)) {
+              showError("RESOURCE 404 → " + (e.target.src || e.target.href));
+            }
+          },
+          true
+        );
+
+        window.__bootErrorOverlay = { showError };
+      })();
+    </script>
   </head>
 
-  <body>
+  <body style="margin:0; background:black;">
+    <!-- React root -->
     <div id="root"></div>
 
-    <!-- Main Vite entry -->
+    <!-- ------------------------------------------------------------
+         BOOT DEBUG + NETWORK LOGGER + PLAYER LOGGER
+         Must load BEFORE main.jsx
+    ------------------------------------------------------------- -->
+    <script type="module">
+      import "./debug/bootDebug";
+      import { installNetworkLogger } from "./debug/NetworkLogger";
+      import { installPlayerLogger } from "./debug/PlayerLogger";
+
+      installNetworkLogger();
+      installPlayerLogger();
+    </script>
+
+    <!-- ------------------------------------------------------------
+         MAIN REACT ENTRY
+    ------------------------------------------------------------- -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
