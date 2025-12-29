@@ -3,7 +3,7 @@
  * Path: src/pages/Watch/Watch.jsx
  * Description: Full video watch page with safe destructuring, normalized IDs,
  *              related videos (stacked layout), autonext integration, and
- *              shared API key module.
+ *              collapsible description.
  */
 
 import React, { useEffect, useState, useRef } from "react";
@@ -68,6 +68,7 @@ export default function Watch() {
 
   const [video, setVideo] = useState(null);
   const [related, setRelated] = useState([]);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   const relatedRef = useRef([]);
   useEffect(() => {
@@ -214,8 +215,34 @@ export default function Watch() {
 
       <h2 style={{ padding: "16px" }}>{title}</h2>
 
-      <div style={{ padding: "0 16px 16px", opacity: 0.85, lineHeight: 1.4 }}>
-        {description}
+      {/* Collapsible description */}
+      <div style={{ padding: "0 16px 16px" }}>
+        <div
+          style={{
+            opacity: 0.85,
+            lineHeight: 1.4,
+            maxHeight: descExpanded ? "none" : "3.6em",
+            overflow: "hidden",
+            transition: "max-height 0.2s ease"
+          }}
+        >
+          {description}
+        </div>
+
+        <button
+          onClick={() => setDescExpanded(!descExpanded)}
+          style={{
+            marginTop: "6px",
+            background: "none",
+            border: "none",
+            color: "#3ea6ff",
+            fontSize: "14px",
+            cursor: "pointer",
+            padding: 0
+          }}
+        >
+          {descExpanded ? "Show less" : "Show more"}
+        </button>
       </div>
 
       <div style={{ padding: "16px" }}>
