@@ -2,11 +2,12 @@
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
  * Description: Full video watch page with safe destructuring, normalized IDs,
- *              related videos, autonext integration, and shared API key module.
+ *              related videos (stacked layout), autonext integration, and
+ *              shared API key module.
  */
 
 import React, { useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { debugBus } from "../../debug/debugBus.js";
@@ -14,6 +15,40 @@ import { getApiKey } from "../../api/getApiKey.js";
 import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 
 const API_KEY = getApiKey();
+
+const cardStyle = {
+  width: "100%",
+  marginBottom: "16px",
+  textDecoration: "none",
+  color: "#fff",
+  display: "block"
+};
+
+const thumbStyle = {
+  width: "100%",
+  aspectRatio: "16 / 9",
+  objectFit: "cover",
+  borderRadius: "8px",
+  marginBottom: "8px"
+};
+
+const titleStyle = {
+  fontSize: "14px",
+  fontWeight: "bold",
+  marginBottom: "4px"
+};
+
+const channelStyle = {
+  fontSize: "12px",
+  opacity: 0.7,
+  marginBottom: "4px"
+};
+
+const descStyle = {
+  fontSize: "12px",
+  opacity: 0.8,
+  lineHeight: 1.4
+};
 
 export default function Watch() {
   const { id } = useParams();
@@ -72,7 +107,7 @@ export default function Watch() {
       navigate(`/watch/${next}`);
       loadVideo(next);
     });
-  }, []);
+  }, [navigate, loadVideo]);
 
   async function fetchVideoDetails(videoId) {
     try {
@@ -99,7 +134,7 @@ export default function Watch() {
     try {
       const url =
         `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&videoEmbeddable=true&relatedToVideoId=${videoId}&maxResults=25&key=${API_KEY}`;
+        `part=snippet&type=video&videoEmbeddable=true&relatedToVideoId=${videoId}&maxResults=5&key=${API_KEY}`;
 
       const res = await fetch(url);
       const data = await res.json();
@@ -176,7 +211,7 @@ export default function Watch() {
             padding: "10px 16px",
             background: "#222",
             color: "#fff",
-            border: "1px solid #444",
+            border: "1px solid "#444",
             borderRadius: "4px"
           }}
         >
@@ -185,7 +220,7 @@ export default function Watch() {
       </div>
 
       <div style={{ padding: "16px" }}>
-        <h3>Related Videos</h3>
+        <h3 style={{ marginBottom: "12px" }}>Related Videos</h3>
 
         {related.map((item, i) => {
           const vid =
@@ -199,36 +234,23 @@ export default function Watch() {
           if (!vid) return null;
 
           return (
-            <a
+            <Link
               key={vid + "_" + i}
-              href={`/MyTube-Piped-Frontend/watch/${vid}`}
-              style={{
-                display: "flex",
-                marginBottom: "12px",
-                textDecoration: "none",
-                color: "#fff"
-              }}
+              to={`/watch/${vid}`}
+              style={cardStyle}
             >
               <img
                 src={thumb}
-                alt=""
-                style={{
-                  width: "168px",
-                  height: "94px",
-                  objectFit: "cover",
-                  borderRadius: "4px",
-                  marginRight: "12px"
-                }}
+                alt={rsn.title ?? "Video thumbnail"}
+                style={thumbStyle}
               />
-              <div>
-                <div style={{ fontSize: "14px", fontWeight: "bold" }}>
-                  {rsn.title ?? "Untitled"}
-                </div>
-                <div style={{ fontSize: "12px", opacity: 0.7 }}>
-                  {rsn.channelTitle ?? "Unknown Channel"}
-                </div>
+
+              <div style={titleStyle}>{rsn.title ?? "Untitled"}</div>
+              <div style={channelStyle}>
+                {rsn.channelTitle ?? "Unknown Channel"}
               </div>
-            </a>
+              <div style={descStyle}>{rsn.description ?? ""}</div>
+            </Link>
           );
         })}
       </div>
