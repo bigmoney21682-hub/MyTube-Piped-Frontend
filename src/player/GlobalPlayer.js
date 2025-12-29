@@ -20,8 +20,7 @@ class GlobalPlayerClass {
 
   /**
    * Initialize the YouTube player.
-   * Called ONCE from PlayerContext, but the actual player is only
-   * created once #player exists in the DOM (Watch page).
+   * Called ONCE from PlayerContext.
    */
   init({ onReady, onStateChange }) {
     if (this._initStarted) {
@@ -35,33 +34,45 @@ class GlobalPlayerClass {
 
     debugBus.player("GlobalPlayer → Waiting for YT API…");
 
+    // YouTube API calls window.onYouTubeIframeAPIReady
     window.onYouTubeIframeAPIReady = () => {
       debugBus.player("GlobalPlayer → YT API ready");
-      this._ensurePlayerCreated();
+      this.ensureMounted();
     };
 
+    // If API already loaded
     if (window.YT && window.YT.Player) {
       debugBus.player("GlobalPlayer → YT API already loaded");
-      this._ensurePlayerCreated();
+      this.ensureMounted();
     }
   }
 
   /**
-   * Ensure player exists once #player is present in DOM.
+   * Ensure the player is created once #player exists.
+   * Retries for a short window so it can wait for the Watch page DOM.
    */
-  _ensurePlayerCreated() {
-    if (this.player) {
-      debugBus.player("GlobalPlayer → Player already exists");
-      return;
-    }
+  ensureMounted() {
+    if (this.player) return;
 
-    const mount = document.getElementById("player");
-    if (!mount) {
-      debugBus.player("GlobalPlayer → #player not found yet, will wait for Watch page");
-      return;
-    }
+    let attempts = 0;
+    const maxAttempts = 30; // ~3 seconds
+    const interval = setInterval(() => {
+      const mount = document.getElementById("player");
 
-    this._createPlayer(mount);
+      if (mount) {
+        clearInterval(interval);
+        this._createPlayer(mount);
+        return;
+      }
+
+      attempts += 1;
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        debugBus.player("GlobalPlayer → ERROR: #player never appeared");
+      } else if (attempts === 1) {
+        debugBus.player("GlobalPlayer → #player not found yet, will wait for Watch page");
+      }
+    }, 100);
   }
 
   /**
@@ -124,21 +135,19 @@ class GlobalPlayerClass {
   }
 
   /**
-   * Public hook to allow Watch page to signal that #player exists.
+   * Load a video by ID.
+   * Safe to call before ready — it will queue.
    */
-  ensureMounted() {
-    if (window.YT && window.YT.Player) {
-      this._ensurePlayerCreated();
-    }
-  }
-
   load(id) {
     if (!id) return;
 
+    // If no player yet, queue and ensure mount
     if (!this.player) {
-      debugBus.player("GlobalPlayer → No player yet, will wait for #player and queue load(" + id + ")");
+      debugBus.player(
+        "GlobalPlayer → No player yet, will wait for #player and queue load(" + id + ")"
+      );
       this.pendingLoad = id;
-      this._ensurePlayerCreated();
+      this.ensureMounted();
       return;
     }
 
@@ -163,6 +172,9 @@ class GlobalPlayerClass {
     }
   }
 
+  /**
+   * Translate YT numeric states into readable strings.
+   */
   _translateState(code) {
     switch (code) {
       case window.YT.PlayerState.UNSTARTED:
