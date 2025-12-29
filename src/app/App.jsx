@@ -44,7 +44,7 @@ function RouterEvents() {
    IframeDock
    Moves the global YouTube iframe into the Watch page container
    when on /watch/:id, and back into its hidden home otherwise.
-   Retries a few times so it can wait for #player to mount.
+   Retries until Watch DOM is mounted.
 ------------------------------------------------------------- */
 function IframeDock() {
   const location = useLocation();
@@ -70,6 +70,17 @@ function IframeDock() {
 
     let cancelled = false;
 
+    function forceResize() {
+      try {
+        if (window.GlobalPlayer?.player?.setSize) {
+          window.GlobalPlayer.player.setSize("100%", "100%");
+          debugBus.player("IframeDock → setSize after docking");
+        }
+      } catch (e) {
+        debugBus.player("IframeDock → setSize error: " + e.message);
+      }
+    }
+
     function attachToWatch() {
       if (cancelled) return;
 
@@ -77,6 +88,7 @@ function IframeDock() {
       if (watch && watch !== iframe.parentNode) {
         debugBus.player("IframeDock → moving iframe into #player");
         watch.appendChild(iframe);
+        forceResize();
         return true;
       }
 
@@ -87,13 +99,12 @@ function IframeDock() {
       if (home !== iframe.parentNode) {
         debugBus.player("IframeDock → moving iframe back home");
         home.appendChild(iframe);
+        forceResize();
       }
     }
 
     if (onWatchPage) {
-      // Try immediately
       if (!attachToWatch()) {
-        // Retry up to ~2 seconds while the Watch DOM mounts
         let attempts = 0;
         const maxAttempts = 20;
         const interval = setInterval(() => {
@@ -129,7 +140,6 @@ export default function App() {
         <RouterEvents />
         <IframeDock />
 
-        {/* Layout wrapper ensures MiniPlayer never overlaps content */}
         <div style={{ paddingBottom: "80px" }}>
           <Routes>
             <Route path="/" element={<Home />} />
@@ -139,10 +149,7 @@ export default function App() {
           </Routes>
         </div>
 
-        {/* Persistent global mini-player */}
         <MiniPlayer />
-
-        {/* Runtime debug overlay */}
         <DebugOverlay />
       </BrowserRouter>
     </PlayerProvider>
