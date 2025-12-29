@@ -1,9 +1,6 @@
 /**
  * File: DebugOverlay.jsx
  * Path: src/debug/DebugOverlay.jsx
- * Description: Runtime debug overlay with channels (BOOT, PLAYER, ROUTER, NETWORK, PERF, CMD).
- *              Non-blocking: root uses pointerEvents: "none" so UI remains interactive.
- *              Panel positioned bottom-right; reopen button bottom-left.
  */
 
 import React, { useEffect, useState } from "react";
@@ -55,7 +52,6 @@ export default function DebugOverlay() {
         pointerEvents: "none"
       }}
     >
-      {/* Panel */}
       <div
         style={{
           position: "absolute",
@@ -63,7 +59,7 @@ export default function DebugOverlay() {
           right: 8,
           width: "90%",
           maxWidth: 420,
-          height: "40%",        // ← FIXED HEIGHT (half of previous)
+          height: "30%",     // ← REDUCED HEIGHT
           background: "rgba(0,0,0,0.9)",
           color: "#0f0",
           fontFamily: "monospace",
@@ -76,7 +72,6 @@ export default function DebugOverlay() {
           pointerEvents: "auto"
         }}
       >
-        {/* Header / tabs */}
         <div
           style={{
             display: "flex",
@@ -88,6 +83,7 @@ export default function DebugOverlay() {
           }}
         >
           <span style={{ marginRight: 8, fontWeight: "bold" }}>DEBUG</span>
+
           {CHANNELS.map((ch) => (
             <button
               key={ch}
@@ -124,6 +120,7 @@ export default function DebugOverlay() {
           >
             Copy
           </button>
+
           <button
             onClick={() => setVisible(false)}
             style={{
@@ -140,14 +137,13 @@ export default function DebugOverlay() {
           </button>
         </div>
 
-        {/* Log body */}
         <div
           style={{
             flex: 1,
             padding: "4px 6px",
             overflowY: "auto",
             whiteSpace: "pre-wrap",
-            minHeight: "80px"   // ensures visible content
+            minHeight: "80px"
           }}
         >
           {logs[activeChannel].map((line, i) => (
@@ -156,7 +152,6 @@ export default function DebugOverlay() {
         </div>
       </div>
 
-      {/* Tiny reopen button (bottom-left) */}
       {!visible && (
         <button
           onClick={() => setVisible(true)}
