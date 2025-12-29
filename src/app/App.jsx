@@ -2,7 +2,7 @@
  * File: App.jsx
  * Path: src/app/App.jsx
  * Description: Root application shell with BrowserRouter, PlayerProvider,
- *              MiniPlayer, DebugOverlay, and iframe docking logic.
+ *              MiniPlayer, DebugOverlay, and robust iframe docking logic.
  */
 
 import React, { useEffect } from "react";
@@ -24,10 +24,10 @@ import Channel from "../pages/Channel.jsx";
 
 import DebugOverlay from "../debug/DebugOverlay.jsx";
 import { installRouterLogger } from "../debug/debugRouter.js";
+import { debugBus } from "../debug/debugBus.js";
 
 /* ------------------------------------------------------------
    RouterEvents
-   Hooks into BrowserRouter and emits navigation logs
 ------------------------------------------------------------- */
 function RouterEvents() {
   const location = useLocation();
@@ -44,31 +44,76 @@ function RouterEvents() {
    IframeDock
    Moves the global YouTube iframe into the Watch page container
    when on /watch/:id, and back into its hidden home otherwise.
+   Retries a few times so it can wait for #player to mount.
 ------------------------------------------------------------- */
 function IframeDock() {
   const location = useLocation();
 
   useEffect(() => {
     const iframe = document.getElementById("global-player");
-    const watch = document.getElementById("player");
     const home = document.getElementById("global-player-container");
 
-    if (!iframe || !home) return;
+    if (!iframe || !home) {
+      debugBus.player("IframeDock → missing iframe or home");
+      return;
+    }
 
     const path = location.pathname || "";
     const onWatchPage = path.startsWith("/watch/");
 
-    if (onWatchPage) {
-      // Move iframe into Watch page container
+    debugBus.player(
+      "IframeDock → location=" +
+        path +
+        " onWatchPage=" +
+        onWatchPage
+    );
+
+    let cancelled = false;
+
+    function attachToWatch() {
+      if (cancelled) return;
+
+      const watch = document.getElementById("player");
       if (watch && watch !== iframe.parentNode) {
+        debugBus.player("IframeDock → moving iframe into #player");
         watch.appendChild(iframe);
+        return true;
       }
-    } else {
-      // Move iframe back to its hidden home container
+
+      return false;
+    }
+
+    function attachHome() {
       if (home !== iframe.parentNode) {
+        debugBus.player("IframeDock → moving iframe back home");
         home.appendChild(iframe);
       }
     }
+
+    if (onWatchPage) {
+      // Try immediately
+      if (!attachToWatch()) {
+        // Retry up to ~2 seconds while the Watch DOM mounts
+        let attempts = 0;
+        const maxAttempts = 20;
+        const interval = setInterval(() => {
+          if (cancelled) {
+            clearInterval(interval);
+            return;
+          }
+          attempts += 1;
+          if (attachToWatch() || attempts >= maxAttempts) {
+            clearInterval(interval);
+          }
+        }, 100);
+      }
+    } else {
+      attachHome();
+    }
+
+    return () => {
+      cancelled = true;
+    };
   }, [location]);
 
   return null;
