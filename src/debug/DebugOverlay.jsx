@@ -63,8 +63,7 @@ export default function DebugOverlay() {
           right: 8,
           width: "90%",
           maxWidth: 420,
-          height: "60%",
-          maxHeight: "60%",
+          height: "40%",        // ← FIXED HEIGHT (half of previous)
           background: "rgba(0,0,0,0.9)",
           color: "#0f0",
           fontFamily: "monospace",
@@ -84,7 +83,8 @@ export default function DebugOverlay() {
             alignItems: "center",
             padding: "4px 6px",
             borderBottom: "1px solid #333",
-            background: "#111"
+            background: "#111",
+            flexShrink: 0
           }}
         >
           <span style={{ marginRight: 8, fontWeight: "bold" }}>DEBUG</span>
@@ -147,7 +147,7 @@ export default function DebugOverlay() {
             padding: "4px 6px",
             overflowY: "auto",
             whiteSpace: "pre-wrap",
-            minHeight: "120px"
+            minHeight: "80px"   // ensures visible content
           }}
         >
           {logs[activeChannel].map((line, i) => (
