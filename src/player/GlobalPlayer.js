@@ -2,12 +2,6 @@
  * File: GlobalPlayer.js
  * Path: src/player/GlobalPlayer.js
  * Description: Singleton wrapper around the YouTube IFrame Player API.
- *              Ensures:
- *              - Only ONE player instance exists
- *              - Safe initialization on iOS/Safari
- *              - Safe load(id) calls even before ready
- *              - Safe state callbacks
- *              - No double init under React StrictMode
  */
 
 import { debugBus } from "../debug/debugBus.js";
@@ -23,10 +17,6 @@ class GlobalPlayerClass {
     this._initStarted = false;
   }
 
-  /**
-   * Initialize the YouTube player.
-   * Called ONCE from PlayerContext.
-   */
   init({ onReady, onStateChange }) {
     if (this._initStarted) {
       debugBus.player("GlobalPlayer → init() ignored (already started)");
@@ -39,23 +29,17 @@ class GlobalPlayerClass {
 
     debugBus.player("GlobalPlayer → Waiting for YT API…");
 
-    // YouTube API calls window.onYouTubeIframeAPIReady
     window.onYouTubeIframeAPIReady = () => {
       debugBus.player("GlobalPlayer → YT API ready");
       this._createPlayer();
     };
 
-    // If API already loaded (rare but possible)
     if (window.YT && window.YT.Player) {
       debugBus.player("GlobalPlayer → YT API already loaded");
       this._createPlayer();
     }
   }
 
-  /**
-   * Create the global player instance.
-   * The iframe fills whatever container #global-player is in.
-   */
   _createPlayer() {
     if (this.player) {
       debugBus.player("GlobalPlayer → Player already exists");
@@ -76,7 +60,7 @@ class GlobalPlayerClass {
       videoId: "",
       playerVars: {
         autoplay: 0,
-        controls: 1,      // show controls for watch page; MiniPlayer can overlay UI
+        controls: 1,
         rel: 0,
         playsinline: 1
       },
@@ -84,6 +68,13 @@ class GlobalPlayerClass {
         onReady: () => {
           debugBus.player("GlobalPlayer → Player ready");
           this.ready = true;
+
+          setTimeout(() => {
+            try {
+              this.player.setSize("100%", "100%");
+              debugBus.player("GlobalPlayer → setSize(100%,100%) after init");
+            } catch {}
+          }, 50);
 
           if (typeof this.onReady === "function") {
             this.onReady();
@@ -108,10 +99,6 @@ class GlobalPlayerClass {
     });
   }
 
-  /**
-   * Load a video by ID.
-   * Safe to call before ready — it will queue.
-   */
   load(id) {
     if (!id) return;
 
@@ -124,14 +111,18 @@ class GlobalPlayerClass {
     try {
       debugBus.player("GlobalPlayer → load(" + id + ")");
       this.player.loadVideoById(id);
+
+      setTimeout(() => {
+        try {
+          this.player.setSize("100%", "100%");
+          debugBus.player("GlobalPlayer → setSize after load");
+        } catch {}
+      }, 50);
     } catch (err) {
       debugBus.player("GlobalPlayer.load error: " + (err?.message || err));
     }
   }
 
-  /**
-   * Translate YT numeric states into readable strings.
-   */
   _translateState(code) {
     switch (code) {
       case window.YT.PlayerState.UNSTARTED:
