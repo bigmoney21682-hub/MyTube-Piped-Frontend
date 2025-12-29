@@ -1,24 +1,53 @@
 /**
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
- * Description: Trending page with safe destructuring and shared API key module.
+ * Description: Home page showing trending videos (most popular) with
+ *              stacked 16:9 thumbnails and minimal quota usage.
  */
 
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { usePlayer } from "../../player/PlayerContext.jsx";
+import { Link } from "react-router-dom";
 import { debugBus } from "../../debug/debugBus.js";
 import { getApiKey } from "../../api/getApiKey.js";
 
 const API_KEY = getApiKey();
 
+const cardStyle = {
+  width: "100%",
+  marginBottom: "20px",
+  textDecoration: "none",
+  color: "#fff",
+  display: "block"
+};
+
+const thumbStyle = {
+  width: "100%",
+  aspectRatio: "16 / 9",
+  objectFit: "cover",
+  borderRadius: "8px",
+  marginBottom: "8px"
+};
+
+const titleStyle = {
+  fontSize: "16px",
+  fontWeight: "bold",
+  marginBottom: "4px"
+};
+
+const channelStyle = {
+  fontSize: "13px",
+  opacity: 0.7,
+  marginBottom: "6px"
+};
+
+const descStyle = {
+  fontSize: "13px",
+  opacity: 0.8,
+  lineHeight: 1.4
+};
+
 export default function Home() {
   const [videos, setVideos] = useState([]);
-  const navigate = useNavigate();
-
-  const player = usePlayer() ?? {};
-  const loadVideo = player.loadVideo ?? (() => {});
-  const queueAdd = player.queueAdd ?? (() => {});
 
   useEffect(() => {
     fetchTrending();
@@ -26,97 +55,54 @@ export default function Home() {
 
   async function fetchTrending() {
     try {
-      debugBus.player("Home.jsx → Fetching trending videos");
-
       const url =
         `https://www.googleapis.com/youtube/v3/videos?` +
-        `part=snippet,statistics&chart=mostPopular&maxResults=25&regionCode=US&key=${API_KEY}`;
+        `part=snippet,statistics&chart=mostPopular&maxResults=5&regionCode=US&key=${API_KEY}`;
+
+      debugBus.player("Home.jsx → fetchTrending: " + url);
 
       const res = await fetch(url);
       const data = await res.json();
 
-      setVideos(Array.isArray(data?.items) ? data.items : []);
+      const items = Array.isArray(data?.items) ? data.items : [];
+      setVideos(items);
+
+      if (!items.length) {
+        debugBus.player("Home.jsx → fetchTrending returned 0 items");
+      }
     } catch (err) {
       debugBus.player("Home.jsx → fetchTrending error: " + (err?.message || err));
       setVideos([]);
     }
   }
 
-  function openVideo(id) {
-    if (!id) return;
-    debugBus.player("Home.jsx → Navigate to /watch/" + id);
-    navigate(`/watch/${id}`);
-    loadVideo(id);
-  }
-
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      <h2 style={{ marginBottom: "16px" }}>Trending</h2>
+      <h2 style={{ marginBottom: "12px" }}>Trending</h2>
 
       {videos.map((item, i) => {
-        const vid =
-          item?.id?.videoId ??
-          item?.id ??
-          null;
-
+        const vid = item?.id;
         const sn = item?.snippet ?? {};
         const thumb = sn?.thumbnails?.medium?.url ?? "";
 
         if (!vid) return null;
 
         return (
-          <div
+          <Link
             key={vid + "_" + i}
-            style={{
-              display: "flex",
-              marginBottom: "16px",
-              cursor: "pointer"
-            }}
+            to={`/watch/${vid}`}
+            style={cardStyle}
           >
             <img
               src={thumb}
-              alt=""
-              onClick={() => openVideo(vid)}
-              style={{
-                width: "168px",
-                height: "94px",
-                objectFit: "cover",
-                borderRadius: "4px",
-                marginRight: "12px"
-              }}
+              alt={sn.title ?? "Video thumbnail"}
+              style={thumbStyle}
             />
 
-            <div style={{ flex: 1 }}>
-              <div
-                onClick={() => openVideo(vid)}
-                style={{
-                  fontSize: "15px",
-                  fontWeight: "bold",
-                  marginBottom: "4px"
-                }}
-              >
-                {sn.title ?? "Untitled"}
-              </div>
-
-              <div style={{ fontSize: "13px", opacity: 0.7 }}>
-                {sn.channelTitle ?? "Unknown Channel"}
-              </div>
-
-              <button
-                onClick={() => queueAdd(vid)}
-                style={{
-                  marginTop: "8px",
-                  padding: "6px 10px",
-                  background: "#222",
-                  color: "#fff",
-                  border: "1px solid #444",
-                  borderRadius: "4px"
-                }}
-              >
-                + Queue
-              </button>
-            </div>
-          </div>
+            <div style={titleStyle}>{sn.title ?? "Untitled"}</div>
+            <div style={channelStyle}>{sn.channelTitle ?? "Unknown Channel"}</div>
+            <div style={descStyle}>{sn.description ?? ""}</div>
+          </Link>
         );
       })}
     </div>
