@@ -3,7 +3,7 @@
  * Path: src/debug/DebugOverlay.jsx
  * Description: Runtime debug overlay with channels (BOOT, PLAYER, ROUTER, NETWORK, PERF, CMD).
  *              Non-blocking: root uses pointerEvents: "none" so UI remains interactive.
- *              Panel positioned top-right; reopen button top-left.
+ *              Panel positioned bottom-right; reopen button bottom-left.
  */
 
 import React, { useEffect, useState } from "react";
@@ -59,11 +59,11 @@ export default function DebugOverlay() {
       <div
         style={{
           position: "absolute",
-          top: 8,
+          bottom: 8,
           right: 8,
           width: "90%",
           maxWidth: 420,
-          maxHeight: "60%",
+          maxHeight: "70%",
           background: "rgba(0,0,0,0.9)",
           color: "#0f0",
           fontFamily: "monospace",
@@ -145,7 +145,8 @@ export default function DebugOverlay() {
             flex: 1,
             padding: "4px 6px",
             overflowY: "auto",
-            whiteSpace: "pre-wrap"
+            whiteSpace: "pre-wrap",
+            minHeight: "120px"
           }}
         >
           {logs[activeChannel].map((line, i) => (
@@ -154,13 +155,13 @@ export default function DebugOverlay() {
         </div>
       </div>
 
-      {/* Tiny reopen button (top-left) */}
+      {/* Tiny reopen button (bottom-left) */}
       {!visible && (
         <button
           onClick={() => setVisible(true)}
           style={{
             position: "absolute",
-            top: 8,
+            bottom: 8,
             left: 8,
             padding: "4px 8px",
             fontSize: 10,
