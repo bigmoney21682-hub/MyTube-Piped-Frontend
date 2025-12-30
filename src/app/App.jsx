@@ -8,19 +8,26 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-import Header from "../components/Header.jsx";                 // ✅ Correct
-import Footer, { FOOTER_HEIGHT } from "../layout/Footer.jsx";  // ✅ Correct
+// Correct Header path
+import Header from "../components/Header.jsx";
 
-import Home from "../pages/Home/Home.jsx";                     // ✅ Correct path
-import Watch from "../pages/Watch/Watch.jsx";                  // (unchanged)
-import Menu from "../pages/Menu.jsx";                          // (your new file)
-import Playlists from "../pages/Playlists.jsx";                // (your new file)
-import Shorts from "../pages/Shorts.jsx";                      // (your new file)
-import Subs from "../pages/Subs.jsx";                          // (your new file)
+// Correct Footer path
+import Footer, { FOOTER_HEIGHT } from "../layout/Footer.jsx";
 
-import GlobalPlayer from "../player/GlobalPlayer.jsx";         // (unchanged)
-import MiniPlayer from "../player/MiniPlayer.jsx";             // (corrected earlier)
-import DebugOverlay from "../debug/DebugOverlay.jsx";          // (corrected earlier)
+// Correct page paths
+import Home from "../pages/Home/Home.jsx";
+import Watch from "../pages/Watch/Watch.jsx";
+import Menu from "../pages/Menu.jsx";
+import Playlists from "../pages/Playlists.jsx";
+import Shorts from "../pages/Shorts.jsx";
+import Subs from "../pages/Subs.jsx";
+
+// Correct player paths
+import GlobalPlayer from "../player/GlobalPlayer.js";   // ✅ FIXED EXTENSION
+import MiniPlayer from "../player/MiniPlayer.jsx";
+
+// Correct debug overlay path
+import DebugOverlay from "../debug/DebugOverlay.jsx";
 
 export default function App() {
   return (
