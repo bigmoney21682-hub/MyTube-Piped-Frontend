@@ -2,27 +2,64 @@
  * File: related.js
  * Path: src/api/related.js
  * Description: Fetches related videos using YouTube Data API v3.
+ * Falls back to keyword search if relatedToVideoId fails.
  */
 
 import { youtubeApiRequest } from "./youtube.js";
 import { debugBus } from "../debug/debugBus.js";
+import { getVideoDetails } from "./video.js"; // assumes you have this
 
 export async function fetchRelatedVideos(videoId) {
-  debugBus.log("NETWORK", `Related → Fetching for id=${videoId}`);
+  debugBus.network(`Related → Fetching for id=${videoId}`);
 
-  const data = await youtubeApiRequest("search", {
+  // First attempt: relatedToVideoId
+  const relatedData = await youtubeApiRequest("search", {
     part: "snippet",
     relatedToVideoId: videoId,
     type: "video",
-    maxResults: "20"
+    maxResults: "20",
+    videoEmbeddable: "true"
   });
 
-  if (!data || !Array.isArray(data.items)) {
-    debugBus.log("NETWORK", "Related → No data returned");
+  if (Array.isArray(relatedData?.items) && relatedData.items.length > 0) {
+    const normalized = relatedData.items.map((item) => ({
+      id: item.id.videoId,
+      title: item.snippet.title,
+      author: item.snippet.channelTitle,
+      channelId: item.snippet.channelId,
+      thumbnail: item.snippet.thumbnails?.medium?.url,
+      published: item.snippet.publishedAt
+    }));
+
+    debugBus.network(`Related → Found ${normalized.length} via relatedToVideoId`);
+    return normalized;
+  }
+
+  debugBus.network("Related → relatedToVideoId failed, falling back to keyword search");
+
+  // Fallback: keyword search using video title
+  const details = await getVideoDetails(videoId);
+  const title = details?.title || "";
+
+  if (!title) {
+    debugBus.network("Related → No title available for fallback search");
     return [];
   }
 
-  const normalized = data.items.map((item) => ({
+  const searchData = await youtubeApiRequest("search", {
+    part: "snippet",
+    q: title,
+    type: "video",
+    maxResults: "20",
+    videoEmbeddable: "true"
+  });
+
+  if (!Array.isArray(searchData?.items)) {
+    debugBus.network("Related → Fallback search returned no items");
+    return [];
+  }
+
+  const fallbackNormalized = searchData.items.map((item) => ({
     id: item.id.videoId,
     title: item.snippet.title,
     author: item.snippet.channelTitle,
@@ -31,10 +68,6 @@ export async function fetchRelatedVideos(videoId) {
     published: item.snippet.publishedAt
   }));
 
-  debugBus.log(
-    "NETWORK",
-    `Related → Normalized ${normalized.length} videos`
-  );
-
-  return normalized;
+  debugBus.network(`Related → Found ${fallbackNormalized.length} via keyword fallback`);
+  return fallbackNormalized;
 }
