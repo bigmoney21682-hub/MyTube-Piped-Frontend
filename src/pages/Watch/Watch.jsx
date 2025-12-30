@@ -92,7 +92,7 @@ export default function Watch() {
     loadVideo(id);
 
     fetchVideoDetails(id);
-    fetchRelated(id);
+    fetchRelated(id); // first attempt (may return 0)
   }, [id]);
 
   /* ------------------------------------------------------------
@@ -175,12 +175,11 @@ export default function Watch() {
       debugBus.log("NETWORK", "Watch.jsx → relatedToVideoId returned 0 items, falling back to keyword search");
 
       // 2️⃣ Fallback: keyword search using video title
-      const title = video?.snippet?.title ?? "";
+      const title = video?.snippet?.title;
 
       if (!title) {
-        debugBus.log("NETWORK", "Watch.jsx → No title available for fallback search");
-        setRelated([]);
-        return;
+        debugBus.log("NETWORK", "Watch.jsx → Waiting for video title before fallback");
+        return; // <-- DO NOT clear related; wait for video to load
       }
 
       const urlKeyword =
@@ -212,6 +211,16 @@ export default function Watch() {
       setRelated([]);
     }
   }
+
+  /* ------------------------------------------------------------
+     2nd attempt: run fallback AFTER video details load
+  ------------------------------------------------------------- */
+  useEffect(() => {
+    if (video && id) {
+      debugBus.log("NETWORK", "Watch.jsx → Retrying related fetch after video loaded");
+      fetchRelated(id);
+    }
+  }, [video]);
 
   /* ------------------------------------------------------------
      Loading state
