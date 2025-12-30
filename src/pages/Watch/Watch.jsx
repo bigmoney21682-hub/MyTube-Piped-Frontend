@@ -161,7 +161,7 @@ export default function Watch() {
       const items = Array.isArray(data?.items) ? data.items : [];
 
       if (!items.length) {
-        debugBus.network("Watch.jsx → relatedToVideoId returned 0 items");
+        debugBus.net("Watch.jsx → relatedToVideoId returned 0 items");
         setRelated([]);
         return;
       }
@@ -172,11 +172,11 @@ export default function Watch() {
         snippet: item.snippet ?? {}
       }));
 
-      debugBus.network(`Watch.jsx → Normalized ${normalized.length} related videos`);
+      debugBus.net(`Watch.jsx → Normalized ${normalized.length} related videos`);
       setRelated(normalized);
 
     } catch (err) {
-      debugBus.network("Watch.jsx → fetchRelated error: " + (err?.message || err));
+      debugBus.net("Watch.jsx → fetchRelated error: " + (err?.message || err));
       setRelated([]);
     }
   }
@@ -316,3 +316,4 @@ export default function Watch() {
     </div>
   );
 }
+
