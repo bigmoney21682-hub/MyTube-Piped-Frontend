@@ -1,129 +1,53 @@
 /**
  * File: MiniPlayer.jsx
  * Path: src/player/MiniPlayer.jsx
- * Description: Persistent bottom mini-player UI that reflects the global
- *              playback state. Shows current video ID, play/pause controls,
- *              and queue navigation. Fully safe for iOS/Safari and StrictMode.
+ * Description: MiniPlayer stacked above DebugOverlay and Footer.
  */
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { usePlayer } from "./PlayerContext.jsx";
-import { GlobalPlayer } from "./GlobalPlayer.js";
-import { QueueStore } from "./QueueStore.js";
-import { debugBus } from "../debug/debugBus.js";
+import { FOOTER_HEIGHT } from "../layout/Footer.jsx";
 
 export default function MiniPlayer() {
-  const player = usePlayer() ?? {};
+  const player = usePlayer();
+  const isVisible = player?.mini?.visible;
+  const debugHeight = 0; // DebugOverlay auto-adjusts; MiniPlayer sits above it
 
-  const currentId = player.currentId ?? null;
-  const loadVideo = player.loadVideo ?? (() => {});
-
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  // ------------------------------------------------------------
-  // Listen to GlobalPlayer state changes
-  // ------------------------------------------------------------
-  useEffect(() => {
-    debugBus.player("MiniPlayer → Mount");
-
-    const handler = (state) => {
-      debugBus.player("MiniPlayer → Player state: " + state);
-      setIsPlaying(state === "playing");
-    };
-
-    GlobalPlayer.onStateChange = handler;
-
-    return () => {
-      GlobalPlayer.onStateChange = null;
-    };
-  }, []);
-
-  // ------------------------------------------------------------
-  // Controls
-  // ------------------------------------------------------------
-  function togglePlay() {
-    try {
-      if (!GlobalPlayer.player) return;
-
-      if (isPlaying) {
-        debugBus.player("MiniPlayer → pause()");
-        GlobalPlayer.player.pauseVideo();
-      } else {
-        debugBus.player("MiniPlayer → play()");
-        GlobalPlayer.player.playVideo();
-      }
-    } catch (err) {
-      debugBus.player("MiniPlayer.togglePlay error: " + (err?.message || err));
-    }
-  }
-
-  function playNextInQueue() {
-    const next = QueueStore.next();
-    if (!next) {
-      debugBus.player("MiniPlayer → No next item in queue");
-      return;
-    }
-
-    debugBus.player("MiniPlayer → Next in queue → " + next);
-    loadVideo(next);
-  }
-
-  // ------------------------------------------------------------
-  // Render
-  // ------------------------------------------------------------
-  if (!currentId) {
-    return null; // No video loaded → no mini-player
-  }
+  if (!isVisible) return null;
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: 0,
+        bottom: FOOTER_HEIGHT + debugHeight,
         left: 0,
-        right: 0,
-        height: "64px",
+        width: "100%",
+        height: 80,
         background: "#111",
         borderTop: "1px solid #333",
+        zIndex: 3000,
         display: "flex",
         alignItems: "center",
-        padding: "0 16px",
-        color: "#fff",
-        zIndex: 9999
+        padding: "8px 12px",
+        boxSizing: "border-box"
       }}
     >
-      {/* Video ID (placeholder for future metadata) */}
-      <div style={{ flex: 1, fontSize: "14px", opacity: 0.8 }}>
-        Playing: {currentId}
+      <div style={{ flex: 1, color: "#fff" }}>
+        {player.mini.title ?? "Playing…"}
       </div>
 
-      {/* Play/Pause */}
       <button
-        onClick={togglePlay}
+        onClick={player.mini.expand}
         style={{
-          marginRight: "12px",
-          padding: "6px 10px",
           background: "#222",
-          color: "#fff",
           border: "1px solid #444",
-          borderRadius: "4px"
+          color: "#fff",
+          padding: "6px 10px",
+          borderRadius: 4,
+          fontSize: 12
         }}
       >
-        {isPlaying ? "Pause" : "Play"}
-      </button>
-
-      {/* Next in queue */}
-      <button
-        onClick={playNextInQueue}
-        style={{
-          padding: "6px 10px",
-          background: "#222",
-          color: "#fff",
-          border: "1px solid #444",
-          borderRadius: "4px"
-        }}
-      >
-        Next ▶
+        Open
       </button>
     </div>
   );
