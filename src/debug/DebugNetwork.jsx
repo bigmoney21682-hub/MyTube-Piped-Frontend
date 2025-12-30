@@ -1,12 +1,18 @@
 /**
  * File: DebugNetwork.jsx
  * Path: src/debug/DebugNetwork.jsx
- * Description: Network inspector for DebugOverlay v3 with quota cost + key usage.
+ * Description: Unified Network inspector for DebugOverlay v3.
+ *              Displays FETCH, ERROR_FETCH, and NETWORK logs.
  */
 
 export default function DebugNetwork({ logs, colors, formatTime }) {
-  // Filter only network logs
-  const networkLogs = logs.filter((l) => l.level === "FETCH" || l.level === "ERROR_FETCH");
+  // Accept all network‑related channels
+  const networkLogs = logs.filter(
+    (l) =>
+      l.level === "FETCH" ||
+      l.level === "ERROR_FETCH" ||
+      l.level === "NETWORK"
+  );
 
   return (
     <div
@@ -24,7 +30,9 @@ export default function DebugNetwork({ logs, colors, formatTime }) {
       }}
     >
       {networkLogs.length === 0 && (
-        <div style={{ color: "#888", fontSize: 12 }}>No network activity yet.</div>
+        <div style={{ color: "#888", fontSize: 12 }}>
+          No network activity yet.
+        </div>
       )}
 
       {networkLogs.map((log, i) => {
