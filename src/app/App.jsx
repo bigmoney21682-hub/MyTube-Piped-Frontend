@@ -8,19 +8,19 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-import Header from "../components/Header.jsx";          // ✅ FIXED PATH
-import Footer, { FOOTER_HEIGHT } from "../layout/Footer.jsx";
+import Header from "../components/Header.jsx";                 // ✅ Correct
+import Footer, { FOOTER_HEIGHT } from "../layout/Footer.jsx";  // ✅ Correct
 
-import Home from "../pages/Home.jsx";
-import Watch from "../pages/Watch/Watch.jsx";
-import Menu from "../pages/Menu.jsx";
-import Playlists from "../pages/Playlists.jsx";
-import Shorts from "../pages/Shorts.jsx";
-import Subs from "../pages/Subs.jsx";
+import Home from "../pages/Home/Home.jsx";                     // ✅ Correct path
+import Watch from "../pages/Watch/Watch.jsx";                  // (unchanged)
+import Menu from "../pages/Menu.jsx";                          // (your new file)
+import Playlists from "../pages/Playlists.jsx";                // (your new file)
+import Shorts from "../pages/Shorts.jsx";                      // (your new file)
+import Subs from "../pages/Subs.jsx";                          // (your new file)
 
-import GlobalPlayer from "../player/GlobalPlayer.jsx";
-import MiniPlayer from "../player/MiniPlayer.jsx";
-import DebugOverlay from "../debug/DebugOverlay.jsx";
+import GlobalPlayer from "../player/GlobalPlayer.jsx";         // (unchanged)
+import MiniPlayer from "../player/MiniPlayer.jsx";             // (corrected earlier)
+import DebugOverlay from "../debug/DebugOverlay.jsx";          // (corrected earlier)
 
 export default function App() {
   return (
