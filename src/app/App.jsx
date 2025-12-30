@@ -1,64 +1,63 @@
 /**
  * File: App.jsx
- * Path: src/app/App.jsx
- * Description: Root application shell with BrowserRouter, PlayerProvider,
- *              global Header (title + search), MiniPlayer, and DebugOverlay.
+ * Path: src/App.jsx
+ * Description: Main application shell with Footer, MiniPlayer, GlobalPlayer,
+ *              DebugOverlay, and full routing.
  */
 
-import React, { useEffect } from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  useLocation,
-  useNavigate
-} from "react-router-dom";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-import { PlayerProvider } from "../player/PlayerContext.jsx";
-import MiniPlayer from "../player/MiniPlayer.jsx";
+import Header from "./layout/Header.jsx";
+import Footer, { FOOTER_HEIGHT } from "./layout/Footer.jsx";
 
-import Home from "../pages/Home/Home.jsx";
-import Watch from "../pages/Watch/Watch.jsx";
-import Search from "../pages/Search.jsx";
-import Channel from "../pages/Channel.jsx";
+import Home from "./pages/Home.jsx";
+import Watch from "./pages/Watch/Watch.jsx";
+import Menu from "./pages/Menu.jsx";
+import Playlists from "./pages/Playlists.jsx";
+import Shorts from "./pages/Shorts.jsx";
+import Subs from "./pages/Subs.jsx";
 
-import DebugOverlay from "../debug/DebugOverlay.jsx";
-import { installRouterLogger } from "../debug/debugRouter.js";
-
-import Header from "../components/Header.jsx";
-
-function RouterEvents() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    installRouterLogger(navigate, location);
-  }, [location]);
-
-  return null;
-}
+import GlobalPlayer from "./player/GlobalPlayer.jsx";
+import MiniPlayer from "./player/MiniPlayer.jsx";
+import DebugOverlay from "./debug/DebugOverlay.jsx";
 
 export default function App() {
   return (
-    <PlayerProvider>
-      <BrowserRouter basename="/MyTube-Piped-Frontend">
-        <RouterEvents />
-
+    <Router basename="/">
+      <div
+        style={{
+          width: "100%",
+          minHeight: "100vh",
+          background: "#000",
+          color: "#fff",
+          paddingBottom: FOOTER_HEIGHT // ensures content never hides behind footer
+        }}
+      >
         <Header />
 
-        {/* FIX: allow DebugOverlay to render above this container */}
-        <div style={{ paddingTop: "60px", paddingBottom: "80px", overflow: "visible" }}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/watch/:id" element={<Watch />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/channel/:id" element={<Channel />} />
-          </Routes>
-        </div>
+        {/* Global Player (hidden iframe) */}
+        <GlobalPlayer />
 
+        {/* MiniPlayer (fixed, above footer + debug overlay) */}
         <MiniPlayer />
+
+        {/* DebugOverlay (fixed, above footer) */}
         <DebugOverlay />
-      </BrowserRouter>
-    </PlayerProvider>
+
+        {/* Main Routes */}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/watch/:id" element={<Watch />} />
+          <Route path="/menu" element={<Menu />} />
+          <Route path="/playlists" element={<Playlists />} />
+          <Route path="/shorts" element={<Shorts />} />
+          <Route path="/subs" element={<Subs />} />
+        </Routes>
+
+        {/* Footer (fixed bottom) */}
+        <Footer />
+      </div>
+    </Router>
   );
 }
