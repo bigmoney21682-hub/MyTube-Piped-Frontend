@@ -1,114 +1,99 @@
 /**
  * File: DebugOverlay.jsx
  * Path: src/debug/DebugOverlay.jsx
- * Description: Main container for the v3 Debug Overlay.
- * Delegates header + inspector rendering to modular components.
+ * Description: Full debug overlay stacked above footer and below MiniPlayer.
  */
 
-import React, { useEffect, useState } from "react";
-import { debugBus } from "./debugBus.js";
-
-import DebugHeader from "./DebugHeader.jsx";
-import DebugContent from "./DebugContent.jsx";
-
-const CHANNELS = ["BOOT", "PLAYER", "ROUTER", "NETWORK", "PERF", "CMD"];
+import React, { useState } from "react";
+import { FOOTER_HEIGHT } from "../layout/Footer.jsx";
+import DebugNetwork from "./DebugNetwork.jsx";
+import DebugPlayer from "./DebugPlayer.jsx";
+import DebugRouter from "./DebugRouter.jsx";
+import DebugConsole from "./DebugConsole.jsx";
 
 export default function DebugOverlay() {
-  const [visible, setVisible] = useState(true);
-  const [activeChannel, setActiveChannel] = useState("PLAYER");
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState("network");
 
-  const [logs, setLogs] = useState({
-    BOOT: [],
-    PLAYER: [],
-    ROUTER: [],
-    NETWORK: [],
-    PERF: [],
-    CMD: []
-  });
-
-  // Subscribe to debugBus
-  useEffect(() => {
-    const unsub = debugBus.subscribe((level, entry) => {
-      setLogs((prev) => {
-        if (!prev[level]) return prev;
-        const next = { ...prev };
-        const list = next[level].slice(-199);
-        list.push(entry);
-        next[level] = list;
-        return next;
-      });
-    });
-
-    return () => {
-      if (typeof unsub === "function") unsub();
-    };
-  }, []);
+  const tabs = [
+    { id: "network", label: "Network" },
+    { id: "player", label: "Player" },
+    { id: "router", label: "Router" },
+    { id: "console", label: "Console" }
+  ];
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 2147483647,
-        pointerEvents: "none"
-      }}
-    >
-      {/* Panel */}
-      <div
+    <>
+      {/* Toggle button */}
+      <button
+        onClick={() => setOpen(!open)}
         style={{
-          position: "absolute",
-          bottom: 8,
-          right: 8,
-          width: "90%",
-          maxWidth: 420,
-          height: "30%",
-          background: "rgba(0,0,0,0.9)",
-          color: "#0f0",
-          fontFamily: "monospace",
-          fontSize: 11,
-          border: "1px solid #333",
-          borderRadius: 6,
-          overflow: "hidden",
-          display: visible ? "flex" : "none",
-          flexDirection: "column",
-          pointerEvents: "auto"
+          position: "fixed",
+          right: 12,
+          bottom: FOOTER_HEIGHT + 12,
+          zIndex: 2001,
+          background: "#222",
+          color: "#fff",
+          border: "1px solid #444",
+          padding: "6px 10px",
+          borderRadius: 4,
+          fontSize: 12
         }}
       >
-        <DebugHeader
-          activeChannel={activeChannel}
-          setActiveChannel={setActiveChannel}
-          logs={logs}
-          visible={visible}
-          setVisible={setVisible}
-        />
+        {open ? "Close Debug" : "Debug"}
+      </button>
 
-        <DebugContent
-          activeChannel={activeChannel}
-          logs={logs}
-        />
-      </div>
-
-      {/* Reopen button */}
-      {!visible && (
-        <button
-          onClick={() => setVisible(true)}
+      {/* Overlay */}
+      {open && (
+        <div
           style={{
-            position: "absolute",
-            bottom: 8,
-            left: 8,
-            padding: "4px 8px",
-            fontSize: 10,
-            borderRadius: 4,
-            border: "1px solid #444",
-            background: "rgba(0,0,0,0.8)",
-            color: "#0f0",
-            cursor: "pointer",
-            pointerEvents: "auto"
+            position: "fixed",
+            left: 0,
+            bottom: FOOTER_HEIGHT,
+            width: "100%",
+            height: "40%",
+            background: "#000",
+            borderTop: "1px solid #333",
+            zIndex: 2000,
+            display: "flex",
+            flexDirection: "column"
           }}
         >
-          DEBUG
-        </button>
+          {/* Tabs */}
+          <div
+            style={{
+              display: "flex",
+              borderBottom: "1px solid #333",
+              background: "#111"
+            }}
+          >
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                style={{
+                  flex: 1,
+                  padding: "8px 0",
+                  background: tab === t.id ? "#222" : "transparent",
+                  color: "#fff",
+                  border: "none",
+                  fontSize: 12
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+            {tab === "network" && <DebugNetwork />}
+            {tab === "player" && <DebugPlayer />}
+            {tab === "router" && <DebugRouter />}
+            {tab === "console" && <DebugConsole />}
+          </div>
+        </div>
       )}
-    </div>
+    </>
   );
 }
