@@ -1,16 +1,43 @@
 /**
  * File: DebugOverlay.jsx
  * Path: src/debug/DebugOverlay.jsx
+ * Description: Full inspector-based debug overlay (v3).
+ * Renders DebugPlayer, DebugRouter, DebugNetwork, DebugPerf, DebugCmd.
  */
 
 import React, { useEffect, useState } from "react";
 import { debugBus } from "./debugBus.js";
 
+import DebugPlayer from "./DebugPlayer.jsx";
+import DebugRouter from "./DebugRouter.jsx";
+// If these exist in your folder, they will work automatically:
+import DebugNetwork from "./DebugNetwork.jsx";
+import DebugPerf from "./DebugPerf.jsx";
+import DebugCmd from "./DebugCmd.jsx";
+
 const CHANNELS = ["BOOT", "PLAYER", "ROUTER", "NETWORK", "PERF", "CMD"];
+
+// Colors per channel
+const COLORS = {
+  BOOT: "#0f0",
+  PLAYER: "#4af",
+  ROUTER: "#fa4",
+  NETWORK: "#af4",
+  PERF: "#f4a",
+  CMD: "#ff4"
+};
+
+// Format timestamp
+function formatTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleTimeString();
+}
 
 export default function DebugOverlay() {
   const [visible, setVisible] = useState(true);
   const [activeChannel, setActiveChannel] = useState("PLAYER");
+
+  // Logs stored by channel
   const [logs, setLogs] = useState({
     BOOT: [],
     PLAYER: [],
@@ -20,14 +47,15 @@ export default function DebugOverlay() {
     CMD: []
   });
 
+  // Subscribe to debugBus
   useEffect(() => {
-    const unsub = debugBus.subscribe((channel, msg) => {
+    const unsub = debugBus.subscribe((level, entry) => {
       setLogs((prev) => {
-        if (!prev[channel]) return prev;
+        if (!prev[level]) return prev;
         const next = { ...prev };
-        const list = next[channel].slice(-199);
-        list.push(msg);
-        next[channel] = list;
+        const list = next[level].slice(-199);
+        list.push(entry);
+        next[level] = list;
         return next;
       });
     });
@@ -37,10 +65,82 @@ export default function DebugOverlay() {
     };
   }, []);
 
+  // Copy logs
   function handleCopy() {
-    const text = logs[activeChannel].join("\n");
+    const text = logs[activeChannel]
+      .map((l) => `[${formatTime(l.ts)}] ${l.msg}`)
+      .join("\n");
+
     navigator.clipboard.writeText(text);
     debugBus.info("DebugOverlay → Logs copied to clipboard");
+  }
+
+  // Render inspector for active tab
+  function renderInspector() {
+    const channelLogs = logs[activeChannel];
+
+    switch (activeChannel) {
+      case "PLAYER":
+        return (
+          <DebugPlayer
+            logs={channelLogs}
+            colors={COLORS}
+            formatTime={formatTime}
+          />
+        );
+
+      case "ROUTER":
+        return (
+          <DebugRouter
+            logs={channelLogs}
+            colors={COLORS}
+            formatTime={formatTime}
+          />
+        );
+
+      case "NETWORK":
+        return (
+          <DebugNetwork
+            logs={channelLogs}
+            colors={COLORS}
+            formatTime={formatTime}
+          />
+        );
+
+      case "PERF":
+        return (
+          <DebugPerf
+            logs={channelLogs}
+            colors={COLORS}
+            formatTime={formatTime}
+          />
+        );
+
+      case "CMD":
+        return (
+          <DebugCmd
+            logs={channelLogs}
+            colors={COLORS}
+            formatTime={formatTime}
+          />
+        );
+
+      case "BOOT":
+      default:
+        return (
+          <div style={{ padding: 8, fontSize: 12 }}>
+            {channelLogs.length === 0 && (
+              <div style={{ color: "#888" }}>No boot events yet.</div>
+            )}
+            {channelLogs.map((l, i) => (
+              <div key={i} style={{ marginBottom: 6 }}>
+                <div style={{ opacity: 0.6 }}>{formatTime(l.ts)}</div>
+                <div>{l.msg}</div>
+              </div>
+            ))}
+          </div>
+        );
+    }
   }
 
   return (
@@ -52,6 +152,7 @@ export default function DebugOverlay() {
         pointerEvents: "none"
       }}
     >
+      {/* Panel */}
       <div
         style={{
           position: "absolute",
@@ -59,7 +160,7 @@ export default function DebugOverlay() {
           right: 8,
           width: "90%",
           maxWidth: 420,
-          height: "30%",     // ← REDUCED HEIGHT
+          height: "30%",
           background: "rgba(0,0,0,0.9)",
           color: "#0f0",
           fontFamily: "monospace",
@@ -72,6 +173,7 @@ export default function DebugOverlay() {
           pointerEvents: "auto"
         }}
       >
+        {/* Header */}
         <div
           style={{
             display: "flex",
@@ -94,8 +196,8 @@ export default function DebugOverlay() {
                 fontSize: 10,
                 borderRadius: 4,
                 border: "1px solid #444",
-                background: activeChannel === ch ? "#0f0" : "transparent",
-                color: activeChannel === ch ? "#000" : "#0f0",
+                background: activeChannel === ch ? COLORS[ch] : "transparent",
+                color: activeChannel === ch ? "#000" : COLORS[ch],
                 cursor: "pointer"
               }}
             >
@@ -137,21 +239,19 @@ export default function DebugOverlay() {
           </button>
         </div>
 
+        {/* Inspector content */}
         <div
           style={{
             flex: 1,
-            padding: "4px 6px",
             overflowY: "auto",
-            whiteSpace: "pre-wrap",
-            minHeight: "80px"
+            padding: 6
           }}
         >
-          {logs[activeChannel].map((line, i) => (
-            <div key={i}>{line}</div>
-          ))}
+          {renderInspector()}
         </div>
       </div>
 
+      {/* Reopen button */}
       {!visible && (
         <button
           onClick={() => setVisible(true)}
