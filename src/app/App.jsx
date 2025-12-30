@@ -8,9 +8,11 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
+// Correct component paths
 import Header from "../components/Header.jsx";
 import Footer, { FOOTER_HEIGHT } from "../layout/Footer.jsx";
 
+// Correct page paths
 import Home from "../pages/Home/Home.jsx";
 import Watch from "../pages/Watch/Watch.jsx";
 import Menu from "../pages/Menu.jsx";
@@ -18,10 +20,11 @@ import Playlists from "../pages/Playlists.jsx";
 import Shorts from "../pages/Shorts.jsx";
 import Subs from "../pages/Subs.jsx";
 
-// ✅ FIXED — GlobalPlayer is a NAMED export
-import { GlobalPlayer } from "../player/GlobalPlayer.js";
-
+// Correct player paths
+import { GlobalPlayer } from "../player/GlobalPlayer.js"; // named export
 import MiniPlayer from "../player/MiniPlayer.jsx";
+
+// Correct debug overlay path
 import DebugOverlay from "../debug/DebugOverlay.jsx";
 
 export default function App() {
@@ -33,17 +36,21 @@ export default function App() {
           minHeight: "100vh",
           background: "#000",
           color: "#fff",
-          paddingBottom: FOOTER_HEIGHT
+          paddingBottom: FOOTER_HEIGHT // ensures content never hides behind footer
         }}
       >
+        {/* Header */}
         <Header />
 
-        {/* GlobalPlayer is NOT a component — do NOT render it */}
-        {/* It is a singleton imported for side effects */}
+        {/* GlobalPlayer is a singleton, imported for side effects only */}
 
+        {/* MiniPlayer (fixed, above footer + debug overlay) */}
         <MiniPlayer />
+
+        {/* DebugOverlay (fixed, above footer) */}
         <DebugOverlay />
 
+        {/* Main Routes */}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/watch/:id" element={<Watch />} />
@@ -53,6 +60,7 @@ export default function App() {
           <Route path="/subs" element={<Subs />} />
         </Routes>
 
+        {/* Footer (fixed bottom) */}
         <Footer />
       </div>
     </Router>
