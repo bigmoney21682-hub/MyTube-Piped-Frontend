@@ -14,7 +14,7 @@ import DebugRouter from "./DebugRouter.jsx";
 import { debugBus } from "./debugBus.js";
 
 export default function DebugOverlay() {
-  const [visible, setVisible] = useState(false);
+  const [visible, setVisible] = useState(true);
   const [active, setActive] = useState("Console");
   const [logs, setLogs] = useState([]);
 
