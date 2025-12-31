@@ -5,6 +5,8 @@
  *              Mounts directly into #player on the Watch page.
  */
 
+import { debugBus } from "../debug/debugBus.js";
+
 class GlobalPlayerClass {
   constructor() {
     this.player = null;
@@ -14,6 +16,7 @@ class GlobalPlayerClass {
     this.onStateChange = null;
 
     this._initStarted = false;
+    this._mountCheckInterval = null;
   }
 
   /**
@@ -22,7 +25,7 @@ class GlobalPlayerClass {
    */
   init({ onReady, onStateChange }) {
     if (this._initStarted) {
-      window.bootDebug?.player("GlobalPlayer → init() ignored (already started)");
+      debugBus.log("PLAYER", "GlobalPlayer → init() ignored (already started)");
       return;
     }
 
@@ -30,17 +33,17 @@ class GlobalPlayerClass {
     this.onReady = onReady;
     this.onStateChange = onStateChange;
 
-    window.bootDebug?.player("GlobalPlayer → Waiting for YT API…");
+    debugBus.log("PLAYER", "GlobalPlayer → Waiting for YT API…");
 
     // YouTube API calls window.onYouTubeIframeAPIReady
     window.onYouTubeIframeAPIReady = () => {
-      window.bootDebug?.player("GlobalPlayer → YT API ready");
+      debugBus.log("PLAYER", "GlobalPlayer → YT API ready (callback)");
       this.ensureMounted();
     };
 
     // If API already loaded
     if (window.YT && window.YT.Player) {
-      window.bootDebug?.player("GlobalPlayer → YT API already loaded");
+      debugBus.log("PLAYER", "GlobalPlayer → YT API already loaded");
       this.ensureMounted();
     }
   }
@@ -50,25 +53,34 @@ class GlobalPlayerClass {
    * Retries for a short window so it can wait for the Watch page DOM.
    */
   ensureMounted() {
-    if (this.player) return;
+    if (this.player) {
+      return;
+    }
+
+    if (this._mountCheckInterval) {
+      return;
+    }
 
     let attempts = 0;
-    const maxAttempts = 30; // ~3 seconds
-    const interval = setInterval(() => {
+    const maxAttempts = 50; // ~5 seconds
+    this._mountCheckInterval = setInterval(() => {
       const mount = document.getElementById("player");
 
       if (mount) {
-        clearInterval(interval);
+        clearInterval(this._mountCheckInterval);
+        this._mountCheckInterval = null;
         this._createPlayer(mount);
         return;
       }
 
       attempts += 1;
       if (attempts >= maxAttempts) {
-        clearInterval(interval);
-        window.bootDebug?.player("GlobalPlayer → ERROR: #player never appeared");
+        clearInterval(this._mountCheckInterval);
+        this._mountCheckInterval = null;
+        debugBus.log("PLAYER", "GlobalPlayer → ERROR: #player never appeared");
       } else if (attempts === 1) {
-        window.bootDebug?.player(
+        debugBus.log(
+          "PLAYER",
           "GlobalPlayer → #player not found yet, will wait for Watch page"
         );
       }
@@ -80,16 +92,24 @@ class GlobalPlayerClass {
    */
   _createPlayer(mount) {
     if (this.player) {
-      window.bootDebug?.player("GlobalPlayer → Player already exists (createPlayer)");
+      debugBus.log("PLAYER", "GlobalPlayer → Player already exists (createPlayer)");
       return;
     }
 
     if (!mount) {
-      window.bootDebug?.player("GlobalPlayer → ERROR: mount element missing");
+      debugBus.log("PLAYER", "GlobalPlayer → ERROR: mount element missing");
       return;
     }
 
-    window.bootDebug?.player("GlobalPlayer → Creating player in #player…");
+    if (!window.YT || !window.YT.Player) {
+      debugBus.log(
+        "PLAYER",
+        "GlobalPlayer → ERROR: YT API not ready in _createPlayer"
+      );
+      return;
+    }
+
+    debugBus.log("PLAYER", "GlobalPlayer → Creating player in #player…");
 
     this.player = new window.YT.Player(mount, {
       height: "100%",
@@ -103,12 +123,15 @@ class GlobalPlayerClass {
       },
       events: {
         onReady: () => {
-          window.bootDebug?.player("GlobalPlayer → Player ready");
+          debugBus.log("PLAYER", "GlobalPlayer → Player ready");
           this.ready = true;
 
           try {
             this.player.setSize("100%", "100%");
-            window.bootDebug?.player("GlobalPlayer → setSize(100%,100%) after init");
+            debugBus.log(
+              "PLAYER",
+              "GlobalPlayer → setSize(100%,100%) after init"
+            );
           } catch {}
 
           if (typeof this.onReady === "function") {
@@ -116,17 +139,19 @@ class GlobalPlayerClass {
           }
 
           if (this.pendingLoad) {
-            window.bootDebug?.player(
-              "GlobalPlayer → Running pending load: " + this.pendingLoad
-            );
-            this.load(this.pendingLoad);
+            const id = this.pendingLoad;
             this.pendingLoad = null;
+            debugBus.log(
+              "PLAYER",
+              "GlobalPlayer → Running pending load after ready: " + id
+            );
+            this._safeLoadNow(id);
           }
         },
 
         onStateChange: (e) => {
           const state = this._translateState(e.data);
-          window.bootDebug?.player("GlobalPlayer → State: " + state);
+          debugBus.log("PLAYER", "GlobalPlayer → State: " + state);
 
           if (typeof this.onStateChange === "function") {
             this.onStateChange(state);
@@ -145,8 +170,11 @@ class GlobalPlayerClass {
 
     // If no player yet, queue and ensure mount
     if (!this.player) {
-      window.bootDebug?.player(
-        "GlobalPlayer → No player yet, will wait for #player and queue load(" + id + ")"
+      debugBus.log(
+        "PLAYER",
+        "GlobalPlayer → No player yet, will wait for #player and queue load(" +
+          id +
+          ")"
       );
       this.pendingLoad = id;
       this.ensureMounted();
@@ -154,23 +182,44 @@ class GlobalPlayerClass {
     }
 
     if (!this.ready) {
-      window.bootDebug?.player("GlobalPlayer → Not ready, queuing load(" + id + ")");
+      debugBus.log(
+        "PLAYER",
+        "GlobalPlayer → Not ready, queuing load(" + id + ")"
+      );
       this.pendingLoad = id;
       return;
     }
 
+    this._safeLoadNow(id);
+  }
+
+  /**
+   * Internal: actually call loadVideoById safely.
+   */
+  _safeLoadNow(id) {
     try {
-      window.bootDebug?.player("GlobalPlayer → load(" + id + ")");
+      if (!this.player || !this.ready) {
+        debugBus.log(
+          "PLAYER",
+          "GlobalPlayer → _safeLoadNow called but player not ready, re-queuing " +
+            id
+        );
+        this.pendingLoad = id;
+        return;
+      }
+
+      debugBus.log("PLAYER", "GlobalPlayer → load(" + id + ")");
       this.player.loadVideoById(id);
 
       setTimeout(() => {
         try {
           this.player.setSize("100%", "100%");
-          window.bootDebug?.player("GlobalPlayer → setSize after load");
+          debugBus.log("PLAYER", "GlobalPlayer → setSize after load");
         } catch {}
       }, 50);
     } catch (err) {
-      window.bootDebug?.player(
+      debugBus.log(
+        "PLAYER",
         "GlobalPlayer.load error: " + (err?.message || err)
       );
     }
@@ -180,6 +229,8 @@ class GlobalPlayerClass {
    * Translate YT numeric states into readable strings.
    */
   _translateState(code) {
+    if (!window.YT || !window.YT.PlayerState) return "unknown";
+
     switch (code) {
       case window.YT.PlayerState.UNSTARTED:
         return "unstarted";
