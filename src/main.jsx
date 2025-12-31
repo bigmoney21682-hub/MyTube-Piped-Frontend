@@ -41,7 +41,7 @@ window.addEventListener("unhandledrejection", (e) => {
 // ------------------------------------------------------------
 import App from "./app/App.jsx";
 import { PlayerProvider } from "./player/PlayerContext.jsx";
-import DebugOverlay from "./debug/DebugOverlay.jsx";   // ⭐ ADDED HERE
+import DebugOverlay from "./debug/DebugOverlay.jsx";
 
 function mount() {
   window.bootDebug?.boot("main.jsx → React root mounting");
@@ -60,8 +60,9 @@ function mount() {
       <BrowserRouter>
         <PlayerProvider>
           <App />
-          <DebugOverlay />   {/* ⭐ MOVED HERE — OUTSIDE App */}
         </PlayerProvider>
+
+        <DebugOverlay />   {/* ⭐ FIXED — now outside PlayerProvider */}
       </BrowserRouter>
     );
 
