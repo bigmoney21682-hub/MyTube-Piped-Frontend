@@ -6,7 +6,7 @@
  */
 
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
 
 // Components
 import Header from "../components/Header.jsx";
@@ -28,6 +28,15 @@ import MiniPlayer from "../player/MiniPlayer.jsx";
 import DebugOverlay from "../debug/DebugOverlay.jsx";
 
 export default function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Force React Router to re-emit the initial route on boot
+  React.useEffect(() => {
+    navigate(location.pathname + location.search, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div
       style={{
@@ -41,7 +50,6 @@ export default function App() {
       <Header />
 
       {/* GlobalPlayer is a singleton imported for side effects */}
-
       <MiniPlayer />
 
       <Routes>
