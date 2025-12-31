@@ -11,8 +11,9 @@ import DebugConsole from "./DebugConsole.jsx";
 import DebugNetwork from "./DebugNetwork.jsx";
 import DebugPlayer from "./DebugPlayer.jsx";
 import DebugRouter from "./DebugRouter.jsx";
+import { debugBus } from "./debugBus.js";   // ✅ Option A: direct import
 
-export default function DebugOverlay({ debugBus }) {
+export default function DebugOverlay() {    // ❌ removed debugBus prop
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState("Console");
   const [logs, setLogs] = useState([]);
@@ -25,7 +26,7 @@ export default function DebugOverlay({ debugBus }) {
       setLogs((prev) => [...prev, entry]);
     });
     return () => unsub();
-  }, [debugBus]);
+  }, []);
 
   /* ------------------------------------------------------------
      Toggle overlay with backtick `
@@ -52,8 +53,6 @@ export default function DebugOverlay({ debugBus }) {
      Provide text for Copy button (active tab only)
   ------------------------------------------------------------- */
   function getCurrentTabText() {
-    const upper = active.toUpperCase();
-
     const filtered = logs.filter((l) => {
       if (active === "Console") return ["CONSOLE", "INFO", "WARN", "ERROR"].includes(l.level);
       if (active === "Router") return l.level === "ROUTER";
@@ -93,21 +92,13 @@ export default function DebugOverlay({ debugBus }) {
   let content = null;
 
   if (active === "Console") {
-    content = (
-      <DebugConsole logs={logs} colors={colors} formatTime={formatTime} />
-    );
+    content = <DebugConsole logs={logs} colors={colors} formatTime={formatTime} />;
   } else if (active === "Router") {
-    content = (
-      <DebugRouter logs={logs} colors={colors} formatTime={formatTime} />
-    );
+    content = <DebugRouter logs={logs} colors={colors} formatTime={formatTime} />;
   } else if (active === "Network") {
-    content = (
-      <DebugNetwork logs={logs} colors={colors} formatTime={formatTime} />
-    );
+    content = <DebugNetwork logs={logs} colors={colors} formatTime={formatTime} />;
   } else if (active === "Player") {
-    content = (
-      <DebugPlayer logs={logs} colors={colors} formatTime={formatTime} />
-    );
+    content = <DebugPlayer logs={logs} colors={colors} formatTime={formatTime} />;
   }
 
   /* ------------------------------------------------------------
