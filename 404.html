@@ -1,7 +1,7 @@
 <!--
   File: 404.html
   Path: 404.html
-  Description: GitHub Pages SPA redirect for BrowserRouter + basename.
+  Description: Bulletproof GitHub Pages SPA redirect for BrowserRouter + basename.
 -->
 
 <!DOCTYPE html>
@@ -13,14 +13,15 @@
 
     <script>
       (function () {
-        // Always redirect to the SPA root
+        // Your GitHub Pages repo root
         var repo = "/MyTube-Piped-Frontend";
 
-        // Preserve query + hash
+        // Preserve search + hash (React Router will use them)
         var search = window.location.search || "";
         var hash = window.location.hash || "";
 
-        // Send user back to index.html inside the repo
+        // Always redirect to index.html inside the repo
+        // React Router will take over from there
         window.location.replace(repo + "/index.html" + search + hash);
       })();
     </script>
