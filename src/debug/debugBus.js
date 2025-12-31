@@ -1,75 +1,70 @@
 /**
  * File: debugBus.js
  * Path: src/debug/debugBus.js
- * Description: Global debug event bus for runtime logs including player + router events.
+ * Description: Central debug event bus. Stores all logs and notifies subscribers.
  */
 
 const listeners = new Set();
+const logs = [];
 
-// ------------------------------------------------------------
-// Core log emitter
-// ------------------------------------------------------------
-export function debugLog(level, msg, data) {
+/**
+ * Publish a log entry into the bus.
+ * level: string (e.g. "NETWORK", "PLAYER", "ROUTER", "CONSOLE", etc.)
+ * msg: string
+ * data: optional metadata object
+ */
+function log(level, msg, data = null) {
   const entry = {
     level,
-    msg: data ? `${msg} ${JSON.stringify(data)}` : msg,
+    msg,
+    data,
     ts: Date.now()
   };
 
-  // FIX: emit (level, entry)
-  listeners.forEach((fn) => fn(level, entry));
+  logs.push(entry);
+
+  // Notify all subscribers with the new entry and full log snapshot
+  for (const fn of listeners) {
+    try {
+      fn(entry, logs);
+    } catch (err) {
+      // Never let a subscriber break the bus
+      // eslint-disable-next-line no-console
+      console.error("debugBus subscriber error:", err);
+    }
+  }
 }
 
-// ------------------------------------------------------------
-// Category helpers
-// ------------------------------------------------------------
-export function logPlayer(msg, data) {
-  debugLog("PLAYER", msg, data);
-}
-
-export function logRouter(msg, data) {
-  debugLog("ROUTER", msg, data);
-}
-
-export function logPerf(msg, data) {
-  debugLog("PERF", msg, data);
-}
-
-export function logCmd(msg, data) {
-  debugLog("CMD", msg, data);
-}
-
-export function logInfo(msg, data) {
-  debugLog("INFO", msg, data);
-}
-
-export function logError(msg, data) {
-  debugLog("ERROR", msg, data);
-}
-
-// ------------------------------------------------------------
-// Subscription API (used by DebugOverlay)
-// ------------------------------------------------------------
+/**
+ * Subscribe to log updates.
+ * fn(entry, allLogs) is called for every new log.
+ * Returns an unsubscribe function.
+ */
 function subscribe(fn) {
   listeners.add(fn);
-  return () => listeners.delete(fn);
+  // Immediately send current logs so late subscribers see history
+  if (logs.length > 0) {
+    try {
+      fn(null, logs);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("debugBus initial subscriber error:", err);
+    }
+  }
+  return () => {
+    listeners.delete(fn);
+  };
 }
 
-function unsubscribe(fn) {
-  listeners.delete(fn);
+/**
+ * Get a shallow copy of all logs.
+ */
+function getLogs() {
+  return logs.slice();
 }
 
-// ------------------------------------------------------------
-// Unified debug bus
-// ------------------------------------------------------------
 export const debugBus = {
-  log: debugLog,
-  player: logPlayer,
-  router: logRouter,
-  perf: logPerf,
-  cmd: logCmd,
-  info: logInfo,
-  error: logError,
+  log,
   subscribe,
-  unsubscribe
+  getLogs
 };
