@@ -8,8 +8,24 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
+// ------------------------------------------------------------
+// 1. Initialize debug system BEFORE anything else
+// ------------------------------------------------------------
 import "./debug/bootDebug.js";
 
+// ------------------------------------------------------------
+// 2. Install global loggers (Network, Player, etc.)
+//    These MUST run before React mounts.
+// ------------------------------------------------------------
+import { installNetworkLogger } from "./debug/NetworkLogger.js";
+import { installPlayerLogger } from "./debug/PlayerLogger.js";
+
+installNetworkLogger();
+installPlayerLogger();
+
+// ------------------------------------------------------------
+// 3. Global error listeners
+// ------------------------------------------------------------
 window.addEventListener("error", (e) => {
   window.bootDebug?.error("GLOBAL ERROR → " + e.message);
 });
@@ -20,6 +36,9 @@ window.addEventListener("unhandledrejection", (e) => {
   );
 });
 
+// ------------------------------------------------------------
+// 4. App root
+// ------------------------------------------------------------
 import App from "./app/App.jsx";
 
 function mount() {
