@@ -40,6 +40,7 @@ window.addEventListener("unhandledrejection", (e) => {
 // 4. App root
 // ------------------------------------------------------------
 import App from "./app/App.jsx";
+import { PlayerProvider } from "./player/PlayerContext.jsx";
 
 function mount() {
   window.bootDebug?.boot("main.jsx → React root mounting");
@@ -56,7 +57,9 @@ function mount() {
 
     root.render(
       <BrowserRouter>
-        <App />
+        <PlayerProvider>
+          <App />
+        </PlayerProvider>
       </BrowserRouter>
     );
 
