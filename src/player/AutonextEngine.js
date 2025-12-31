@@ -12,8 +12,6 @@
  *              - No crashes if callback missing
  */
 
-import { debugBus } from "../debug/debugBus.js";
-
 class AutonextEngineClass {
   constructor() {
     this.relatedCallback = null;
@@ -25,12 +23,14 @@ class AutonextEngineClass {
    */
   registerRelatedCallback(cb) {
     if (typeof cb !== "function") {
-      debugBus.player("AutonextEngine → registerRelatedCallback ignored (not a function)");
+      window.bootDebug?.player(
+        "AutonextEngine → registerRelatedCallback ignored (not a function)"
+      );
       return;
     }
 
     this.relatedCallback = cb;
-    debugBus.player("AutonextEngine → related callback registered");
+    window.bootDebug?.player("AutonextEngine → related callback registered");
   }
 
   /**
@@ -39,15 +39,18 @@ class AutonextEngineClass {
    */
   triggerRelated() {
     if (!this.relatedCallback) {
-      debugBus.player("AutonextEngine → No related callback registered");
+      window.bootDebug?.player("AutonextEngine → No related callback registered");
       return;
     }
 
     try {
-      debugBus.player("AutonextEngine → Triggering related callback");
+      window.bootDebug?.player("AutonextEngine → Triggering related callback");
       this.relatedCallback();
     } catch (err) {
-      debugBus.player("AutonextEngine → Error in related callback: " + (err?.message || err));
+      window.bootDebug?.player(
+        "AutonextEngine → Error in related callback: " +
+          (err?.message || err)
+      );
     }
   }
 }
