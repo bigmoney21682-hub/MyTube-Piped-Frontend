@@ -1,14 +1,13 @@
 /**
  * File: App.jsx
  * Path: src/app/App.jsx
- * Description: Main application shell with Footer, MiniPlayer, GlobalPlayer,
- *              DebugOverlay, and full routing. Router is provided by main.jsx.
+ * Description: Main application shell. No DebugOverlay here.
  */
 
 import React from "react";
-import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
-// Components
+// Layout
 import Header from "../components/Header.jsx";
 import Footer, { FOOTER_HEIGHT } from "../layout/Footer.jsx";
 
@@ -21,22 +20,10 @@ import Shorts from "../pages/Shorts.jsx";
 import Subs from "../pages/Subs.jsx";
 
 // Player
-import { GlobalPlayer } from "../player/GlobalPlayer.js";
 import MiniPlayer from "../player/MiniPlayer.jsx";
-
-// Debug
-import DebugOverlay from "../debug/DebugOverlay.jsx";
+import { GlobalPlayer } from "../player/GlobalPlayer.js";
 
 export default function App() {
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // Force React Router to re-emit the initial route on boot
-  React.useEffect(() => {
-    navigate(location.pathname + location.search, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <div
       style={{
@@ -49,7 +36,7 @@ export default function App() {
     >
       <Header />
 
-      {/* GlobalPlayer is a singleton imported for side effects */}
+      {/* GlobalPlayer loads via side effects */}
       <MiniPlayer />
 
       <Routes>
@@ -61,7 +48,6 @@ export default function App() {
         <Route path="/subs" element={<Subs />} />
       </Routes>
 
-      <DebugOverlay />
       <Footer />
     </div>
   );
