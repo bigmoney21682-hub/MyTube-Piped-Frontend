@@ -1,39 +1,21 @@
 /**
  * File: quotaTracker.js
  * Path: src/debug/quotaTracker.js
- * Description: Tracks YouTube API quota usage locally.
+ * Description: Tracks YouTube API quota usage per API key.
  */
 
-let unitsUsed = 0;
-let lastKey = "UNKNOWN";
-let quotaError = false;
+const quota = {};
 
-// YouTube API documented costs
-const COSTS = {
-  "videos.list": 1,
-  "search.list": 100,
-  "channels.list": 1
-};
+export function recordQuotaUsage(key, cost) {
+  if (!key) return;
 
-export function recordCall(endpoint, keyLabel) {
-  const cost = COSTS[endpoint] ?? 1;
-  unitsUsed += cost;
-  lastKey = keyLabel;
+  quota[key] = (quota[key] || 0) + cost;
+
+  window.bootDebug?.network(
+    `Quota → ${key} used ${cost} units (total=${quota[key]})`
+  );
 }
 
-export function recordQuotaError() {
-  quotaError = true;
-}
-
-export function getQuotaSummary() {
-  if (quotaError) {
-    return "[QUOTA] EXHAUSTED — quotaExceeded";
-  }
-
-  const remaining = 10000 - unitsUsed;
-  return `[QUOTA] ${unitsUsed} used / ${remaining} left`;
-}
-
-export function getLastKeyUsed() {
-  return lastKey;
+export function getQuotaSnapshot() {
+  return { ...quota };
 }
