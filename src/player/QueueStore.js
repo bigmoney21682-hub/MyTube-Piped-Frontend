@@ -26,17 +26,17 @@ class QueueStoreClass {
 
     // Prevent duplicates
     if (this.queue.includes(id)) {
-      debugBus.player("QueueStore → ID already in queue: " + id);
+      debugBus.log("PLAYER", "QueueStore → ID already in queue: " + id);
       return;
     }
 
     this.queue.push(id);
-    debugBus.player("QueueStore → Added: " + id);
+    debugBus.log("PLAYER", "QueueStore → Added: " + id);
 
     // If this is the first item, set index to 0
     if (this.index === -1) {
       this.index = 0;
-      debugBus.player("QueueStore → First item, index=0");
+      debugBus.log("PLAYER", "QueueStore → First item, index=0");
     }
   }
 
@@ -46,19 +46,19 @@ class QueueStoreClass {
    */
   next() {
     if (this.queue.length === 0) {
-      debugBus.player("QueueStore → next() but queue empty");
+      debugBus.log("PLAYER", "QueueStore → next() but queue empty");
       return null;
     }
 
     if (this.index + 1 >= this.queue.length) {
-      debugBus.player("QueueStore → next() reached end of queue");
+      debugBus.log("PLAYER", "QueueStore → next() reached end of queue");
       return null;
     }
 
     this.index += 1;
     const id = this.queue[this.index];
 
-    debugBus.player("QueueStore → next() → " + id);
+    debugBus.log("PLAYER", "QueueStore → next() → " + id);
     return id;
   }
 
@@ -76,7 +76,7 @@ class QueueStoreClass {
   clear() {
     this.queue = [];
     this.index = -1;
-    debugBus.player("QueueStore → cleared");
+    debugBus.log("PLAYER", "QueueStore → cleared");
   }
 }
 
