@@ -53,16 +53,12 @@ class GlobalPlayerClass {
    * Retries for a short window so it can wait for the Watch page DOM.
    */
   ensureMounted() {
-    if (this.player) {
-      return;
-    }
-
-    if (this._mountCheckInterval) {
-      return;
-    }
+    if (this.player) return;
+    if (this._mountCheckInterval) return;
 
     let attempts = 0;
     const maxAttempts = 50; // ~5 seconds
+
     this._mountCheckInterval = setInterval(() => {
       const mount = document.getElementById("player");
 
@@ -119,7 +115,13 @@ class GlobalPlayerClass {
         autoplay: 0,
         controls: 1,
         rel: 0,
-        playsinline: 1
+        playsinline: 1,
+
+        // ⭐ NEW: Remove YouTube links / branding (maximum allowed)
+        modestbranding: 1,
+        iv_load_policy: 3,
+        showinfo: 0,
+        disablekb: 0
       },
       events: {
         onReady: () => {
@@ -128,10 +130,7 @@ class GlobalPlayerClass {
 
           try {
             this.player.setSize("100%", "100%");
-            debugBus.log(
-              "PLAYER",
-              "GlobalPlayer → setSize(100%,100%) after init"
-            );
+            debugBus.log("PLAYER", "GlobalPlayer → setSize(100%,100%) after init");
           } catch {}
 
           if (typeof this.onReady === "function") {
@@ -168,13 +167,10 @@ class GlobalPlayerClass {
   load(id) {
     if (!id) return;
 
-    // If no player yet, queue and ensure mount
     if (!this.player) {
       debugBus.log(
         "PLAYER",
-        "GlobalPlayer → No player yet, will wait for #player and queue load(" +
-          id +
-          ")"
+        "GlobalPlayer → No player yet, will wait for #player and queue load(" + id + ")"
       );
       this.pendingLoad = id;
       this.ensureMounted();
@@ -182,10 +178,7 @@ class GlobalPlayerClass {
     }
 
     if (!this.ready) {
-      debugBus.log(
-        "PLAYER",
-        "GlobalPlayer → Not ready, queuing load(" + id + ")"
-      );
+      debugBus.log("PLAYER", "GlobalPlayer → Not ready, queuing load(" + id + ")");
       this.pendingLoad = id;
       return;
     }
@@ -201,8 +194,7 @@ class GlobalPlayerClass {
       if (!this.player || !this.ready) {
         debugBus.log(
           "PLAYER",
-          "GlobalPlayer → _safeLoadNow called but player not ready, re-queuing " +
-            id
+          "GlobalPlayer → _safeLoadNow called but player not ready, re-queuing " + id
         );
         this.pendingLoad = id;
         return;
@@ -218,10 +210,7 @@ class GlobalPlayerClass {
         } catch {}
       }, 50);
     } catch (err) {
-      debugBus.log(
-        "PLAYER",
-        "GlobalPlayer.load error: " + (err?.message || err)
-      );
+      debugBus.log("PLAYER", "GlobalPlayer.load error: " + (err?.message || err));
     }
   }
 
