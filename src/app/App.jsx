@@ -18,10 +18,10 @@ import Menu from "../pages/Menu.jsx";
 import Playlists from "../pages/Playlists.jsx";
 import Shorts from "../pages/Shorts.jsx";
 import Subs from "../pages/Subs.jsx";
+import Search from "../pages/Search.jsx";   // ⭐ ADDED
 
 // Player
 import MiniPlayer from "../player/MiniPlayer.jsx";
-import { GlobalPlayer } from "../player/GlobalPlayer.js";
 
 export default function App() {
   return (
@@ -36,12 +36,12 @@ export default function App() {
     >
       <Header />
 
-      {/* GlobalPlayer loads via side effects */}
       <MiniPlayer />
 
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/watch/:id" element={<Watch />} />
+        <Route path="/search" element={<Search />} />   {/* ⭐ FIXED */}
         <Route path="/menu" element={<Menu />} />
         <Route path="/playlists" element={<Playlists />} />
         <Route path="/shorts" element={<Shorts />} />
