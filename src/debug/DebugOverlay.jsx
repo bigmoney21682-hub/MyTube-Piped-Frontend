@@ -2,10 +2,12 @@
  * File: DebugOverlay.jsx
  * Path: src/debug/DebugOverlay.jsx
  * Description: Full debug overlay stacked above footer and below MiniPlayer.
+ *              Subscribes to debugBus and feeds logs into all inspectors.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FOOTER_HEIGHT } from "../layout/Footer.jsx";
+import { debugBus } from "./debugBus.js";
 import DebugNetwork from "./DebugNetwork.jsx";
 import DebugPlayer from "./DebugPlayer.jsx";
 import DebugRouter from "./DebugRouter.jsx";
@@ -14,11 +16,19 @@ import DebugConsole from "./DebugConsole.jsx";
 export default function DebugOverlay() {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState("network");
+  const [logs, setLogs] = useState([]);
 
   // ------------------------------------------------------------
-  // LOG STORAGE (simple internal buffer for now)
+  // Subscribe to debugBus
   // ------------------------------------------------------------
-  const [logs] = useState([]);
+  useEffect(() => {
+    const unsubscribe = debugBus.subscribe((entry, allLogs) => {
+      if (Array.isArray(allLogs)) {
+        setLogs(allLogs.slice());
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   // ------------------------------------------------------------
   // COLOR MAP
@@ -29,7 +39,13 @@ export default function DebugOverlay() {
     NETWORK: "#cccccc",
     PLAYER: "#ffcc66",
     ROUTER: "#66ff66",
-    CONSOLE: "#ffffff"
+    CONSOLE: "#ffffff",
+    INFO: "#88c0ff",
+    WARN: "#ffcc66",
+    ERROR: "#ff6666",
+    BOOT: "#aaaaaa",
+    PERF: "#66ffcc",
+    CMD: "#ff99ff"
   };
 
   // ------------------------------------------------------------
