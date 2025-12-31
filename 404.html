@@ -1,7 +1,7 @@
 <!--
   File: 404.html
   Path: 404.html
-  Description: GitHub Pages SPA redirect for BrowserRouter (no hash).
+  Description: GitHub Pages SPA redirect for BrowserRouter + basename.
 -->
 
 <!DOCTYPE html>
@@ -13,20 +13,15 @@
 
     <script>
       (function () {
-        var l = window.location;
+        // Always redirect to the SPA root
         var repo = "/MyTube-Piped-Frontend";
 
-        console.log("[404] Original pathname:", l.pathname);
+        // Preserve query + hash
+        var search = window.location.search || "";
+        var hash = window.location.hash || "";
 
-        // Remove repo prefix
-        var stripped = l.pathname.replace(repo, "");
-        console.log("[404] Stripped pathname:", stripped);
-
-        // Redirect to a REAL pathname BrowserRouter can read
-        var redirect = repo + stripped + l.search + l.hash;
-        console.log("[404] Final redirect URL:", redirect);
-
-        window.location.replace(redirect);
+        // Send user back to index.html inside the repo
+        window.location.replace(repo + "/index.html" + search + hash);
       })();
     </script>
 
@@ -47,6 +42,9 @@
 
   <body>
     <h2>Redirecting…</h2>
-    <p>If you are not redirected automatically, <a href="/MyTube-Piped-Frontend/">click here</a>.</p>
+    <p>
+      If you are not redirected automatically,
+      <a href="/MyTube-Piped-Frontend/">click here</a>.
+    </p>
   </body>
 </html>
