@@ -1,130 +1,147 @@
 /**
  * File: DebugOverlay.jsx
  * Path: src/debug/DebugOverlay.jsx
- * Description: Minimal corrected version — ONLY fixes:
- *              1) pointerEvents so overlay doesn't block UI on boot
- *              2) null guard so logs never crash on boot
+ * Description: Full debug overlay stacked above footer and below MiniPlayer.
+ *              Subscribes to debugBus and feeds logs into all inspectors.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { FOOTER_HEIGHT } from "../layout/Footer.jsx";
 import { debugBus } from "./debugBus.js";
+import DebugNetwork from "./DebugNetwork.jsx";
+import DebugPlayer from "./DebugPlayer.jsx";
+import DebugRouter from "./DebugRouter.jsx";
+import DebugConsole from "./DebugConsole.jsx";
+import DebugTabs from "./DebugTabs.jsx";
 
 export default function DebugOverlay() {
-  const [visible, setVisible] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState("network");
   const [logs, setLogs] = useState([]);
-  const scrollRef = useRef(null);
 
+  // ------------------------------------------------------------
   // Subscribe to debugBus
+  // ------------------------------------------------------------
   useEffect(() => {
-    const unsub = debugBus.subscribe((entry) => {
-      setLogs((prev) => [...prev, entry]);
+    const unsubscribe = debugBus.subscribe((entry, allLogs) => {
+      if (Array.isArray(allLogs)) {
+        // ⭐ FIX #1 — null guard
+        setLogs(allLogs.filter(Boolean).slice());
+      }
     });
-    return () => unsub();
+    return unsubscribe;
   }, []);
 
-  // Auto-scroll when visible
-  useEffect(() => {
-    if (!visible) return;
-    const el = scrollRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [logs, visible]);
+  // ------------------------------------------------------------
+  // COLOR MAP
+  // ------------------------------------------------------------
+  const colors = {
+    FETCH: "#66ccff",
+    ERROR_FETCH: "#ff6666",
+    NETWORK: "#cccccc",
+    PLAYER: "#ffcc66",
+    ROUTER: "#66ff66",
+    CONSOLE: "#ffffff",
+    INFO: "#88c0ff",
+    WARN: "#ffcc66",
+    ERROR: "#ff6666",
+    BOOT: "#aaaaaa",
+    PERF: "#66ffcc",
+    CMD: "#ff99ff"
+  };
+
+  // ------------------------------------------------------------
+  // TIMESTAMP FORMATTER
+  // ------------------------------------------------------------
+  const formatTime = (ts) => {
+    try {
+      return new Date(ts).toLocaleTimeString();
+    } catch {
+      return "";
+    }
+  };
+
+  // ------------------------------------------------------------
+  // Copy active tab logs
+  // ------------------------------------------------------------
+  function handleCopy() {
+    const filtered = logs.filter((l) => {
+      if (!l) return false;
+      if (tab === "console") return ["CONSOLE", "INFO", "WARN", "ERROR"].includes(l.level);
+      if (tab === "router") return l.level === "ROUTER";
+      if (tab === "network") return ["NETWORK", "FETCH", "ERROR_FETCH"].includes(l.level);
+      if (tab === "player") return l.level === "PLAYER";
+      return false;
+    });
+
+    const text = filtered
+      .map((l) => `[${formatTime(l.ts)}] ${l.msg}`)
+      .join("\n");
+
+    navigator.clipboard.writeText(text);
+  }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        zIndex: 9999,
-
-        // ⭐ FIX 1 — overlay no longer blocks UI
-        pointerEvents: "none"
-      }}
-    >
-      {/* Toggle button (always clickable) */}
+    <>
+      {/* Toggle button */}
       <button
-        onClick={() => setVisible((v) => !v)}
+        onClick={() => setOpen(!open)}
         style={{
           position: "fixed",
-          bottom: "80px",
-          right: "20px",
-          padding: "10px 14px",
-          background: "#111",
+          right: 12,
+          bottom: FOOTER_HEIGHT + 12,
+          zIndex: 2001,
+          background: "#222",
           color: "#fff",
           border: "1px solid #444",
-          borderRadius: "6px",
-          zIndex: 10000,
-
-          // Button must be interactive
-          pointerEvents: "auto"
+          padding: "6px 10px",
+          borderRadius: 4,
+          fontSize: 12,
+          pointerEvents: "auto" // ⭐ FIX #2 — allow button clicks
         }}
       >
-        {visible ? "Close Debug" : "Debug"}
+        {open ? "Close Debug" : "Debug"}
       </button>
 
-      {/* Debug panel */}
-      {visible && (
+      {/* Overlay */}
+      {open && (
         <div
           style={{
             position: "fixed",
-            bottom: 0,
             left: 0,
+            bottom: FOOTER_HEIGHT,
             width: "100%",
-            height: "50%",
-            background: "rgba(0,0,0,0.92)",
-            borderTop: "2px solid #444",
-            padding: "10px",
+            height: "40%",
+            background: "#000",
+            borderTop: "1px solid #333",
+            zIndex: 2000,
             display: "flex",
             flexDirection: "column",
 
-            // Panel must be interactive
+            // ⭐ FIX #3 — overlay no longer blocks UI
             pointerEvents: "auto"
           }}
         >
-          {/* Log list */}
-          <div
-            ref={scrollRef}
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              background: "#000",
-              padding: "8px",
-              border: "1px solid #333",
-              borderRadius: "4px",
-              fontSize: "13px",
-              lineHeight: 1.35
-            }}
-          >
-            {logs
-              .filter(Boolean)   // ⭐ FIX 2 — remove null entries
-              .map((l, i) => (
-                <div key={i} style={{ marginBottom: "4px" }}>
-                  <span style={{ opacity: 0.6 }}>[{l.time}]</span>{" "}
-                  <span style={{ color: "#0af" }}>{l.level}</span> →{" "}
-                  <span>{l.msg}</span>
-                </div>
-              ))}
-          </div>
+          {/* Tabs (your original header) */}
+          <DebugTabs activeTab={tab} onChange={setTab} onCopy={handleCopy} />
 
-          {/* Clear button */}
-          <button
-            onClick={() => setLogs([])}
-            style={{
-              marginTop: "8px",
-              padding: "6px 10px",
-              background: "#222",
-              color: "#fff",
-              border: "1px solid #444",
-              borderRadius: "4px",
-              alignSelf: "flex-start"
-            }}
-          >
-            Clear
-          </button>
+          {/* Content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+            {tab === "network" && (
+              <DebugNetwork logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+            {tab === "player" && (
+              <DebugPlayer logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+            {tab === "router" && (
+              <DebugRouter logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+            {tab === "console" && (
+              <DebugConsole logs={logs} colors={colors} formatTime={formatTime} />
+            )}
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
