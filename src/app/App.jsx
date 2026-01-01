@@ -16,9 +16,10 @@ import Home from "../pages/Home/Home.jsx";
 import Watch from "../pages/Watch/Watch.jsx";
 import Menu from "../pages/Menu.jsx";
 import Playlists from "../pages/Playlists.jsx";
+import Playlist from "../pages/Playlist.jsx";
 import Shorts from "../pages/Shorts.jsx";
 import Subs from "../pages/Subs.jsx";
-import Search from "../pages/Search.jsx";   // ⭐ ADDED
+import Search from "../pages/Search.jsx";
 
 // Player
 import MiniPlayer from "../player/MiniPlayer.jsx";
@@ -41,9 +42,10 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/watch/:id" element={<Watch />} />
-        <Route path="/search" element={<Search />} />   {/* ⭐ FIXED */}
+        <Route path="/search" element={<Search />} />
         <Route path="/menu" element={<Menu />} />
         <Route path="/playlists" element={<Playlists />} />
+        <Route path="/playlist/:id" element={<Playlist />} />
         <Route path="/shorts" element={<Shorts />} />
         <Route path="/subs" element={<Subs />} />
       </Routes>
