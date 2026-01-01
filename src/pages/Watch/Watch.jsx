@@ -14,6 +14,9 @@ import { getApiKey } from "../../api/getApiKey.js";
 import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 import { debugBus } from "../../debug/debugBus.js";
 
+// ⭐ Import Media Session metadata helper
+import { updateMediaSessionMetadata } from "../../main.jsx";
+
 const API_KEY = getApiKey();
 
 /* ------------------------------------------------------------
@@ -234,6 +237,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      2nd attempt: run fallback AFTER video details load
+     ⭐ Also update Media Session metadata here
   ------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
@@ -241,6 +245,15 @@ export default function Watch() {
         "NETWORK",
         "Watch.jsx → Retrying related fetch after video loaded"
       );
+
+      // ⭐ Update lockscreen metadata
+      const sn = video?.snippet ?? {};
+      updateMediaSessionMetadata({
+        title: sn.title ?? "Untitled",
+        artist: sn.channelTitle ?? "Unknown Channel",
+        artwork: sn.thumbnails?.medium?.url ?? ""
+      });
+
       fetchRelated(id);
     }
   }, [video]);
@@ -433,7 +446,7 @@ function PlayerOverlay({ related, navigate }) {
         height: "100%",
         zIndex: 20,
         cursor: "pointer",
-        pointerEvents: visible ? "auto" : "none"   // ⭐ FIX: YouTube play button works again
+        pointerEvents: visible ? "auto" : "none"
       }}
     >
       {visible && (
