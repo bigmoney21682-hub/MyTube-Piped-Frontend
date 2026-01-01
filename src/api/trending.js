@@ -1,48 +1,46 @@
 /**
  * File: trending.js
  * Path: src/api/trending.js
- * Description: Fetches trending videos using YouTube Data API v3 through
- *              the unified youtubeApiRequest client.
+ * Description: Fetches trending videos with dev-safe caching.
  */
 
 import { youtubeApiRequest } from "./youtube.js";
+import { cacheGet, cacheSet } from "../cache/apiCache.js";
 import { debugBus } from "../debug/debugBus.js";
 
-/**
- * Fetch trending videos for a region.
- *
- * @param {string} region - ISO 3166-1 alpha-2 region code (e.g. "US")
- * @returns {Promise<Array>} - normalized video list
- */
-export async function fetchTrendingVideos(region = "US") {
-  debugBus.log("NETWORK", `Trending → Fetching for region=${region}`);
+export async function fetchTrending(region = "US") {
+  const key = `trending:${region}`;
 
+  // 1. Try cache
+  const cached = cacheGet(key);
+  if (cached) {
+    debugBus.log("NETWORK", `TrendingCache → HIT for ${region}`);
+    return cached;
+  }
+
+  debugBus.log("NETWORK", `TrendingCache → MISS for ${region}`);
+
+  // 2. Fetch from API
   const data = await youtubeApiRequest("videos", {
     part: "snippet,contentDetails,statistics",
     chart: "mostPopular",
-    regionCode: region,
-    maxResults: "25"
+    maxResults: "20",
+    regionCode: region
   });
 
-  if (!data || !Array.isArray(data.items)) {
-    debugBus.log("NETWORK", "Trending → No data returned from YouTube");
-    return [];
-  }
+  if (!Array.isArray(data?.items)) return [];
 
   const normalized = data.items.map((item) => ({
     id: item.id,
-    title: item.snippet.title,
-    author: item.snippet.channelTitle,
-    channelId: item.snippet.channelId,
-    thumbnail: item.snippet.thumbnails?.medium?.url,
-    views: item.statistics?.viewCount,
-    published: item.snippet.publishedAt
+    title: item.snippet?.title,
+    author: item.snippet?.channelTitle,
+    channelId: item.snippet?.channelId,
+    thumbnail: item.snippet?.thumbnails?.medium?.url,
+    published: item.snippet?.publishedAt
   }));
 
-  debugBus.log(
-    "NETWORK",
-    `Trending → Normalized ${normalized.length} videos`
-  );
+  // 3. Store in cache
+  cacheSet(key, normalized, 1000 * 60 * 10); // 10 min
 
   return normalized;
 }
