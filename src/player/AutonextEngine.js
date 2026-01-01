@@ -1,58 +1,96 @@
 /**
  * File: AutonextEngine.js
  * Path: src/player/AutonextEngine.js
- * Description: Centralized autonext dispatcher for "related" mode.
- *              Allows Watch.jsx to register a single callback that fires
- *              when the current video ends AND autonextMode === "related".
+ * Description: Centralized autonext dispatcher for multiple modes.
  *
- *              Guarantees:
- *              - Only ONE callback is ever registered
- *              - No stale closures
- *              - No double triggers
- *              - No crashes if callback missing
+ * Supports:
+ *   - "related"
+ *   - "playlist"
+ *   - "trending" (placeholder)
+ *   - "music" (placeholder)
+ *
+ * Guarantees:
+ *   - Only ONE callback per mode
+ *   - No stale closures
+ *   - No double triggers
+ *   - No crashes if callback missing
  */
 
 class AutonextEngineClass {
   constructor() {
-    this.relatedCallback = null;
+    // Each mode gets its own callback
+    this.callbacks = {
+      related: null,
+      playlist: null,
+      trending: null,
+      music: null
+    };
   }
 
   /**
-   * Register the callback for "related" autonext mode.
-   * This is called ONCE from Watch.jsx.
+   * Register a callback for a specific autonext mode.
+   * Example:
+   *   AutonextEngine.register("related", () => { ... })
    */
-  registerRelatedCallback(cb) {
+  register(mode, cb) {
     if (typeof cb !== "function") {
       window.bootDebug?.player(
-        "AutonextEngine → registerRelatedCallback ignored (not a function)"
+        `AutonextEngine → register(${mode}) ignored (not a function)`
       );
       return;
     }
 
-    this.relatedCallback = cb;
-    window.bootDebug?.player("AutonextEngine → related callback registered");
+    if (!this.callbacks.hasOwnProperty(mode)) {
+      window.bootDebug?.player(
+        `AutonextEngine → register(${mode}) ignored (unknown mode)`
+      );
+      return;
+    }
+
+    this.callbacks[mode] = cb;
+    window.bootDebug?.player(
+      `AutonextEngine → callback registered for mode="${mode}"`
+    );
   }
 
   /**
-   * Trigger the related callback.
-   * Called by PlayerContext when the video ends AND autonextMode === "related".
+   * Trigger autonext for the given mode.
+   * Called by PlayerContext when the video ends.
    */
-  triggerRelated() {
-    if (!this.relatedCallback) {
-      window.bootDebug?.player("AutonextEngine → No related callback registered");
+  trigger(mode) {
+    const cb = this.callbacks[mode];
+
+    if (!cb) {
+      window.bootDebug?.player(
+        `AutonextEngine → No callback registered for mode="${mode}"`
+      );
       return;
     }
 
     try {
-      window.bootDebug?.player("AutonextEngine → Triggering related callback");
-      this.relatedCallback();
+      window.bootDebug?.player(
+        `AutonextEngine → Triggering callback for mode="${mode}"`
+      );
+      cb();
     } catch (err) {
       window.bootDebug?.player(
-        "AutonextEngine → Error in related callback: " +
-          (err?.message || err)
+        `AutonextEngine → Error in ${mode} callback: ${err?.message || err}`
       );
     }
+  }
+
+  /**
+   * Convenience: legacy API for "related" mode.
+   * Keeps your existing Watch.jsx code working.
+   */
+  registerRelatedCallback(cb) {
+    this.register("related", cb);
+  }
+
+  triggerRelated() {
+    this.trigger("related");
   }
 }
 
 export const AutonextEngine = new AutonextEngineClass();
+window.AutonextEngine = AutonextEngine;
