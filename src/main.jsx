@@ -2,6 +2,8 @@
  * File: main.jsx
  * Path: src/main.jsx
  */
+console.log("MyTube main.jsx LOADED — version TEST-1");
+
 
 import "./index.css";
 import React from "react";
