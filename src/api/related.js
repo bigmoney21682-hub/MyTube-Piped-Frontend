@@ -12,7 +12,9 @@ import { getVideoDetails } from "./video.js"; // assumes you have this
 export async function fetchRelatedVideos(videoId) {
   debugBus.log("NETWORK", `Related → Fetching for id=${videoId}`);
 
-  // First attempt: relatedToVideoId
+  // ------------------------------------------------------------
+  // 1. Primary attempt: relatedToVideoId
+  // ------------------------------------------------------------
   const relatedData = await youtubeApiRequest("search", {
     part: "snippet",
     relatedToVideoId: videoId,
@@ -22,19 +24,23 @@ export async function fetchRelatedVideos(videoId) {
   });
 
   if (Array.isArray(relatedData?.items) && relatedData.items.length > 0) {
-    const normalized = relatedData.items.map((item) => ({
-      id: item.id.videoId,
-      title: item.snippet.title,
-      author: item.snippet.channelTitle,
-      channelId: item.snippet.channelId,
-      thumbnail: item.snippet.thumbnails?.medium?.url,
-      published: item.snippet.publishedAt
+    let normalized = relatedData.items.map((item) => ({
+      id: item.id?.videoId,
+      title: item.snippet?.title,
+      author: item.snippet?.channelTitle,
+      channelId: item.snippet?.channelId,
+      thumbnail: item.snippet?.thumbnails?.medium?.url,
+      published: item.snippet?.publishedAt
     }));
+
+    // ⭐ Remove the current video from the list
+    normalized = normalized.filter((v) => v.id && v.id !== videoId);
 
     debugBus.log(
       "NETWORK",
-      `Related → Found ${normalized.length} via relatedToVideoId`
+      `Related → Found ${normalized.length} via relatedToVideoId (after filtering current)`
     );
+
     return normalized;
   }
 
@@ -43,7 +49,9 @@ export async function fetchRelatedVideos(videoId) {
     "Related → relatedToVideoId failed, falling back to keyword search"
   );
 
-  // Fallback: keyword search using video title
+  // ------------------------------------------------------------
+  // 2. Fallback: keyword search using video title
+  // ------------------------------------------------------------
   const details = await getVideoDetails(videoId);
   const title = details?.title || "";
 
@@ -65,18 +73,24 @@ export async function fetchRelatedVideos(videoId) {
     return [];
   }
 
-  const fallbackNormalized = searchData.items.map((item) => ({
-    id: item.id.videoId,
-    title: item.snippet.title,
-    author: item.snippet.channelTitle,
-    channelId: item.snippet.channelId,
-    thumbnail: item.snippet.thumbnails?.medium?.url,
-    published: item.snippet.publishedAt
+  let fallbackNormalized = searchData.items.map((item) => ({
+    id: item.id?.videoId,
+    title: item.snippet?.title,
+    author: item.snippet?.channelTitle,
+    channelId: item.snippet?.channelId,
+    thumbnail: item.snippet?.thumbnails?.medium?.url,
+    published: item.snippet?.publishedAt
   }));
+
+  // ⭐ Remove the current video from fallback results
+  fallbackNormalized = fallbackNormalized.filter(
+    (v) => v.id && v.id !== videoId
+  );
 
   debugBus.log(
     "NETWORK",
-    `Related → Found ${fallbackNormalized.length} via keyword fallback`
+    `Related → Found ${fallbackNormalized.length} via keyword fallback (after filtering current)`
   );
+
   return fallbackNormalized;
 }
