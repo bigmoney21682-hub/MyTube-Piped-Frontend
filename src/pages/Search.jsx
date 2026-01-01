@@ -1,16 +1,16 @@
 /**
  * File: Search.jsx
  * Path: src/pages/Search.jsx
- * Description: Search results page using YouTube Data API with stacked
- *              16:9 thumbnails and limited results to reduce quota usage.
+ * Description: Search results page using cached YouTube Data API wrapper
+ *              with stacked 16:9 thumbnails and quota‑safe behavior.
  */
 
 import React, { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { debugBus } from "../debug/debugBus.js";
-import { getApiKey } from "../api/getApiKey.js";
 
-const API_KEY = getApiKey();
+// ⭐ NEW — cached search API
+import { searchVideos } from "../api/search.js";
 
 const cardStyle = {
   width: "100%",
@@ -57,33 +57,39 @@ export default function Search() {
     if (!query) return;
 
     debugBus.log("PLAYER", "Search.jsx → Searching: " + query);
-    fetchResults(query);
+    loadResults(query);
   }, [query]);
 
-  async function fetchResults(q) {
+  /* ------------------------------------------------------------
+     ⭐ NEW — Cached search
+  ------------------------------------------------------------- */
+  async function loadResults(q) {
     try {
-      const url =
-        `https://www.googleapis.com/youtube/v3/search?` +
-        `part=snippet&type=video&videoEmbeddable=true&maxResults=5&q=${encodeURIComponent(
-          q
-        )}&key=${API_KEY}`;
+      const list = await searchVideos(q, 20);
 
-      debugBus.log("PLAYER", "Search.jsx → fetchResults: " + url);
-
-      const res = await fetch(url);
-      const data = await res.json();
-
-      const items = Array.isArray(data?.items) ? data.items : [];
-      setResults(items);
-
-      if (!items.length) {
-        debugBus.log("PLAYER", "Search.jsx → fetchResults returned 0 items");
+      if (!Array.isArray(list)) {
+        debugBus.log("PLAYER", "Search.jsx → searchVideos returned invalid list");
+        setResults([]);
+        return;
       }
+
+      // Convert cached format → old snippet format
+      const normalized = list.map((item) => ({
+        id: { videoId: item.id },
+        snippet: {
+          title: item.title,
+          channelTitle: item.author,
+          description: "",
+          thumbnails: {
+            medium: { url: item.thumbnail }
+          }
+        }
+      }));
+
+      debugBus.log("PLAYER", `Search.jsx → Loaded ${normalized.length} results`);
+      setResults(normalized);
     } catch (err) {
-      debugBus.log(
-        "PLAYER",
-        "Search.jsx → fetchResults error: " + (err?.message || err)
-      );
+      debugBus.log("PLAYER", "Search.jsx → loadResults error: " + err?.message);
       setResults([]);
     }
   }
