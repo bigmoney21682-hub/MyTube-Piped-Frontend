@@ -1,20 +1,27 @@
 /**
  * File: related.js
  * Path: src/api/related.js
- * Description: Fetches related videos using YouTube Data API v3.
- * Falls back to keyword search if relatedToVideoId fails.
+ * Description: Fetches related videos with dev-safe caching.
  */
 
 import { youtubeApiRequest } from "./youtube.js";
+import { getVideoDetails } from "./video.js";
+import { getCachedRelated, setCachedRelated } from "../cache/relatedCache.js";
 import { debugBus } from "../debug/debugBus.js";
-import { getVideoDetails } from "./video.js"; // assumes you have this
 
 export async function fetchRelatedVideos(videoId) {
-  debugBus.log("NETWORK", `Related → Fetching for id=${videoId}`);
+  if (!videoId) return [];
 
-  // ------------------------------------------------------------
-  // 1. Primary attempt: relatedToVideoId
-  // ------------------------------------------------------------
+  // 1. Try cache
+  const cached = getCachedRelated(videoId);
+  if (cached) {
+    debugBus.log("NETWORK", `RelatedCache → HIT for ${videoId}`);
+    return cached;
+  }
+
+  debugBus.log("NETWORK", `RelatedCache → MISS for ${videoId}`);
+
+  // 2. Primary: relatedToVideoId
   const relatedData = await youtubeApiRequest("search", {
     part: "snippet",
     relatedToVideoId: videoId,
@@ -23,8 +30,10 @@ export async function fetchRelatedVideos(videoId) {
     videoEmbeddable: "true"
   });
 
-  if (Array.isArray(relatedData?.items) && relatedData.items.length > 0) {
-    let normalized = relatedData.items.map((item) => ({
+  let list = [];
+
+  if (Array.isArray(relatedData?.items)) {
+    list = relatedData.items.map((item) => ({
       id: item.id?.videoId,
       title: item.snippet?.title,
       author: item.snippet?.channelTitle,
@@ -32,33 +41,23 @@ export async function fetchRelatedVideos(videoId) {
       thumbnail: item.snippet?.thumbnails?.medium?.url,
       published: item.snippet?.publishedAt
     }));
-
-    // ⭐ Remove the current video from the list
-    normalized = normalized.filter((v) => v.id && v.id !== videoId);
-
-    debugBus.log(
-      "NETWORK",
-      `Related → Found ${normalized.length} via relatedToVideoId (after filtering current)`
-    );
-
-    return normalized;
   }
 
-  debugBus.log(
-    "NETWORK",
-    "Related → relatedToVideoId failed, falling back to keyword search"
-  );
+  // Remove current video
+  list = list.filter((v) => v.id && v.id !== videoId);
 
-  // ------------------------------------------------------------
-  // 2. Fallback: keyword search using video title
-  // ------------------------------------------------------------
+  if (list.length > 0) {
+    setCachedRelated(videoId, list);
+    return list;
+  }
+
+  debugBus.log("NETWORK", "Related → relatedToVideoId returned 0, falling back");
+
+  // 3. Fallback: keyword search
   const details = await getVideoDetails(videoId);
   const title = details?.title || "";
 
-  if (!title) {
-    debugBus.log("NETWORK", "Related → No title available for fallback search");
-    return [];
-  }
+  if (!title) return [];
 
   const searchData = await youtubeApiRequest("search", {
     part: "snippet",
@@ -68,29 +67,22 @@ export async function fetchRelatedVideos(videoId) {
     videoEmbeddable: "true"
   });
 
-  if (!Array.isArray(searchData?.items)) {
-    debugBus.log("NETWORK", "Related → Fallback search returned no items");
-    return [];
+  let fallback = [];
+
+  if (Array.isArray(searchData?.items)) {
+    fallback = searchData.items.map((item) => ({
+      id: item.id?.videoId,
+      title: item.snippet?.title,
+      author: item.snippet?.channelTitle,
+      channelId: item.snippet?.channelId,
+      thumbnail: item.snippet?.thumbnails?.medium?.url,
+      published: item.snippet?.publishedAt
+    }));
   }
 
-  let fallbackNormalized = searchData.items.map((item) => ({
-    id: item.id?.videoId,
-    title: item.snippet?.title,
-    author: item.snippet?.channelTitle,
-    channelId: item.snippet?.channelId,
-    thumbnail: item.snippet?.thumbnails?.medium?.url,
-    published: item.snippet?.publishedAt
-  }));
+  fallback = fallback.filter((v) => v.id && v.id !== videoId);
 
-  // ⭐ Remove the current video from fallback results
-  fallbackNormalized = fallbackNormalized.filter(
-    (v) => v.id && v.id !== videoId
-  );
+  setCachedRelated(videoId, fallback);
 
-  debugBus.log(
-    "NETWORK",
-    `Related → Found ${fallbackNormalized.length} via keyword fallback (after filtering current)`
-  );
-
-  return fallbackNormalized;
+  return fallback;
 }
