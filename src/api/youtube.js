@@ -47,13 +47,25 @@ export async function youtubeApiRequest(endpoint, params) {
 
     const res = await fetch(url.toString());
 
+    // ------------------------------------------------------------
+    // ⭐ NEW: Detailed error reason logging BEFORE returning failure
+    // ------------------------------------------------------------
     if (!res.ok) {
+      let err = null;
+      try {
+        err = await res.json();
+      } catch (_) {}
+
+      const reason = err?.error?.errors?.[0]?.reason;
+
       window.bootDebug?.network(
-        `YT API ${label} ERROR → status=${res.status}`
+        `YT API ${label} ERROR → status=${res.status}, reason=${reason || "unknown"}`
       );
+
       return { ok: false, status: res.status, data: null };
     }
 
+    // Success path
     const data = await res.json();
 
     // Track quota + key usage
