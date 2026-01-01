@@ -7,6 +7,7 @@
 
 import { recordQuotaUsage } from "../debug/quotaTracker.js";
 import { recordKeyUsage } from "../debug/keyUsageTracker.js";
+import { debugBus } from "../debug/debugBus.js";
 
 const PRIMARY_KEY = import.meta.env.VITE_YT_API_PRIMARY;
 const FALLBACK_KEY = import.meta.env.VITE_YT_API_FALLBACK1;
@@ -29,7 +30,8 @@ export async function youtubeApiRequest(endpoint, params) {
     Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
     url.searchParams.set("key", key);
 
-    window.bootDebug?.network(
+    debugBus.log(
+      "NETWORK",
       `YT API ${label} → ${url.pathname}?${url.searchParams.toString()}`
     );
 
@@ -45,7 +47,8 @@ export async function youtubeApiRequest(endpoint, params) {
 
       const reason = err?.error?.errors?.[0]?.reason;
 
-      window.bootDebug?.network(
+      debugBus.log(
+        "NETWORK",
         `YT API ${label} ERROR → status=${res.status}, reason=${reason || "unknown"}, body=${text}`
       );
 
@@ -59,7 +62,8 @@ export async function youtubeApiRequest(endpoint, params) {
     recordQuotaUsage(key, cost);
     recordKeyUsage(key, label);
 
-    window.bootDebug?.network(
+    debugBus.log(
+      "NETWORK",
       `YT API ${label} OK → endpoint=${endpoint}, items=${data.items?.length ?? 0}`
     );
 
@@ -72,7 +76,7 @@ export async function youtubeApiRequest(endpoint, params) {
       const primary = await tryWithKey(PRIMARY_KEY, "PRIMARY");
       if (primary.ok) return primary.data;
     } catch (err) {
-      window.bootDebug?.network(`YT API PRIMARY EXCEPTION → ${err.message}`);
+      debugBus.log("NETWORK", `YT API PRIMARY EXCEPTION → ${err.message}`);
     }
   }
 
@@ -82,10 +86,10 @@ export async function youtubeApiRequest(endpoint, params) {
       const fallback = await tryWithKey(FALLBACK_KEY, "FALLBACK1");
       if (fallback.ok) return fallback.data;
     } catch (err) {
-      window.bootDebug?.network(`YT API FALLBACK1 EXCEPTION → ${err.message}`);
+      debugBus.log("NETWORK", `YT API FALLBACK1 EXCEPTION → ${err.message}`);
     }
   }
 
-  window.bootDebug?.network("YT API → All keys failed for endpoint " + endpoint);
+  debugBus.log("NETWORK", "YT API → All keys failed for endpoint " + endpoint);
   return null;
 }
