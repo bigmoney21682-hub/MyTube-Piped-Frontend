@@ -6,7 +6,6 @@ console.log("MyTube main.jsx LOADED — version TEST-1");
 
 // ------------------------------------------------------------
 // 0. Media Session API: background audio + lockscreen controls
-//    (must run before React mounts)
 // ------------------------------------------------------------
 if ("mediaSession" in navigator) {
   navigator.mediaSession.setActionHandler("play", () => {
@@ -22,7 +21,6 @@ if ("mediaSession" in navigator) {
   });
 }
 
-// Helper to update lockscreen metadata from the player
 export function updateMediaSessionMetadata({ title, artist, artwork }) {
   if (!("mediaSession" in navigator)) return;
 
@@ -52,8 +50,7 @@ import { BrowserRouter } from "react-router-dom";
 import "./debug/bootDebug.js";
 
 // ------------------------------------------------------------
-// 2. Install global loggers (Network, Player, etc.)
-//    These MUST run before React mounts.
+// 2. Install global loggers
 // ------------------------------------------------------------
 import { installNetworkLogger } from "./debug/NetworkLogger.js";
 import { installPlayerLogger } from "./debug/PlayerLogger.js";
@@ -79,6 +76,7 @@ window.addEventListener("unhandledrejection", (e) => {
 // ------------------------------------------------------------
 import App from "./app/App.jsx";
 import { PlayerProvider } from "./player/PlayerContext.jsx";
+import { PlaylistProvider } from "./contexts/PlaylistContext.jsx";   // ⭐ NEW
 import DebugOverlay from "./debug/DebugOverlay.jsx";
 
 function mount() {
@@ -96,9 +94,11 @@ function mount() {
 
     root.render(
       <BrowserRouter basename="/MyTube-Piped-Frontend">
-        <PlayerProvider>
-          <App />
-        </PlayerProvider>
+        <PlaylistProvider>        {/* ⭐ NEW WRAPPER */}
+          <PlayerProvider>
+            <App />
+          </PlayerProvider>
+        </PlaylistProvider>
 
         <DebugOverlay />
       </BrowserRouter>
