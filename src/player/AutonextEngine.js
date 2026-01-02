@@ -1,5 +1,6 @@
 /**
  * File: AutonextEngine.js
+ * Path: src/player/AutonextEngine.js
  * Description: Handles autonext logic for related + playlist modes.
  */
 
@@ -8,6 +9,7 @@ import { QueueStore } from "./QueueStore.js";
 
 let mode = "related";
 let relatedCallback = null;
+let playlistCallback = null;
 
 export const AutonextEngine = {
   /* ------------------------------------------------------------
@@ -26,16 +28,31 @@ export const AutonextEngine = {
   },
 
   /* ------------------------------------------------------------
+     Register playlist-mode callback
+  ------------------------------------------------------------- */
+  registerPlaylistCallback(cb) {
+    playlistCallback = cb;
+  },
+
+  /* ------------------------------------------------------------
      Trigger autonext
   ------------------------------------------------------------- */
   trigger() {
     debugBus.log("AutonextEngine", `Triggering callback for mode="${mode}"`);
 
+    // Playlist mode
     if (mode === "playlist") {
       const next = QueueStore.next();
       if (next) {
         debugBus.log("AutonextEngine", `Playlist next → ${next}`);
-        window.location.href = `/watch/${next}`;
+        if (playlistCallback) {
+          playlistCallback(next);
+        } else {
+          debugBus.log(
+            "AutonextEngine",
+            "No playlist callback registered; cannot navigate"
+          );
+        }
       } else {
         debugBus.log("AutonextEngine", "Playlist ended");
       }
