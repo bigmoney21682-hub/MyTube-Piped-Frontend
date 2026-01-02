@@ -1,6 +1,18 @@
+/**
+ * File: PlaylistPickerModal.jsx
+ * Path: src/components/PlaylistPickerModal.jsx
+ * Description:
+ *   Fullscreen modal for selecting a playlist.
+ *   Pure presentational component — no internal state.
+ *   Safe for Watch.jsx because it never triggers re-renders
+ *   of the player container and relies entirely on parent refs.
+ */
+
 import React from "react";
 
 export default function PlaylistPickerModal({ playlists, onSelect, onClose }) {
+  const safePlaylists = Array.isArray(playlists) ? playlists : [];
+
   return (
     <div
       style={{
@@ -34,7 +46,7 @@ export default function PlaylistPickerModal({ playlists, onSelect, onClose }) {
         </h3>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {playlists.map((p) => (
+          {safePlaylists.map((p) => (
             <div
               key={p.id}
               onClick={() => onSelect(p)}
