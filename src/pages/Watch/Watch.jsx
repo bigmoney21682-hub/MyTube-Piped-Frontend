@@ -1,6 +1,9 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
+ * Description: Watch page with fixed global player, description,
+ *              autonext (related + playlist), and related videos
+ *              with Add to Queue + Playlist actions.
  */
 
 import React, {
@@ -111,7 +114,7 @@ export default function Watch() {
     return () => clearInterval(wait);
   }, [id, loadVideo]);
 
-  // ⭐ Register Autonext callback ONCE (no re-stacking)
+  // Register related-mode callback (once per mount)
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       const list = relatedRef.current;
@@ -123,7 +126,15 @@ export default function Watch() {
       navigate(`/watch/${next}`);
       loadVideo(next);
     });
-  }, [navigate, loadVideo]); // logic stable, callback registered once per mount
+  }, [navigate, loadVideo]);
+
+  // Register playlist-mode callback (once per mount)
+  useEffect(() => {
+    AutonextEngine.registerPlaylistCallback((nextId) => {
+      navigate(`/watch/${nextId}`);
+      loadVideo(nextId);
+    });
+  }, [navigate, loadVideo]);
 
   async function loadVideoDetails(videoId) {
     try {
@@ -297,6 +308,49 @@ export default function Watch() {
         </button>
       </div>
 
+      {/* Autonext Mode Toggle */}
+      <div style={{ padding: "0 16px 16px" }}>
+        <div style={{ fontSize: "14px", marginBottom: "6px" }}>
+          Autonext Mode:
+        </div>
+
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button
+            onClick={() => {
+              setAutonextMode("related");
+              AutonextEngine.setMode("related");
+            }}
+            style={{
+              padding: "8px 12px",
+              background: autonextMode === "related" ? "#3ea6ff" : "#222",
+              color: autonextMode === "related" ? "#000" : "#fff",
+              border: "1px solid #444",
+              borderRadius: "4px",
+              fontSize: "13px"
+            }}
+          >
+            Related
+          </button>
+
+          <button
+            onClick={() => {
+              setAutonextMode("playlist");
+              AutonextEngine.setMode("playlist");
+            }}
+            style={{
+              padding: "8px 12px",
+              background: autonextMode === "playlist" ? "#3ea6ff" : "#222",
+              color: autonextMode === "playlist" ? "#000" : "#fff",
+              border: "1px solid #444",
+              borderRadius: "4px",
+              fontSize: "13px"
+            }}
+          >
+            Playlist
+          </button>
+        </div>
+      </div>
+
       {/* Related videos */}
       <div style={{ padding: "16px" }}>
         <h3 style={{ marginBottom: "12px" }}>Related Videos</h3>
@@ -324,7 +378,6 @@ export default function Watch() {
                 <div style={descStyle}>{rsn.description ?? ""}</div>
               </Link>
 
-              {/* ⭐ Add to Queue + Playlist for related */}
               <VideoActions videoId={vid} videoSnippet={rsn} />
             </div>
           );
