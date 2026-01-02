@@ -3,11 +3,11 @@
  * Path: src/pages/Watch/Watch.jsx
  * Description:
  *   Fully corrected Watch page with:
- *   - Safe ID normalization (fixes [object Object])
+ *   - Safe ID normalization
+ *   - Stable GlobalPlayer integration
+ *   - Safe related fetch (no black screen)
  *   - Correct autonext (playlist + related)
- *   - Correct GlobalPlayer mounting
- *   - Correct loadVideo flow
- *   - Correct playlist param handling
+ *   - No invalid video IDs
  */
 
 import React, { useEffect, useState } from "react";
@@ -25,10 +25,6 @@ export default function Watch() {
      1. Normalize route ID (fixes [object Object])
   ------------------------------------------------------------- */
   const params = useParams();
-
-  debugBus.log("Watch.jsx → raw route param", params.id);
-debugBus.log("Watch.jsx → typeof param", typeof params.id);
-
   const rawId = params.id;
 
   const id =
@@ -86,7 +82,7 @@ debugBus.log("Watch.jsx → typeof param", typeof params.id);
   }, [id, rawId, loadVideo]);
 
   /* ------------------------------------------------------------
-     5. Fetch video details + related videos
+     5. Fetch video details + related videos (safe)
   ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
@@ -102,10 +98,24 @@ debugBus.log("Watch.jsx → typeof param", typeof params.id);
         const relatedRes = await fetch(
           `https://www.googleapis.com/youtube/v3/search?part=snippet&relatedToVideoId=${id}&type=video&maxResults=20&videoEmbeddable=true&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
         );
+
+        if (!relatedRes.ok) {
+          const errText = await relatedRes.text();
+          debugBus.error(
+            "Watch.jsx → related fetch failed: " +
+              relatedRes.status +
+              " " +
+              errText
+          );
+          setRelated([]);
+          return;
+        }
+
         const relatedJson = await relatedRes.json();
         setRelated(relatedJson.items || []);
       } catch (err) {
         debugBus.error("Watch.jsx → fetch error: " + err.message);
+        setRelated([]);
       }
     }
 
@@ -113,46 +123,23 @@ debugBus.log("Watch.jsx → typeof param", typeof params.id);
   }, [id]);
 
   /* ------------------------------------------------------------
-     6. Autonext: Playlist (CORRECTED)
+     6. Autonext: Playlist
   ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerPlaylistCallback(() => {
       const params = new URLSearchParams(location.search);
       const activePlaylistId = params.get("pl");
 
-      if (!activePlaylistId) {
-        debugBus.log("AutonextEngine", "No active playlist — aborting");
-        return;
-      }
+      if (!activePlaylistId) return;
 
       const playlist = playlists.find((p) => p.id === activePlaylistId);
-      if (!playlist) {
-        debugBus.log("AutonextEngine", "Playlist not found — aborting");
-        return;
-      }
-
-      if (!playlist.videos.length) {
-        debugBus.log("AutonextEngine", "Playlist empty — aborting");
-        return;
-      }
+      if (!playlist || !playlist.videos.length) return;
 
       const index = playlist.videos.findIndex((v) => v.id === id);
-
-      if (index === -1) {
-        debugBus.log(
-          "AutonextEngine",
-          `Current video ${id} not in playlist — aborting autonext`
-        );
-        return;
-      }
+      if (index === -1) return;
 
       const nextIndex = (index + 1) % playlist.videos.length;
       const nextVideo = playlist.videos[nextIndex];
-
-      debugBus.log(
-        "AutonextEngine",
-        `Playlist autonext → index ${index} → ${nextIndex} → ${nextVideo.id}`
-      );
 
       navigate(`/watch/${nextVideo.id}?src=playlist&pl=${activePlaylistId}`);
       loadVideo(nextVideo.id);
@@ -164,20 +151,12 @@ debugBus.log("Watch.jsx → typeof param", typeof params.id);
   ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
-      if (!related.length) {
-        debugBus.log("AutonextEngine", "No related videos — aborting");
-        return;
-      }
+      if (!related.length) return;
 
       const next = related[0];
       const nextId = next?.id?.videoId;
 
-      if (!nextId) {
-        debugBus.log("AutonextEngine", "Invalid related video — aborting");
-        return;
-      }
-
-      debugBus.log("AutonextEngine", `Related autonext → ${nextId}`);
+      if (!nextId) return;
 
       navigate(`/watch/${nextId}?src=related`);
       loadVideo(nextId);
