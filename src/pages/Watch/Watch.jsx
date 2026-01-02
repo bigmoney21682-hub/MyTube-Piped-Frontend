@@ -1,22 +1,10 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
- * Description: Watch page with fixed global player, description,
- *              autonext (related + playlist), and related videos
- *              with Add to Queue + Playlist actions.
  */
 
-import React, {
-  useEffect,
-  useState,
-  useRef
-} from "react";
-import {
-  useParams,
-  useNavigate,
-  Link,
-  useSearchParams
-} from "react-router-dom";
+import React, { useEffect, useState, useRef } from "react";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
@@ -31,52 +19,12 @@ import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import PlaylistPickerModal from "../../components/PlaylistPickerModal.jsx";
 import VideoActions from "../../components/VideoActions.jsx";
 
-/* ------------------------------------------------------------
-   Shared card styles for related
-------------------------------------------------------------- */
-const cardStyle = {
-  width: "100%",
-  marginBottom: "16px",
-  textDecoration: "none",
-  color: "#fff",
-  display: "block"
-};
-
-const thumbStyle = {
-  width: "100%",
-  aspectRatio: "16 / 9",
-  objectFit: "cover",
-  borderRadius: "8px",
-  marginBottom: "8px"
-};
-
-const titleStyle = {
-  fontSize: "14px",
-  fontWeight: "bold",
-  marginBottom: "4px"
-};
-
-const channelStyle = {
-  fontSize: "12px",
-  opacity: 0.7,
-  marginBottom: "4px"
-};
-
-const descStyle = {
-  fontSize: "12px",
-  opacity: 0.8,
-  lineHeight: 1.4
-};
-
-/* ------------------------------------------------------------
-   Component
-------------------------------------------------------------- */
 export default function Watch() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
-  const src = params.get("src");          // "playlist" or "related"
+  const src = params.get("src");
   const playlistIdFromNav = params.get("pl");
 
   const player = usePlayer() ?? {};
@@ -103,10 +51,21 @@ export default function Watch() {
   }, [related]);
 
   /* ------------------------------------------------------------
-     ⭐ FIXED: Force autonext mode ONLY after src is available
+     ⭐ Mount the YouTube player ONLY when Watch.jsx is visible
   ------------------------------------------------------------- */
   useEffect(() => {
-    if (src === null) return; // Prevent premature "related" mode
+    const el = document.getElementById("player");
+    if (el) {
+      debugBus.log("PLAYER", "Watch.jsx → ensureMounted()");
+      GlobalPlayer.ensureMounted();
+    }
+  }, []);
+
+  /* ------------------------------------------------------------
+     Autonext mode from URL
+  ------------------------------------------------------------- */
+  useEffect(() => {
+    if (src === null) return;
 
     if (src === "playlist") {
       setAutonextMode("playlist");
@@ -122,7 +81,7 @@ export default function Watch() {
   }, [src, playlistIdFromNav]);
 
   /* ------------------------------------------------------------
-     Load video + related (single stable load)
+     Load video + related
   ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
@@ -135,12 +94,12 @@ export default function Watch() {
   }, [id, loadVideo]);
 
   /* ------------------------------------------------------------
-     Autonext: Related mode
+     Autonext: Related
   ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       const list = relatedRef.current;
-      if (!Array.isArray(list) || list.length === 0) return;
+      if (!list.length) return;
 
       const next = list[0]?.id;
       if (!next) return;
@@ -151,7 +110,7 @@ export default function Watch() {
   }, [navigate, loadVideo]);
 
   /* ------------------------------------------------------------
-     Autonext: Playlist mode (loop forever)
+     Autonext: Playlist
   ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerPlaylistCallback(() => {
@@ -164,11 +123,7 @@ export default function Watch() {
       const nextIndex = (index + 1) % playlist.videos.length;
       const nextVideo = playlist.videos[nextIndex];
 
-      if (!nextVideo) return;
-
-      navigate(
-        `/watch/${nextVideo.id}?src=playlist&pl=${activePlaylistId}`
-      );
+      navigate(`/watch/${nextVideo.id}?src=playlist&pl=${activePlaylistId}`);
       loadVideo(nextVideo.id);
     });
   }, [navigate, loadVideo, playlists, activePlaylistId, id]);
@@ -179,11 +134,7 @@ export default function Watch() {
   async function loadVideoDetails(videoId) {
     try {
       const details = await getVideoDetails(videoId);
-
-      if (!details) {
-        setVideo(null);
-        return;
-      }
+      if (!details) return setVideo(null);
 
       setVideo({
         snippet: {
@@ -202,57 +153,51 @@ export default function Watch() {
   }
 
   /* ------------------------------------------------------------
-     Load related videos
+     Load related
   ------------------------------------------------------------- */
   async function loadRelated(videoId) {
     try {
       const list = await fetchRelatedVideos(videoId);
+      if (!Array.isArray(list)) return setRelated([]);
 
-      if (!Array.isArray(list)) {
-        setRelated([]);
-        return;
-      }
-
-      const normalized = list.map((item) => ({
-        id: item.id,
-        snippet: {
-          title: item.title,
-          channelTitle: item.author,
-          description: "",
-          thumbnails: {
-            medium: { url: item.thumbnail }
+      setRelated(
+        list.map((item) => ({
+          id: item.id,
+          snippet: {
+            title: item.title,
+            channelTitle: item.author,
+            description: "",
+            thumbnails: { medium: { url: item.thumbnail } }
           }
-        }
-      }));
-
-      setRelated(normalized);
+        }))
+      );
     } catch {
       setRelated([]);
     }
   }
 
   /* ------------------------------------------------------------
-     Media Session metadata
+     Media Session
   ------------------------------------------------------------- */
   useEffect(() => {
-    if (video && id) {
-      const sn = video?.snippet ?? {};
-      updateMediaSessionMetadata({
-        title: sn.title ?? "Untitled",
-        artist: sn.channelTitle ?? "Unknown Channel",
-        artwork: sn.thumbnails?.medium?.url ?? ""
-      });
-    }
+    if (!video || !id) return;
+
+    const sn = video.snippet ?? {};
+    updateMediaSessionMetadata({
+      title: sn.title ?? "Untitled",
+      artist: sn.channelTitle ?? "Unknown Channel",
+      artwork: sn.thumbnails?.medium?.url ?? ""
+    });
   }, [video, id]);
 
   /* ------------------------------------------------------------
-     Add to playlist (main video)
+     Add to playlist
   ------------------------------------------------------------- */
   function handleAddToPlaylist() {
     if (!id) return;
 
-    if (!playlists || playlists.length === 0) {
-      alert("You have no playlists yet. Create one first.");
+    if (!playlists.length) {
+      alert("You have no playlists yet.");
       return;
     }
 
@@ -260,8 +205,8 @@ export default function Watch() {
   }
 
   const sn = video?.snippet ?? {};
-  const title = sn?.title ?? (video ? "Untitled" : "Loading video…");
-  const description = sn?.description ?? "";
+  const title = sn.title ?? "Loading…";
+  const description = sn.description ?? "";
 
   return (
     <div
@@ -271,7 +216,7 @@ export default function Watch() {
         marginTop: "calc(56.25vw + var(--header-height))"
       }}
     >
-      {/* Fixed player */}
+      {/* Player container */}
       <div
         style={{
           position: "fixed",
@@ -305,8 +250,7 @@ export default function Watch() {
             opacity: 0.85,
             lineHeight: 1.4,
             maxHeight: descExpanded ? "none" : "3.6em",
-            overflow: "hidden",
-            transition: "max-height 0.2s ease"
+            overflow: "hidden"
           }}
         >
           {description}
@@ -320,8 +264,7 @@ export default function Watch() {
             border: "none",
             color: "#3ea6ff",
             fontSize: "14px",
-            cursor: "pointer",
-            padding: 0
+            cursor: "pointer"
           }}
         >
           {descExpanded ? "Show less" : "Show more"}
@@ -357,7 +300,7 @@ export default function Watch() {
         </button>
       </div>
 
-      {/* Autonext Mode Toggle */}
+      {/* Autonext */}
       <div style={{ padding: "0 16px 16px" }}>
         <div style={{ fontSize: "14px", marginBottom: "6px" }}>
           Autonext Mode:
@@ -374,8 +317,7 @@ export default function Watch() {
               background: autonextMode === "related" ? "#3ea6ff" : "#222",
               color: autonextMode === "related" ? "#000" : "#fff",
               border: "1px solid #444",
-              borderRadius: "4px",
-              fontSize: "13px"
+              borderRadius: "4px"
             }}
           >
             Related
@@ -386,17 +328,14 @@ export default function Watch() {
               setAutonextMode("playlist");
               AutonextEngine.setMode("playlist");
 
-              if (!activePlaylistId) {
-                setShowPicker(true);
-              }
+              if (!activePlaylistId) setShowPicker(true);
             }}
             style={{
               padding: "8px 12px",
               background: autonextMode === "playlist" ? "#3ea6ff" : "#222",
               color: autonextMode === "playlist" ? "#000" : "#fff",
               border: "1px solid #444",
-              borderRadius: "4px",
-              fontSize: "13px"
+              borderRadius: "4px"
             }}
           >
             Playlist
@@ -409,26 +348,26 @@ export default function Watch() {
         <h3 style={{ marginBottom: "12px" }}>Related Videos</h3>
 
         {related.map((item, i) => {
-          const vid = item?.id ?? null;
-          const rsn = item?.snippet ?? {};
-          const thumb = rsn?.thumbnails?.medium?.url ?? "";
-
-          if (!vid) return null;
+          const vid = item.id;
+          const rsn = item.snippet;
+          const thumb = rsn.thumbnails.medium.url;
 
           return (
             <div key={vid + "_" + i} style={{ marginBottom: "20px" }}>
-              <Link to={`/watch/${vid}?src=related`} style={cardStyle}>
+              <Link to={`/watch/${vid}?src=related`}>
                 <img
                   src={thumb}
-                  alt={rsn.title ?? "Video thumbnail"}
-                  style={thumbStyle}
+                  alt={rsn.title}
+                  style={{
+                    width: "100%",
+                    aspectRatio: "16/9",
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                    marginBottom: "8px"
+                  }}
                 />
-
-                <div style={titleStyle}>{rsn.title ?? "Untitled"}</div>
-                <div style={channelStyle}>
-                  {rsn.channelTitle ?? "Unknown Channel"}
-                </div>
-                <div style={descStyle}>{rsn.description ?? ""}</div>
+                <div style={{ fontWeight: "bold" }}>{rsn.title}</div>
+                <div style={{ opacity: 0.7 }}>{rsn.channelTitle}</div>
               </Link>
 
               <VideoActions videoId={vid} videoSnippet={rsn} />
@@ -437,20 +376,18 @@ export default function Watch() {
         })}
       </div>
 
-      {/* Playlist picker modal */}
+      {/* Playlist picker */}
       {showPicker && (
         <PlaylistPickerModal
           playlists={playlists}
           onSelect={(playlist) => {
             setActivePlaylistId(playlist.id);
 
-            const sn = video?.snippet ?? {};
-
             addVideoToPlaylist(playlist.id, {
               id,
-              title: sn.title ?? "Untitled",
-              author: sn.channelTitle ?? "Unknown Channel",
-              thumbnail: sn.thumbnails?.medium?.url ?? ""
+              title: sn.title,
+              author: sn.channelTitle,
+              thumbnail: sn.thumbnails.medium.url
             });
 
             setShowPicker(false);
