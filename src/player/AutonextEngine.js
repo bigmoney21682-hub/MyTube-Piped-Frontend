@@ -5,7 +5,6 @@
  */
 
 import { debugBus } from "../debug/debugBus.js";
-import { QueueStore } from "./QueueStore.js";
 
 let mode = "related";
 let relatedCallback = null;
@@ -40,21 +39,11 @@ export const AutonextEngine = {
   trigger() {
     debugBus.log("AutonextEngine", `Triggering callback for mode="${mode}"`);
 
-    // Playlist mode
     if (mode === "playlist") {
-      const next = QueueStore.next();
-      if (next) {
-        debugBus.log("AutonextEngine", `Playlist next → ${next}`);
-        if (playlistCallback) {
-          playlistCallback(next);
-        } else {
-          debugBus.log(
-            "AutonextEngine",
-            "No playlist callback registered; cannot navigate"
-          );
-        }
+      if (playlistCallback) {
+        playlistCallback();
       } else {
-        debugBus.log("AutonextEngine", "Playlist ended");
+        debugBus.log("AutonextEngine", "No playlist callback registered");
       }
       return;
     }
