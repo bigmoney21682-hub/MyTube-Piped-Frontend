@@ -2,13 +2,12 @@
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
  * Description:
- *   Full corrected Watch page with:
- *   - Safe GlobalPlayer mounting
+ *   Fully corrected Watch page with:
+ *   - Safe ID normalization (fixes [object Object])
  *   - Correct autonext (playlist + related)
- *   - Correct activePlaylistId handling
+ *   - Correct GlobalPlayer mounting
  *   - Correct loadVideo flow
- *   - No invalid video IDs
- *   - No infinite loops
+ *   - Correct playlist param handling
  */
 
 import React, { useEffect, useState } from "react";
@@ -22,7 +21,17 @@ import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { debugBus } from "../../debug/debugBus.js";
 
 export default function Watch() {
-  const { id } = useParams();
+  /* ------------------------------------------------------------
+     1. Normalize route ID (fixes [object Object])
+  ------------------------------------------------------------- */
+  const params = useParams();
+  const rawId = params.id;
+
+  const id =
+    typeof rawId === "string"
+      ? rawId
+      : rawId?.id || rawId?.videoId || "";
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,7 +42,7 @@ export default function Watch() {
   const [related, setRelated] = useState([]);
 
   /* ------------------------------------------------------------
-     1. Ensure GlobalPlayer mounts ONLY when #player exists
+     2. Ensure GlobalPlayer mounts
   ------------------------------------------------------------- */
   useEffect(() => {
     debugBus.log("Watch.jsx → ensureMounted()");
@@ -41,7 +50,7 @@ export default function Watch() {
   }, []);
 
   /* ------------------------------------------------------------
-     2. Determine source (playlist or related)
+     3. Determine source (playlist or related)
   ------------------------------------------------------------- */
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -60,17 +69,24 @@ export default function Watch() {
   }, [location.search, setAutonextMode, setActivePlaylistId]);
 
   /* ------------------------------------------------------------
-     3. Load the video into the player
+     4. Load the video into the player
   ------------------------------------------------------------- */
   useEffect(() => {
+    if (!id) {
+      debugBus.error("Watch.jsx → Invalid route id", rawId);
+      return;
+    }
+
     debugBus.log("Watch.jsx → loadVideo(" + id + ")");
     loadVideo(id);
-  }, [id, loadVideo]);
+  }, [id, rawId, loadVideo]);
 
   /* ------------------------------------------------------------
-     4. Fetch video details + related videos
+     5. Fetch video details + related videos
   ------------------------------------------------------------- */
   useEffect(() => {
+    if (!id) return;
+
     async function fetchData() {
       try {
         const videoRes = await fetch(
@@ -93,8 +109,8 @@ export default function Watch() {
   }, [id]);
 
   /* ------------------------------------------------------------
-   * 5. Autonext: Playlist (CORRECTED)
-   * ------------------------------------------------------------ */
+     6. Autonext: Playlist (CORRECTED)
+  ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerPlaylistCallback(() => {
       const params = new URLSearchParams(location.search);
@@ -140,7 +156,7 @@ export default function Watch() {
   }, [navigate, loadVideo, playlists, id, location.search]);
 
   /* ------------------------------------------------------------
-     6. Autonext: Related
+     7. Autonext: Related
   ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
@@ -150,12 +166,12 @@ export default function Watch() {
       }
 
       const next = related[0];
-      if (!next?.id?.videoId) {
+      const nextId = next?.id?.videoId;
+
+      if (!nextId) {
         debugBus.log("AutonextEngine", "Invalid related video — aborting");
         return;
       }
-
-      const nextId = next.id.videoId;
 
       debugBus.log("AutonextEngine", `Related autonext → ${nextId}`);
 
@@ -165,7 +181,7 @@ export default function Watch() {
   }, [related, navigate, loadVideo]);
 
   /* ------------------------------------------------------------
-     7. Render
+     8. Render
   ------------------------------------------------------------- */
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
