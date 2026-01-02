@@ -1,17 +1,6 @@
 /**
  * File: Watch.jsx
- * Path: src/pages/Watch/Watch.jsx
- * Description:
- *   Main video watch page.
- *   Provides:
- *     - Player pinned under header
- *     - Scrollable related/playlist section
- *     - Stable YouTube player container (memoized)
- *     - Memoized Autonext button (orange gradient)
- *     - Popup isolation for Autonext menu + Playlist picker
- *     - Correct autonext callback registration (playlist / related)
- *     - Trending removed from popup (fallback only)
- *     - Zero unmounts of #player → prevents NotFoundError
+ * Path: src/pages/Watch.jsx
  */
 
 import React, {
@@ -22,12 +11,12 @@ import React, {
 } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 
-import { usePlayer } from "../../player/PlayerContext.jsx";
-import { AutonextEngine } from "../../player/AutonextEngine.js";
-import { GlobalPlayer } from "../../player/GlobalPlayer.js";
+import { usePlayer } from "../player/PlayerContext.jsx";
+import { AutonextEngine } from "../player/AutonextEngine.js";
+import { GlobalPlayer } from "../player/GlobalPlayer.js";
 
-import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
-import { debugBus } from "../../debug/debugBus.js";
+import { usePlaylists } from "../contexts/PlaylistContext.jsx";
+import { debugBus } from "../debug/debugBus.js";
 
 const YT_API_KEY = "AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0";
 
@@ -117,7 +106,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      POPUP ISOLATION (useRef + uiTick)
------------------------------------------------------------- */
+  ------------------------------------------------------------ */
   const showSourceMenuRef = useRef(false);
   const showPlaylistPickerRef = useRef(false);
   const [uiTick, setUiTick] = useState(0);
@@ -141,9 +130,10 @@ export default function Watch() {
     showPlaylistPickerRef.current = false;
     setUiTick((x) => x + 1);
   }
-    /* ------------------------------------------------------------
+
+  /* ------------------------------------------------------------
      Autonext mode correction
------------------------------------------------------------- */
+  ------------------------------------------------------------ */
   useEffect(() => {
     setAutonextSource((prev) => {
       if (prev === "playlist" && !isPlaylistMode && !selectedPlaylistId) {
@@ -155,7 +145,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      YouTube API loader
------------------------------------------------------------- */
+  ------------------------------------------------------------ */
   useEffect(() => {
     if (window.YT && window.YT.Player) {
       debugBus.log("YT API already loaded (Watch.jsx)");
@@ -181,7 +171,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Autonext mode → PlayerContext
------------------------------------------------------------- */
+  ------------------------------------------------------------ */
   useEffect(() => {
     if (autonextSource === "playlist" && (selectedPlaylistId || playlistIdFromURL)) {
       setAutonextMode("playlist");
@@ -200,7 +190,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Load video into GlobalPlayer
------------------------------------------------------------- */
+  ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
     debugBus.player("PlayerContext → loadVideo(" + id + ")");
@@ -209,7 +199,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Fetch video + related + trending (fallback only)
------------------------------------------------------------- */
+  ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
 
@@ -257,12 +247,12 @@ export default function Watch() {
   }, [id]);
 
   /* ------------------------------------------------------------
-     AutonextEngine callback registration (playlist / related)
------------------------------------------------------------- */
+     AutonextEngine callback registration (STABLE)
+  ------------------------------------------------------------ */
   useEffect(() => {
     const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
 
-    // Playlist mode ONLY
+    // PLAYLIST MODE
     if (autonextSource === "playlist" && effectivePlaylistId) {
       const playlistHandler = () => {
         const playlist = playlists.find((p) => p.id === effectivePlaylistId);
@@ -286,7 +276,7 @@ export default function Watch() {
       };
     }
 
-    // Related mode ONLY (with trending fallback)
+    // RELATED MODE
     const relatedHandler = () => {
       const list = related.length ? related : trending;
       if (!list.length) return;
@@ -307,17 +297,18 @@ export default function Watch() {
     };
   }, [
     id,
-    related,
-    trending,
-    playlists,
-    playlistIdFromURL,
-    selectedPlaylistId,
     autonextSource,
-    navigate
+    selectedPlaylistId,
+    playlistIdFromURL,
+    playlists,
+    navigate,
+    related,
+    trending
   ]);
+
   /* ------------------------------------------------------------
      Related list selection
------------------------------------------------------------- */
+  ------------------------------------------------------------ */
   const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
 
   const relatedList = useMemo(() => {
@@ -325,7 +316,6 @@ export default function Watch() {
       const pl = playlists.find((p) => p.id === effectivePlaylistId);
       return pl ? pl.videos : [];
     }
-    // Related mode: use related, fallback to trending
     if (autonextSource === "related") {
       if (related.length) return related;
       return trending;
@@ -355,7 +345,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Popup styles
------------------------------------------------------------- */
+  ------------------------------------------------------------ */
   const overlayStyle = {
     position: "fixed",
     top: 0,
@@ -392,7 +382,7 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Render
------------------------------------------------------------- */
+  ------------------------------------------------------------ */
   return (
     <div style={{ paddingTop: "60px", color: "#fff" }}>
       {/* PLAYER PINNED UNDER HEADER */}
@@ -493,6 +483,7 @@ export default function Watch() {
             </div>
           </div>
         )}
+
         {/* Controls */}
         <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
           <AutonextButton
@@ -585,4 +576,3 @@ export default function Watch() {
     </div>
   );
 }
-
