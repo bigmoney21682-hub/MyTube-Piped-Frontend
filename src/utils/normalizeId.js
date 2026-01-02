@@ -4,20 +4,31 @@
 export function normalizeId(raw) {
   if (!raw) return null;
 
-  // Already a string
-  if (typeof raw === "string") return raw;
+  // If raw itself IS the ID
+  if (typeof raw === "string") return raw.trim() || null;
 
+  // Common YouTube API shapes:
+
+  // Trending, related, mostPopular:
   // { id: "abc123" }
-  if (typeof raw.id === "string") return raw.id;
+  if (typeof raw.id === "string") return raw.id.trim() || null;
 
-  // { videoId: "abc123" }
-  if (typeof raw.videoId === "string") return raw.videoId;
-
+  // Search results:
   // { id: { videoId: "abc123" } }
-  if (raw.id?.videoId) return raw.id.videoId;
+  if (typeof raw.id === "object" && typeof raw.id.videoId === "string") {
+    return raw.id.videoId.trim() || null;
+  }
 
+  // PlaylistItems:
   // { snippet: { resourceId: { videoId: "abc123" } } }
-  if (raw.snippet?.resourceId?.videoId) return raw.snippet.resourceId.videoId;
+  if (typeof raw.snippet?.resourceId?.videoId === "string") {
+    return raw.snippet.resourceId.videoId.trim() || null;
+  }
 
+  // Direct field:
+  // { videoId: "abc123" }
+  if (typeof raw.videoId === "string") return raw.videoId.trim() || null;
+
+  // Reject anything else
   return null;
 }
