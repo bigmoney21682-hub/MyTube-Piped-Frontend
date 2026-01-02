@@ -7,6 +7,7 @@ import React, {
   useState,
   useCallback
 } from "react";
+
 import { GlobalPlayer } from "./GlobalPlayer.js";
 import { AutonextEngine } from "./AutonextEngine.js";
 import { debugBus } from "../debug/debugBus.js";
@@ -27,11 +28,7 @@ export function PlayerProvider({ children }) {
   }, []);
 
   const loadVideo = useCallback((id) => {
-    if (!id) {
-      debugBus.error("PlayerContext → loadVideo called with invalid id:", id);
-      return;
-    }
-
+    if (!id) return;
     debugBus.log("PlayerContext → loadVideo(" + id + ")");
     GlobalPlayer.load(id);
   }, []);
