@@ -6,27 +6,15 @@
  *              and minimal quota usage.
  */
 
-console.log("PRIMARY KEY:", import.meta.env.VITE_YT_API_PRIMARY);
-console.log("FALLBACK KEY:", import.meta.env.VITE_YT_API_FALLBACK1);
-
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
-// ⭐ NEW — cached trending API
 import { fetchTrending } from "../../api/trending.js";
+import VideoActions from "../../components/VideoActions.jsx";
 
 /* ------------------------------------------------------------
    Shared card styles
 ------------------------------------------------------------- */
-const cardStyle = {
-  width: "100%",
-  marginBottom: "20px",
-  textDecoration: "none",
-  color: "#fff",
-  display: "block"
-};
-
 const thumbStyle = {
   width: "100%",
   aspectRatio: "16 / 9",
@@ -61,9 +49,6 @@ export default function Home() {
     loadTrending();
   }, []);
 
-  /* ------------------------------------------------------------
-     ⭐ NEW — Cached trending videos
-  ------------------------------------------------------------- */
   async function loadTrending() {
     try {
       const list = await fetchTrending("US");
@@ -74,7 +59,6 @@ export default function Home() {
         return;
       }
 
-      // Convert cached format → old snippet format
       const normalized = list.map((item) => ({
         id: item.id,
         snippet: {
@@ -112,19 +96,21 @@ export default function Home() {
         const isExpanded = expandedIndex === i;
 
         return (
-          <Link
-            key={vid + "_" + i}
-            to={`/watch/${vid}`}
-            style={cardStyle}
-          >
-            <img
-              src={thumb}
-              alt={sn.title ?? "Video thumbnail"}
-              style={thumbStyle}
-            />
+          <div key={vid + "_" + i} style={{ marginBottom: "24px" }}>
+            {/* Thumbnail + Title clickable */}
+            <Link
+              to={`/watch/${vid}`}
+              style={{ textDecoration: "none", color: "#fff" }}
+            >
+              <img
+                src={thumb}
+                alt={sn.title ?? "Video thumbnail"}
+                style={thumbStyle}
+              />
 
-            <div style={titleStyle}>{sn.title ?? "Untitled"}</div>
-            <div style={channelStyle}>{sn.channelTitle ?? "Unknown Channel"}</div>
+              <div style={titleStyle}>{sn.title ?? "Untitled"}</div>
+              <div style={channelStyle}>{sn.channelTitle ?? "Unknown Channel"}</div>
+            </Link>
 
             {/* Collapsible description */}
             <div
@@ -139,10 +125,7 @@ export default function Home() {
             </div>
 
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                setExpandedIndex(isExpanded ? null : i);
-              }}
+              onClick={() => setExpandedIndex(isExpanded ? null : i)}
               style={{
                 marginTop: "6px",
                 background: "none",
@@ -155,7 +138,10 @@ export default function Home() {
             >
               {isExpanded ? "Show less" : "Show more"}
             </button>
-          </Link>
+
+            {/* ⭐ Add to Queue + Playlist */}
+            <VideoActions videoId={vid} videoSnippet={sn} />
+          </div>
         );
       })}
     </div>
