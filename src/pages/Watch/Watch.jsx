@@ -457,7 +457,7 @@ function PlayerOverlay({ related, navigate }) {
               padding: "10px 16px",
               background: "rgba(0,0,0,0.7)",
               color: "#fff",
-              border: "1px solid "#444",
+              border: "1px solid #444",
               borderRadius: "6px"
             }}
           >
@@ -473,7 +473,7 @@ function PlayerOverlay({ related, navigate }) {
               padding: "10px 16px",
               background: "rgba(0,0,0,0.7)",
               color: "#fff",
-              border: "1px solid "#444",
+              border: "1px solid #444",
               borderRadius: "6px"
             }}
           >
