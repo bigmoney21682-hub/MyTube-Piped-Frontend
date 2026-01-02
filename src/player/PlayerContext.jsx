@@ -13,7 +13,6 @@ import React, {
 } from "react";
 
 import { GlobalPlayer } from "./GlobalPlayer.js";
-import { AutonextEngine } from "./AutonextEngine.js";
 import { debugBus } from "../debug/debugBus.js";
 
 const PlayerContext = createContext(null);
@@ -31,13 +30,13 @@ export function PlayerProvider({ children }) {
 
   /* ------------------------------------------------------------
      Autonext mode (related | playlist)
+     (Watch.jsx handles actual autonext logic)
   ------------------------------------------------------------- */
   const [autonextMode, setAutonextModeState] = useState("related");
 
   function setAutonextMode(mode) {
     debugBus.log("PLAYER", `Autonext mode → ${mode}`);
     setAutonextModeState(mode);
-    AutonextEngine.setMode(mode);
   }
 
   /* ------------------------------------------------------------
@@ -55,18 +54,14 @@ export function PlayerProvider({ children }) {
 
   /* ------------------------------------------------------------
      Player state listener
+     (Watch.jsx handles autonext trigger)
   ------------------------------------------------------------- */
   useEffect(() => {
     GlobalPlayer.onStateChange((state) => {
       setPlayerState(state);
       debugBus.log("PlayerContext → Player state:", state);
-
-      if (state === "ended") {
-        debugBus.log("PlayerContext → Video ended");
-        AutonextEngine.trigger(autonextMode);
-      }
     });
-  }, [autonextMode]);
+  }, []);
 
   /* ------------------------------------------------------------
      Provide context
@@ -89,4 +84,3 @@ export function PlayerProvider({ children }) {
     </PlayerContext.Provider>
   );
 }
-
