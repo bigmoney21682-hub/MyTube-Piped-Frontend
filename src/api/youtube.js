@@ -36,21 +36,40 @@ export async function youtubeApiRequest(endpoint, params) {
     );
 
     const res = await fetch(url.toString());
+    const cost = COSTS[endpoint] ?? 1;
 
-    // ------------------------------------------------------------
-    // Detailed error logging
-    // ------------------------------------------------------------
+    // Read body once for logging on error
+    let text = null;
+    let parsed = null;
+    let reason = null;
+
     if (!res.ok) {
-      const text = await res.text();
-      let err = null;
-      try { err = JSON.parse(text); } catch {}
-
-      const reason = err?.error?.errors?.[0]?.reason;
+      try {
+        text = await res.text();
+        try {
+          parsed = JSON.parse(text);
+          reason = parsed?.error?.errors?.[0]?.reason;
+        } catch {
+          // non‑JSON error body
+        }
+      } catch {
+        // ignore body read failure
+      }
 
       debugBus.log(
         "NETWORK",
-        `YT API ${label} ERROR → status=${res.status}, reason=${reason || "unknown"}, body=${text}`
+        `YT API ${label} ERROR → status=${res.status}, reason=${reason || "unknown"}, body=${text ?? "<no body>"}`
       );
+
+      // Count this failed call against quota
+      recordQuotaUsage(key, {
+        cost,
+        status: res.status,
+        ok: false,
+        url: url.toString(),
+        endpoint,
+        reason: reason || "error"
+      });
 
       return { ok: false, status: res.status, data: null };
     }
@@ -58,8 +77,14 @@ export async function youtubeApiRequest(endpoint, params) {
     // Success
     const data = await res.json();
 
-    const cost = COSTS[endpoint] ?? 1;
-    recordQuotaUsage(key, cost);
+    recordQuotaUsage(key, {
+      cost,
+      status: res.status,
+      ok: true,
+      url: url.toString(),
+      endpoint,
+      reason: "success"
+    });
     recordKeyUsage(key, label);
 
     debugBus.log(
