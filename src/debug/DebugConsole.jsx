@@ -5,8 +5,15 @@
  */
 
 export default function DebugConsole({ logs, colors, formatTime }) {
+  // Safely render any value (string, number, object)
+  function renderValue(v) {
+    if (v == null) return "";
+    if (typeof v === "object") return JSON.stringify(v);
+    return String(v);
+  }
+
   // Find the latest quota log
-  const quotaLog = logs.find((l) => l.msg.startsWith("[QUOTA]"));
+  const quotaLog = logs.find((l) => typeof l.msg === "string" && l.msg.startsWith("[QUOTA]"));
 
   return (
     <div
@@ -34,7 +41,7 @@ export default function DebugConsole({ logs, colors, formatTime }) {
             fontWeight: "bold"
           }}
         >
-          {quotaLog.msg}
+          {renderValue(quotaLog.msg)}
         </div>
       )}
 
@@ -45,7 +52,7 @@ export default function DebugConsole({ logs, colors, formatTime }) {
 
       {/* Render all logs except quota */}
       {logs
-        .filter((l) => !l.msg.startsWith("[QUOTA]"))
+        .filter((l) => !(typeof l.msg === "string" && l.msg.startsWith("[QUOTA]")))
         .map((log, i) => (
           <div
             key={i}
@@ -58,7 +65,9 @@ export default function DebugConsole({ logs, colors, formatTime }) {
             }}
           >
             <div style={{ opacity: 0.6 }}>{formatTime(log.ts)}</div>
-            <div>{log.msg}</div>
+
+            {/* ⭐ FIX: Safely render log.msg */}
+            <div>{renderValue(log.msg)}</div>
 
             {/* Optional metadata */}
             {log.data && (
