@@ -1,4 +1,21 @@
-/* Global reset */
+/**
+ * File: index.css
+ * Path: src/index.css
+ * Description: Global styles, layout variables, and resets.
+ *              Defines header/footer heights used across the app.
+ */
+
+/* ------------------------------------------------------------
+   Global layout variables (REQUIRED for correct spacing)
+------------------------------------------------------------- */
+:root {
+  --header-height: 56px;   /* Height of fixed Header */
+  --footer-height: 56px;   /* Height of MiniPlayer/Footer */
+}
+
+/* ------------------------------------------------------------
+   Global reset
+------------------------------------------------------------- */
 body {
   margin: 0;
   background: #000;
@@ -6,7 +23,9 @@ body {
   font-family: system-ui, sans-serif;
 }
 
-/* Watch page layout */
+/* ------------------------------------------------------------
+   Watch page layout
+------------------------------------------------------------- */
 .watch-page {
   display: flex;
   flex-direction: column;
@@ -70,4 +89,3 @@ body {
   flex-direction: column;
   justify-content: center;
 }
-
