@@ -4,10 +4,11 @@
  * Description:
  *   Watch page with:
  *   - Stable video loading
- *   - Autonext (playlist + related only)
+ *   - Full autonext lifecycle restored
+ *   - Playlist + Related autonext only
  *   - Autonext toggle
  *   - Add to playlist button
- *   - Source indicator (Playlist / Related)
+ *   - Source indicator
  */
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -46,10 +47,9 @@ export default function Watch() {
   const [videoData, setVideoData] = useState(null);
   const [related, setRelated] = useState([]);
 
-  /* Local UI state */
   const [autonextEnabled, setAutonextEnabled] = useState(true);
 
-  /* Detect if we are in playlist mode */
+  /* Detect playlist mode */
   const playlistIdFromURL = useMemo(() => {
     return new URLSearchParams(location.search).get("pl");
   }, [location.search]);
@@ -122,10 +122,16 @@ export default function Watch() {
   }, [id]);
 
   /* ------------------------------------------------------------
-     6. Autonext: Playlist
+     6. FULL AUTONEXT LIFECYCLE RESTORED
+     - Cleanup old callbacks
+     - Register new callbacks
+     - Prevent stale references
+     - Prevent "r is not a function"
   ------------------------------------------------------------- */
   useEffect(() => {
-    AutonextEngine.registerPlaylistCallback(() => {
+    debugBus.log("Autonext lifecycle → registering callbacks");
+
+    const playlistHandler = () => {
       if (!autonextEnabled) return;
 
       const playlist = playlists.find((p) => p.id === playlistIdFromURL);
@@ -139,36 +145,40 @@ export default function Watch() {
 
       navigate(`/watch/${nextVideo.id}?src=playlist&pl=${playlistIdFromURL}`);
       loadVideo(nextVideo.id);
-    });
-  }, [
-    navigate,
-    loadVideo,
-    playlists,
-    id,
-    playlistIdFromURL,
-    autonextEnabled
-  ]);
+    };
 
-  /* ------------------------------------------------------------
-     7. Autonext: Related
-  ------------------------------------------------------------- */
-  useEffect(() => {
-    AutonextEngine.registerRelatedCallback(() => {
+    const relatedHandler = () => {
       if (!autonextEnabled) return;
       if (!related.length) return;
 
       const next = related[0];
       const nextId = next?.id;
-
       if (!nextId) return;
 
       navigate(`/watch/${nextId}?src=related`);
       loadVideo(nextId);
-    });
-  }, [related, navigate, loadVideo, autonextEnabled]);
+    };
+
+    AutonextEngine.registerPlaylistCallback(playlistHandler);
+    AutonextEngine.registerRelatedCallback(relatedHandler);
+
+    return () => {
+      debugBus.log("Autonext lifecycle → cleanup");
+      AutonextEngine.registerPlaylistCallback(null);
+      AutonextEngine.registerRelatedCallback(null);
+    };
+  }, [
+    id,
+    related,
+    playlists,
+    playlistIdFromURL,
+    autonextEnabled,
+    navigate,
+    loadVideo
+  ]);
 
   /* ------------------------------------------------------------
-     8. UI Handlers
+     7. UI Handlers
   ------------------------------------------------------------- */
   const handleToggleAutonext = () => {
     const next = !autonextEnabled;
@@ -187,7 +197,7 @@ export default function Watch() {
   };
 
   /* ------------------------------------------------------------
-     9. Render
+     8. Render
   ------------------------------------------------------------- */
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
