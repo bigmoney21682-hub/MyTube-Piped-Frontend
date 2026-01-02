@@ -1,12 +1,12 @@
 /**
  * File: src/pages/Watch/Watch.jsx
  * Description:
- *   Stable Watch page with:
- *   - YouTube API script loader
- *   - Lazy player creation via GlobalPlayer
+ *   Watch page with:
+ *   - YouTube API loader
+ *   - GlobalPlayer integration
  *   - Playlist + Related autonext
  *   - Autonext toggle
- *   - Add to playlist button
+ *   - Add to playlist
  *   - Related videos list
  */
 
@@ -78,7 +78,7 @@ export default function Watch() {
   }, []);
 
   // ------------------------------------------------------------
-  // 3. Set autonext mode
+  // 3. Set autonext mode (playlist vs related)
   // ------------------------------------------------------------
   useEffect(() => {
     if (isPlaylistMode) {
@@ -107,14 +107,16 @@ export default function Watch() {
 
     async function fetchData() {
       try {
+        // Video details
         const videoRes = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${id}&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
         );
         const videoJson = await videoRes.json();
         setVideoData(videoJson.items?.[0] || null);
 
+        // Correct related API
         const relatedRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&relatedToVideoId=${id}&maxResults=20&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&relatedToVideoId=${id}&videoEmbeddable=true&maxResults=20&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
         );
         const relatedJson = await relatedRes.json();
         setRelated(relatedJson.items || []);
@@ -127,9 +129,10 @@ export default function Watch() {
   }, [id]);
 
   // ------------------------------------------------------------
-  // 6. Autonext lifecycle
+  // 6. Autonext lifecycle (playlist + related)
   // ------------------------------------------------------------
   useEffect(() => {
+    // PLAYLIST AUTONEXT
     const playlistHandler = () => {
       if (!autonextEnabled) return;
 
@@ -145,6 +148,7 @@ export default function Watch() {
       navigate(`/watch/${nextVideo.id}?src=playlist&pl=${playlistIdFromURL}`);
     };
 
+    // RELATED AUTONEXT
     const relatedHandler = () => {
       if (!autonextEnabled) return;
       if (!related.length) return;
@@ -156,14 +160,28 @@ export default function Watch() {
       navigate(`/watch/${vidId}?src=related`);
     };
 
-    AutonextEngine.registerPlaylistCallback(playlistHandler);
-    AutonextEngine.registerRelatedCallback(relatedHandler);
+    // REGISTER CORRECT MODE
+    if (isPlaylistMode) {
+      AutonextEngine.registerPlaylistCallback(playlistHandler);
+      AutonextEngine.registerRelatedCallback(null);
+    } else {
+      AutonextEngine.registerPlaylistCallback(null);
+      AutonextEngine.registerRelatedCallback(relatedHandler);
+    }
 
     return () => {
       AutonextEngine.registerPlaylistCallback(null);
       AutonextEngine.registerRelatedCallback(null);
     };
-  }, [id, related, playlists, playlistIdFromURL, autonextEnabled, navigate]);
+  }, [
+    id,
+    related,
+    playlists,
+    playlistIdFromURL,
+    autonextEnabled,
+    isPlaylistMode,
+    navigate
+  ]);
 
   // ------------------------------------------------------------
   // 7. UI
