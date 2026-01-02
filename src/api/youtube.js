@@ -18,7 +18,7 @@ export async function youtubeApiRequest(endpoint, params) {
     const res = await fetch(url.toString());
     if (!res.ok) return null;
 
-    // ⭐ IMPORTANT: return the JSON even if items = []
+    // IMPORTANT: treat any JSON as success, even if items = []
     return await res.json();
   }
 
