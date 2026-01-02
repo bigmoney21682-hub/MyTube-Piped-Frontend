@@ -12,7 +12,7 @@ import DebugRouter from "./DebugRouter.jsx";
 import DebugConsole from "./DebugConsole.jsx";
 import DebugTabs from "./DebugTabs.jsx";
 
-// ⭐ NEW — import quota + key usage snapshots
+// Quota + key usage snapshots
 import { getQuotaSnapshot } from "./quotaTracker.js";
 import { getKeyUsageSnapshot } from "./keyUsageTracker.js";
 
@@ -21,13 +21,10 @@ export default function DebugOverlay() {
   const [tab, setTab] = useState("network");
   const [logs, setLogs] = useState([]);
 
-  // ⭐ NEW — quota + key usage state
   const [quota, setQuota] = useState({});
   const [keyUsage, setKeyUsage] = useState({});
 
-  // ------------------------------------------------------------
   // Subscribe to debugBus
-  // ------------------------------------------------------------
   useEffect(() => {
     const unsubscribe = debugBus.subscribe((entry, allLogs) => {
       if (Array.isArray(allLogs)) {
@@ -37,9 +34,7 @@ export default function DebugOverlay() {
     return unsubscribe;
   }, []);
 
-  // ------------------------------------------------------------
-  // ⭐ NEW — Poll quota + key usage every 500ms
-  // ------------------------------------------------------------
+  // Poll quota + key usage every 500ms
   useEffect(() => {
     const id = setInterval(() => {
       setQuota(getQuotaSnapshot());
@@ -48,9 +43,6 @@ export default function DebugOverlay() {
     return () => clearInterval(id);
   }, []);
 
-  // ------------------------------------------------------------
-  // COLOR MAP
-  // ------------------------------------------------------------
   const colors = {
     FETCH: "#66ccff",
     ERROR_FETCH: "#ff6666",
@@ -91,9 +83,13 @@ export default function DebugOverlay() {
     navigator.clipboard.writeText(text);
   }
 
-  // ------------------------------------------------------------
-  // ⭐ NEW — Quota inspector UI
-  // ------------------------------------------------------------
+  function renderValue(value) {
+    if (value == null) return "0";
+    if (typeof value === "object") return JSON.stringify(value);
+    return String(value);
+  }
+
+  // Quota inspector UI
   function renderQuota() {
     const keys = Object.keys(quota);
     const usageKeys = Object.keys(keyUsage);
@@ -107,7 +103,7 @@ export default function DebugOverlay() {
         {keys.map((key) => (
           <div key={key} style={{ marginBottom: 8 }}>
             <div style={{ fontWeight: "bold" }}>{key}</div>
-            <div>Used: {quota[key]} units</div>
+            <div>Used: {renderValue(quota[key])} units</div>
           </div>
         ))}
 
@@ -118,7 +114,7 @@ export default function DebugOverlay() {
         {usageKeys.map((key) => (
           <div key={key} style={{ marginBottom: 8 }}>
             <div style={{ fontWeight: "bold" }}>{key}</div>
-            <div>Calls: {keyUsage[key]}</div>
+            <div>Calls: {renderValue(keyUsage[key])}</div>
           </div>
         ))}
       </div>
@@ -164,8 +160,12 @@ export default function DebugOverlay() {
             pointerEvents: "auto"
           }}
         >
-          {/* ⭐ NEW — Add "quota" tab */}
-          <DebugTabs activeTab={tab} onChange={setTab} onCopy={handleCopy} extraTabs={["quota"]} />
+          <DebugTabs
+            activeTab={tab}
+            onChange={setTab}
+            onCopy={handleCopy}
+            extraTabs={["quota"]}
+          />
 
           <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
             {tab === "network" && (
@@ -180,8 +180,6 @@ export default function DebugOverlay() {
             {tab === "console" && (
               <DebugConsole logs={logs} colors={colors} formatTime={formatTime} />
             )}
-
-            {/* ⭐ NEW — Quota tab */}
             {tab === "quota" && renderQuota()}
           </div>
         </div>
