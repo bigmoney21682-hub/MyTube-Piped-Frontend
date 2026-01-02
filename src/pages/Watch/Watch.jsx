@@ -89,7 +89,6 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Ensure #player exists (AFTER DOM is painted)
-     ⭐ CRITICAL FIX: useLayoutEffect guarantees #player exists
 ------------------------------------------------------------- */
   useLayoutEffect(() => {
     GlobalPlayer.ensureMounted();
@@ -97,7 +96,6 @@ export default function Watch() {
 
   /* ------------------------------------------------------------
      Load video AFTER GlobalPlayer.mounted is true
-     ⭐ CRITICAL FIX: wait loop prevents black player
 ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
@@ -244,21 +242,10 @@ export default function Watch() {
   }
 
   /* ------------------------------------------------------------
-     Loading state
-------------------------------------------------------------- */
-  if (!video) {
-    return (
-      <div style={{ padding: "16px", color: "#fff", marginTop: "60px" }}>
-        Loading video…
-      </div>
-    );
-  }
-
-  /* ------------------------------------------------------------
      Render
 ------------------------------------------------------------- */
   const sn = video?.snippet ?? {};
-  const title = sn?.title ?? "Untitled";
+  const title = sn?.title ?? (video ? "Untitled" : "Loading video…");
   const description = sn?.description ?? "";
 
   return (
@@ -269,7 +256,7 @@ export default function Watch() {
         marginTop: "calc(56.25vw + var(--header-height))"
       }}
     >
-      {/* ⭐ FIXED PLAYER AT TOP */}
+      {/* Fixed player at top */}
       <div
         style={{
           position: "fixed",
@@ -470,7 +457,7 @@ function PlayerOverlay({ related, navigate }) {
               padding: "10px 16px",
               background: "rgba(0,0,0,0.7)",
               color: "#fff",
-              border: "1px solid #444",
+              border: "1px solid "#444",
               borderRadius: "6px"
             }}
           >
@@ -486,7 +473,7 @@ function PlayerOverlay({ related, navigate }) {
               padding: "10px 16px",
               background: "rgba(0,0,0,0.7)",
               color: "#fff",
-              border: "1px solid #444",
+              border: "1px solid "#444",
               borderRadius: "6px"
             }}
           >
