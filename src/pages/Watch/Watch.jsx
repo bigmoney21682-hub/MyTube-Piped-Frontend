@@ -24,7 +24,7 @@ import {
   fetchVideo,
   fetchRelated,
   fetchTrending
-} from "../api/YouTubeAPI.js";
+} from "../../api/YouTubeAPI.js";
 
 /* ------------------------------------------------------------
    MEMOIZED PLAYER CONTAINER (prevents iframe unmount)
