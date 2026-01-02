@@ -1,7 +1,7 @@
 /**
  * File: PlayerLogger.js
  * Path: src/debug/PlayerLogger.js
- * Description: Logs all player events (HTML5, YouTube, Piped) into debugBus.
+ * Description: Logs HTML5 <video> and YouTube IFrame API events into debugBus.
  */
 
 import { debugBus } from "./debugBus.js";
@@ -49,37 +49,10 @@ export function installPlayerLogger() {
   observer.observe(document.body, { childList: true, subtree: true });
 
   // ------------------------------------------------------------
-  // YouTube IFrame API logger (if present)
+  // YouTube IFrame API logger
   // ------------------------------------------------------------
   window.onYouTubeIframeAPIReady = function () {
     debugBus.log("PLAYER", "YouTube API ready");
-  };
-
-  // ------------------------------------------------------------
-  // Piped player logger (if present)
-  // ------------------------------------------------------------
-  window.__pipedPlayerHook = function (player) {
-    if (!player || player.__playerLoggerAttached) return;
-    player.__playerLoggerAttached = true;
-
-    const pipedEvents = [
-      "play",
-      "pause",
-      "ended",
-      "error",
-      "timeupdate",
-      "waiting"
-    ];
-
-    pipedEvents.forEach((ev) => {
-      player.on(ev, () => {
-        debugBus.log("PLAYER", `PIPED → ${ev}`, {
-          type: "piped",
-          event: ev,
-          currentTime: player.currentTime
-        });
-      });
-    });
   };
 
   debugBus.log("PLAYER", "PlayerLogger installed");
