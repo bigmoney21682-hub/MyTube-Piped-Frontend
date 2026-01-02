@@ -1,5 +1,6 @@
 /**
- * File: youtube.js (previous stable version)
+ * File: youtube.js
+ * Path: src/api/youtube.js
  * Description: Minimal YouTube API wrapper with primary→fallback failover.
  */
 
@@ -17,19 +18,20 @@ export async function youtubeApiRequest(endpoint, params) {
     const res = await fetch(url.toString());
     if (!res.ok) return null;
 
+    // ⭐ IMPORTANT: return the JSON even if items = []
     return await res.json();
   }
 
   // Try primary
   if (PRIMARY_KEY) {
     const data = await tryKey(PRIMARY_KEY);
-    if (data) return data;
+    if (data !== null) return data;
   }
 
   // Try fallback
   if (FALLBACK_KEY) {
     const data = await tryKey(FALLBACK_KEY);
-    if (data) return data;
+    if (data !== null) return data;
   }
 
   return null;
