@@ -92,6 +92,8 @@ function mount() {
   try {
     const root = ReactDOM.createRoot(rootElement);
 
+    // ⭐ IMPORTANT:
+    // Basename restored so Home loads correctly.
     root.render(
       <BrowserRouter basename="/MyTube-Piped-Frontend">
         <PlaylistProvider>
@@ -106,10 +108,6 @@ function mount() {
 
     window.bootDebug?.boot("main.jsx → React root mounted");
     window.bootDebug?.ready?.("main.jsx → app ready");
-
-    // ⭐ IMPORTANT:
-    // DO NOT mount GlobalPlayer here.
-    // Watch.jsx mounts the player ONLY when #player exists.
 
   } catch (err) {
     window.bootDebug?.error("main.jsx → React mount error: " + err?.message);
