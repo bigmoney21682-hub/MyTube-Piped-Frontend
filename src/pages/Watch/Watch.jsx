@@ -1,9 +1,6 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
- * Description: Full video watch page with correct YouTube IFrame mount timing,
- *              safe destructuring, normalized IDs, related fallback, autonext,
- *              collapsible description, and tap-to-show skip controls.
  */
 
 import React, {
@@ -13,6 +10,7 @@ import React, {
   useRef
 } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { GlobalPlayer } from "../../player/GlobalPlayer.js";
@@ -22,6 +20,8 @@ import { updateMediaSessionMetadata } from "../../main.jsx";
 import { getVideoDetails } from "../../api/video.js";
 import { fetchRelatedVideos } from "../../api/related.js";
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
+
+import PlaylistPickerModal from "../../components/PlaylistPickerModal.jsx";
 
 /* ------------------------------------------------------------
    Shared card styles
@@ -81,22 +81,17 @@ export default function Watch() {
   const [video, setVideo] = useState(null);
   const [related, setRelated] = useState([]);
   const [descExpanded, setDescExpanded] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
 
   const relatedRef = useRef([]);
   useEffect(() => {
     relatedRef.current = related;
   }, [related]);
 
-  /* ------------------------------------------------------------
-     Ensure #player exists (AFTER DOM is painted)
-------------------------------------------------------------- */
   useLayoutEffect(() => {
     GlobalPlayer.ensureMounted();
   }, []);
 
-  /* ------------------------------------------------------------
-     Load video AFTER GlobalPlayer.mounted is true
-------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
 
@@ -115,9 +110,6 @@ export default function Watch() {
     return () => clearInterval(wait);
   }, [id]);
 
-  /* ------------------------------------------------------------
-     Autonext (related)
-------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       const list = relatedRef.current;
@@ -131,9 +123,6 @@ export default function Watch() {
     });
   }, [navigate, loadVideo]);
 
-  /* ------------------------------------------------------------
-     Cached video details
-------------------------------------------------------------- */
   async function loadVideoDetails(videoId) {
     try {
       const details = await getVideoDetails(videoId);
@@ -159,9 +148,6 @@ export default function Watch() {
     }
   }
 
-  /* ------------------------------------------------------------
-     Cached related videos
-------------------------------------------------------------- */
   async function loadRelated(videoId) {
     try {
       const list = await fetchRelatedVideos(videoId);
@@ -189,9 +175,6 @@ export default function Watch() {
     }
   }
 
-  /* ------------------------------------------------------------
-     Media Session metadata
-------------------------------------------------------------- */
   useEffect(() => {
     if (video && id) {
       const sn = video?.snippet ?? {};
@@ -203,9 +186,6 @@ export default function Watch() {
     }
   }, [video, id]);
 
-  /* ------------------------------------------------------------
-     Add to Playlist
-------------------------------------------------------------- */
   function handleAddToPlaylist() {
     if (!id) return;
 
@@ -214,36 +194,9 @@ export default function Watch() {
       return;
     }
 
-    const names = playlists.map((p, i) => `${i + 1}. ${p.name}`).join("\n");
-    const choice = prompt(
-      "Add to which playlist?\n\n" + names + "\n\nEnter number:"
-    );
-
-    if (!choice) return;
-
-    const index = parseInt(choice, 10) - 1;
-    const playlist = playlists[index];
-
-    if (!playlist) {
-      alert("Invalid playlist number.");
-      return;
-    }
-
-    const sn = video?.snippet ?? {};
-
-    addVideoToPlaylist(playlist.id, {
-      id,
-      title: sn.title ?? "Untitled",
-      author: sn.channelTitle ?? "Unknown Channel",
-      thumbnail: sn.thumbnails?.medium?.url ?? ""
-    });
-
-    alert(`Added to playlist: ${playlist.name}`);
+    setShowPicker(true);
   }
 
-  /* ------------------------------------------------------------
-     Render
-------------------------------------------------------------- */
   const sn = video?.snippet ?? {};
   const title = sn?.title ?? (video ? "Untitled" : "Loading video…");
   const description = sn?.description ?? "";
@@ -256,7 +209,6 @@ export default function Watch() {
         marginTop: "calc(56.25vw + var(--header-height))"
       }}
     >
-      {/* Fixed player at top */}
       <div
         style={{
           position: "fixed",
@@ -278,13 +230,10 @@ export default function Watch() {
             height: "100%"
           }}
         ></div>
-
-        <PlayerOverlay related={related} navigate={navigate} />
       </div>
 
       <h2 style={{ padding: "16px" }}>{title}</h2>
 
-      {/* Collapsible description */}
       <div style={{ padding: "0 16px 16px" }}>
         <div
           style={{
@@ -312,18 +261,6 @@ export default function Watch() {
         >
           {descExpanded ? "Show less" : "Show more"}
         </button>
-      </div>
-
-      <div style={{ padding: "16px" }}>
-        <label style={{ marginRight: "12px" }}>Autonext:</label>
-        <select
-          value={autonextMode}
-          onChange={(e) => setAutonextMode(e.target.value)}
-          style={{ padding: "6px" }}
-        >
-          <option value="related">Related</option>
-          <option value="playlist">Playlist</option>
-        </select>
       </div>
 
       <div style={{ padding: "16px", display: "flex", gap: "8px" }}>
@@ -354,7 +291,6 @@ export default function Watch() {
         </button>
       </div>
 
-      {/* Related videos */}
       <div style={{ padding: "16px" }}>
         <h3 style={{ marginBottom: "12px" }}>Related Videos</h3>
 
@@ -386,100 +322,25 @@ export default function Watch() {
           );
         })}
       </div>
-    </div>
-  );
-}
 
-/* ------------------------------------------------------------
-   Tap-to-show overlay with skip controls
-------------------------------------------------------------- */
-function PlayerOverlay({ related, navigate }) {
-  const [visible, setVisible] = React.useState(false);
-  const hideTimer = React.useRef(null);
+      {showPicker && (
+        <PlaylistPickerModal
+          playlists={playlists}
+          onSelect={(playlist) => {
+            const sn = video?.snippet ?? {};
 
-  function show() {
-    setVisible(true);
+            addVideoToPlaylist(playlist.id, {
+              id,
+              title: sn.title ?? "Untitled",
+              author: sn.channelTitle ?? "Unknown Channel",
+              thumbnail: sn.thumbnails?.medium?.url ?? ""
+            });
 
-    clearTimeout(hideTimer.current);
-    hideTimer.current = setTimeout(() => {
-      setVisible(false);
-    }, 2000);
-  }
-
-  function skipBack() {
-    const t = GlobalPlayer.player?.getCurrentTime?.() || 0;
-
-    if (t < 3 && related.length > 1) {
-      const prev = related[1]?.id;
-      if (prev) navigate(`/watch/${prev}`);
-    } else {
-      GlobalPlayer.player?.seekTo?.(0, true);
-    }
-  }
-
-  function skipNext() {
-    const next = related[0]?.id;
-    if (next) navigate(`/watch/${next}`);
-  }
-
-  return (
-    <div
-      onClick={show}
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        zIndex: 20,
-        cursor: "pointer",
-        pointerEvents: visible ? "auto" : "none"
-      }}
-    >
-      {visible && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            gap: "20px",
-            zIndex: 30
+            setShowPicker(false);
+            alert(`Added to playlist: ${playlist.name}`);
           }}
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              skipBack();
-            }}
-            style={{
-              padding: "10px 16px",
-              background: "rgba(0,0,0,0.7)",
-              color: "#fff",
-              border: "1px solid #444",
-              borderRadius: "6px"
-            }}
-          >
-            ⏮ Back
-          </button>
-
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              skipNext();
-            }}
-            style={{
-              padding: "10px 16px",
-              background: "rgba(0,0,0,0.7)",
-              color: "#fff",
-              border: "1px solid #444",
-              borderRadius: "6px"
-            }}
-          >
-            ⏭ Next
-          </button>
-        </div>
+          onClose={() => setShowPicker(false)}
+        />
       )}
     </div>
   );
