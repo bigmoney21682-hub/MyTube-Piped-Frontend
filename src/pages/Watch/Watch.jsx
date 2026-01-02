@@ -7,6 +7,7 @@
  *   - Playlist + Related autonext
  *   - Autonext toggle
  *   - Add to playlist button
+ *   - Related videos list
  */
 
 import React, { useEffect, useState, useMemo } from "react";
@@ -51,10 +52,9 @@ export default function Watch() {
   const isPlaylistMode = Boolean(playlistIdFromURL);
 
   // ------------------------------------------------------------
-  // 2. Load YouTube API script (correct place)
+  // 2. Load YouTube API script
   // ------------------------------------------------------------
   useEffect(() => {
-    // Already loaded?
     if (window.YT && window.YT.Player) {
       debugBus.log("YT API already loaded (Watch.jsx)");
       GlobalPlayer.onApiReady();
@@ -71,7 +71,6 @@ export default function Watch() {
       document.body.appendChild(tag);
     }
 
-    // Wire callback
     window.onYouTubeIframeAPIReady = () => {
       debugBus.log("YouTube API ready (Watch.jsx callback)");
       GlobalPlayer.onApiReady();
@@ -92,7 +91,7 @@ export default function Watch() {
   }, [isPlaylistMode, playlistIdFromURL, setAutonextMode, setActivePlaylistId]);
 
   // ------------------------------------------------------------
-  // 4. Load video
+  // 4. Load video into GlobalPlayer
   // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
@@ -115,7 +114,7 @@ export default function Watch() {
         setVideoData(videoJson.items?.[0] || null);
 
         const relatedRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
+          `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&relatedToVideoId=${id}&maxResults=20&key=AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0`
         );
         const relatedJson = await relatedRes.json();
         setRelated(relatedJson.items || []);
@@ -151,9 +150,10 @@ export default function Watch() {
       if (!related.length) return;
 
       const next = related[0];
-      if (!next?.id) return;
+      const vidId = next.id?.videoId || next.id;
+      if (!vidId) return;
 
-      navigate(`/watch/${next.id}?src=related`);
+      navigate(`/watch/${vidId}?src=related`);
     };
 
     AutonextEngine.registerPlaylistCallback(playlistHandler);
@@ -226,6 +226,57 @@ export default function Watch() {
           Source: {isPlaylistMode ? "Playlist" : "Related"}
         </span>
       </div>
+
+      {/* ------------------------------------------------------------
+          8. Related videos list
+      ------------------------------------------------------------- */}
+      {related.length > 0 && (
+        <div style={{ marginTop: "8px" }}>
+          <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>Related</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            {related.map((item) => {
+              const vidId = item.id?.videoId || item.id;
+              const thumb = item.snippet?.thumbnails?.medium?.url;
+              const title = item.snippet?.title;
+
+              if (!vidId) return null;
+
+              return (
+                <div
+                  key={vidId}
+                  style={{ display: "flex", gap: "8px", cursor: "pointer" }}
+                  onClick={() => navigate(`/watch/${vidId}?src=related`)}
+                >
+                  <img
+                    src={thumb}
+                    alt={title}
+                    style={{
+                      width: "160px",
+                      height: "90px",
+                      objectFit: "cover",
+                      borderRadius: "8px"
+                    }}
+                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "center"
+                    }}
+                  >
+                    <div style={{ fontSize: "13px", fontWeight: 500 }}>
+                      {title}
+                    </div>
+                    <div style={{ fontSize: "11px", opacity: 0.7 }}>
+                      {item.snippet?.channelTitle}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
