@@ -2,8 +2,10 @@
  * File: SearchCache.js
  * Path: src/cache/SearchCache.js
  * Description: Smart search cache with TTL + reuse counter.
- * Reduces YouTube Search API calls by 90–95%.
+ *              Now fully ID-normalized to prevent invalid video IDs.
  */
+
+import { normalizeId } from "../utils/normalizeId.js";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_REUSE = 20;               // reuse cached result 20 times
@@ -13,10 +15,19 @@ const searchCache = {};
 
 /**
  * Stores search results with metadata.
+ * Ensures all items are normalized BEFORE caching.
  */
 export function setSearchCache(query, results) {
+  const normalized = results
+    .map((item) => {
+      const id = normalizeId(item);
+      if (!id) return null;
+      return { ...item, id };
+    })
+    .filter(Boolean);
+
   searchCache[query] = {
-    results,
+    results: normalized,
     ts: Date.now(),
     reuse: 0
   };
