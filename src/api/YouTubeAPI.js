@@ -1,5 +1,7 @@
 // File: src/api/YouTubeAPI.js
-// Description: Optimized YouTube API fetch layer with caching, dedupe, and key rotation.
+// Fully normalized YouTube API layer
+
+import { normalizeId } from "../utils/normalizeId.js";
 
 const API_KEYS = [
   import.meta.env.VITE_YT_API_PRIMARY,
@@ -10,7 +12,6 @@ let keyIndex = 0;
 function getKey() {
   return API_KEYS[keyIndex % API_KEYS.length];
 }
-
 function rotateKey() {
   keyIndex++;
 }
@@ -18,7 +19,7 @@ function rotateKey() {
 const videoCache = {};
 const relatedCache = {};
 const trendingCache = {};
-const pending = {}; // dedupe in-flight requests
+const pending = {};
 
 /* ------------------------------------------------------------
    Safe fetch with key rotation + dedupe
@@ -46,7 +47,7 @@ async function safeFetch(url) {
         }
 
         break;
-      } catch (err) {
+      } catch {
         rotateKey();
       }
     }
@@ -69,14 +70,23 @@ export async function fetchVideo(id) {
     `part=snippet,statistics&id=${id}&key={{KEY}}`;
 
   const json = await safeFetch(url);
-  if (!json || !json.items || !json.items[0]) return null;
+  if (!json?.items?.[0]) return null;
 
-  videoCache[id] = json.items[0];
-  return videoCache[id];
+  const item = json.items[0];
+  const normalizedId = normalizeId(item) || id;
+
+  const normalized = {
+    id: normalizedId,
+    snippet: item.snippet,
+    statistics: item.statistics
+  };
+
+  videoCache[id] = normalized;
+  return normalized;
 }
 
 /* ------------------------------------------------------------
-   Fetch related videos (cached)
+   Fetch related videos (cached + normalized)
 ------------------------------------------------------------ */
 export async function fetchRelated(id) {
   if (relatedCache[id]) return relatedCache[id];
@@ -87,18 +97,25 @@ export async function fetchRelated(id) {
     `&videoEmbeddable=true&maxResults=20&key={{KEY}}`;
 
   const json = await safeFetch(url);
-
-  if (!json || !Array.isArray(json.items)) {
+  if (!json?.items) {
     relatedCache[id] = [];
     return [];
   }
 
-  relatedCache[id] = json.items;
-  return relatedCache[id];
+  const normalized = json.items
+    .map((item) => {
+      const vid = normalizeId(item);
+      if (!vid) return null;
+      return { ...item, id: vid };
+    })
+    .filter(Boolean);
+
+  relatedCache[id] = normalized;
+  return normalized;
 }
 
 /* ------------------------------------------------------------
-   Fetch trending (cached for 30 minutes)
+   Fetch trending (cached + normalized)
 ------------------------------------------------------------ */
 export async function fetchTrending(region = "US") {
   const cache = trendingCache[region];
@@ -114,15 +131,20 @@ export async function fetchTrending(region = "US") {
     `&regionCode=${region}&key={{KEY}}`;
 
   const json = await safeFetch(url);
+  if (!json?.items) return cache?.items || [];
 
-  if (!json || !json.items) {
-    return cache ? cache.items : [];
-  }
+  const normalized = json.items
+    .map((item) => {
+      const vid = normalizeId(item);
+      if (!vid) return null;
+      return { ...item, id: vid };
+    })
+    .filter(Boolean);
 
   trendingCache[region] = {
     timestamp: now,
-    items: json.items
+    items: normalized
   };
 
-  return json.items;
+  return normalized;
 }
