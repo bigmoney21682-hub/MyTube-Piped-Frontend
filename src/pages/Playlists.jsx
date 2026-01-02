@@ -9,12 +9,17 @@ import { Link } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
 
 export default function Playlists() {
-  const { playlists, addPlaylist, renamePlaylist, deletePlaylist } = usePlaylists();
+  const {
+    playlists,
+    createPlaylist,
+    renamePlaylist,
+    deletePlaylist
+  } = usePlaylists();
 
   function handleCreate() {
     const name = prompt("Name your playlist:");
     if (!name) return;
-    addPlaylist(name);
+    createPlaylist(name);   // ⭐ FIXED — correct function
   }
 
   function handleRename(id, currentName) {
