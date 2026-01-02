@@ -24,9 +24,6 @@ import { debugBus } from "../../debug/debugBus.js";
 const YT_API_KEY = "AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0";
 
 export default function Watch() {
-  // ------------------------------------------------------------
-  // 1. Route + query params
-  // ------------------------------------------------------------
   const params = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -38,7 +35,7 @@ export default function Watch() {
     [location.search]
   );
 
-  const srcParam = searchParams.get("src"); // "playlist" | "related" | "trending" | null
+  const srcParam = searchParams.get("src");
   const playlistIdFromURL = searchParams.get("pl");
 
   const id = useMemo(() => {
@@ -51,15 +48,9 @@ export default function Watch() {
 
   const isPlaylistMode = Boolean(playlistIdFromURL);
 
-  // ------------------------------------------------------------
-  // 2. Contexts
-  // ------------------------------------------------------------
   const { loadVideo, setAutonextMode, setActivePlaylistId } = usePlayer();
   const { playlists, openAddToPlaylist } = usePlaylists();
 
-  // ------------------------------------------------------------
-  // 3. Local state
-  // ------------------------------------------------------------
   const [videoData, setVideoData] = useState(null);
   const [related, setRelated] = useState([]);
   const [trending, setTrending] = useState([]);
@@ -67,7 +58,6 @@ export default function Watch() {
     playlistIdFromURL || null
   );
 
-  // "playlist" | "related" | "trending"
   const [autonextSource, setAutonextSource] = useState(
     isPlaylistMode ? "playlist" : "related"
   );
@@ -75,7 +65,6 @@ export default function Watch() {
   const [showSourceMenu, setShowSourceMenu] = useState(false);
   const [showPlaylistPicker, setShowPlaylistPicker] = useState(false);
 
-  // Keep autonextSource in sync when route changes
   useEffect(() => {
     setAutonextSource((prev) => {
       if (prev === "playlist" && !isPlaylistMode && !selectedPlaylistId) {
@@ -85,17 +74,11 @@ export default function Watch() {
     });
   }, [isPlaylistMode, selectedPlaylistId]);
 
-  // ------------------------------------------------------------
-  // 4. YouTube API loader
-  // ------------------------------------------------------------
   useEffect(() => {
     if (window.YT && window.YT.Player) {
-      debugBus.log("YT API already loaded (Watch.jsx)");
       GlobalPlayer.onApiReady();
       return;
     }
-
-    debugBus.log("Injecting YouTube API script (Watch.jsx)");
 
     const existing = document.getElementById("youtube-iframe-api");
     if (!existing) {
@@ -106,14 +89,10 @@ export default function Watch() {
     }
 
     window.onYouTubeIframeAPIReady = () => {
-      debugBus.log("YouTube API ready (Watch.jsx callback)");
       GlobalPlayer.onApiReady();
     };
   }, []);
 
-  // ------------------------------------------------------------
-  // 5. Autonext mode in PlayerContext (for global awareness)
-  // ------------------------------------------------------------
   useEffect(() => {
     if (autonextSource === "playlist" && (selectedPlaylistId || playlistIdFromURL)) {
       setAutonextMode("playlist");
@@ -122,7 +101,7 @@ export default function Watch() {
       setAutonextMode("related");
       setActivePlaylistId(null);
     } else if (autonextSource === "trending") {
-      setAutonextMode("related"); // treat as non-playlist for context
+      setAutonextMode("related");
       setActivePlaylistId(null);
     }
   }, [
@@ -133,31 +112,22 @@ export default function Watch() {
     setActivePlaylistId
   ]);
 
-  // ------------------------------------------------------------
-  // 6. Load video into GlobalPlayer
-  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
-    debugBus.log("Watch.jsx → load(" + id + ")");
     loadVideo(id);
   }, [id, loadVideo]);
 
-  // ------------------------------------------------------------
-  // 7. Fetch video + related + trending
-  // ------------------------------------------------------------
   useEffect(() => {
     if (!id) return;
 
     async function fetchData() {
       try {
-        // Video details
         const videoRes = await fetch(
           `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${id}&key=${YT_API_KEY}`
         );
         const videoJson = await videoRes.json();
         setVideoData(videoJson.items?.[0] || null);
 
-        // Related
         let relatedItems = [];
         try {
           const relatedRes = await fetch(
@@ -170,35 +140,23 @@ export default function Watch() {
           }
 
           relatedItems = relatedJson.items;
-        } catch (innerErr) {
-          debugBus.warn(
-            "Watch.jsx → related search failed, will rely on trending"
-          );
-        }
+        } catch (innerErr) {}
 
         setRelated(relatedItems);
 
-        // Trending (always fetch, used for Trending source and fallback)
         try {
           const trendingRes = await fetch(
             `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=${YT_API_KEY}`
           );
           const trendingJson = await trendingRes.json();
           setTrending(trendingJson.items || []);
-        } catch (trendErr) {
-          debugBus.error("Watch.jsx trending fetch error", trendErr);
-        }
-      } catch (err) {
-        debugBus.error("Watch.jsx fetch error", err);
-      }
+        } catch (trendErr) {}
+      } catch (err) {}
     }
 
     fetchData();
   }, [id]);
 
-  // ------------------------------------------------------------
-  // 8. Autonext lifecycle (playlist + related + trending, source-aware)
-  // ------------------------------------------------------------
   useEffect(() => {
     const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
 
@@ -262,9 +220,6 @@ export default function Watch() {
     navigate
   ]);
 
-  // ------------------------------------------------------------
-  // 9. Derived lists and labels
-  // ------------------------------------------------------------
   const effectivePlaylistId = selectedPlaylistId || playlistIdFromURL || null;
 
   const relatedList = useMemo(() => {
@@ -300,9 +255,6 @@ export default function Watch() {
     return "Related";
   }, [autonextSource]);
 
-  // ------------------------------------------------------------
-  // 10. UI helpers
-  // ------------------------------------------------------------
   const overlayStyle = {
     position: "fixed",
     top: 0,
@@ -337,12 +289,8 @@ export default function Watch() {
     cursor: "pointer"
   };
 
-  // ------------------------------------------------------------
-  // 11. UI
-  // ------------------------------------------------------------
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      {/* Autonext source menu */}
       {showSourceMenu && (
         <div style={overlayStyle} onClick={() => setShowSourceMenu(false)}>
           <div
@@ -388,7 +336,6 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Playlist picker */}
       {showPlaylistPicker && (
         <div style={overlayStyle} onClick={() => setShowPlaylistPicker(false)}>
           <div
@@ -424,7 +371,6 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Player */}
       <div
         id="player"
         style={{
@@ -435,7 +381,6 @@ export default function Watch() {
         }}
       />
 
-      {/* Video meta */}
       {videoData && (
         <div style={{ marginBottom: "12px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
@@ -447,7 +392,6 @@ export default function Watch() {
         </div>
       )}
 
-      {/* Controls row */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
         <button
           onClick={() => setShowSourceMenu(true)}
@@ -484,7 +428,6 @@ export default function Watch() {
         </span>
       </div>
 
-      {/* Related / Playlist / Trending list */}
       {relatedList.length > 0 && (
         <div style={{ marginTop: "8px" }}>
           <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>
