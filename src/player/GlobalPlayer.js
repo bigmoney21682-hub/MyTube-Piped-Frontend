@@ -14,10 +14,8 @@ function onApiReady() {
   debugBus.log("YouTube API ready (GlobalPlayer)");
   apiReady = true;
 
-  // Try to create the player now that API is ready
   ensurePlayer();
 
-  // Flush any queued loads
   pendingLoads.forEach((id) => GlobalPlayer.load(id));
   pendingLoads = [];
 }
@@ -38,33 +36,36 @@ function ensurePlayer() {
 
   debugBus.log("GlobalPlayer.ensurePlayer → creating YT.Player");
 
-  player = new window.YT.Player("player", {
-    height: "220",
-    width: "100%",
-    videoId: "",
-    playerVars: {
-      autoplay: 0,
-      controls: 1,
-      rel: 0,
-      playsinline: 1
-    },
-    events: {
-      onReady: () => {
-        debugBus.log("Player ready");
+  try {
+    player = new window.YT.Player("player", {
+      height: "220",
+      width: "100%",
+      videoId: "",
+      playerVars: {
+        autoplay: 0,
+        controls: 1,
+        rel: 0,
+        playsinline: 1
       },
-      onStateChange: (event) => {
-        debugBus.log(String(event.data));
+      events: {
+        onReady: () => {
+          debugBus.log("Player ready");
+        },
+        onStateChange: (event) => {
+          debugBus.log("Player state → " + event.data);
 
-        if (event.data === window.YT.PlayerState.ENDED) {
-          debugBus.log("Player state → ENDED → AutonextEngine.handleEnded()");
-          AutonextEngine.handleEnded();
+          if (event.data === window.YT.PlayerState.ENDED) {
+            AutonextEngine.handleEnded();
+          }
+        },
+        onError: (event) => {
+          debugBus.error("Player error: " + event.data);
         }
-      },
-      onError: (event) => {
-        debugBus.error("Player error", event.data);
       }
-    }
-  });
+    });
+  } catch (err) {
+    debugBus.error("YT.Player constructor failed: " + err?.message);
+  }
 
   return true;
 }
@@ -73,12 +74,7 @@ function ensurePlayer() {
    Public API
 ------------------------------------------------------------- */
 export const GlobalPlayer = {
-  // Called by Watch.jsx when the API script fires its callback
   onApiReady,
-
-  ensureMounted() {
-    // no-op for now; kept for compatibility
-  },
 
   load(id) {
     if (!id) return;
@@ -96,10 +92,11 @@ export const GlobalPlayer = {
     }
 
     debugBus.log("Loading video " + id);
+
     try {
       player.loadVideoById(id);
     } catch (err) {
-      debugBus.error("GlobalPlayer.load error:", err);
+      debugBus.error("GlobalPlayer.load → loadVideoById failed: " + err?.message);
     }
   }
 };
