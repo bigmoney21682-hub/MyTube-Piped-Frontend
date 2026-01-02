@@ -45,18 +45,19 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 
 // ------------------------------------------------------------
-// 1. Initialize debug system BEFORE anything else
-// ------------------------------------------------------------
-import "./debug/bootDebug.js";
-
-// ------------------------------------------------------------
-// 2. Install global loggers
+// 1. Install global loggers BEFORE bootDebug
+//    (NetworkLogger must patch fetch before debugBus starts)
 // ------------------------------------------------------------
 import { installNetworkLogger } from "./debug/NetworkLogger.js";
 import { installPlayerLogger } from "./debug/PlayerLogger.js";
 
 installNetworkLogger();
 installPlayerLogger();
+
+// ------------------------------------------------------------
+// 2. Initialize debug system
+// ------------------------------------------------------------
+import "./debug/bootDebug.js";
 
 // ------------------------------------------------------------
 // 3. Global error listeners
@@ -92,8 +93,6 @@ function mount() {
   try {
     const root = ReactDOM.createRoot(rootElement);
 
-    // ⭐ IMPORTANT:
-    // Basename restored so Home loads correctly.
     root.render(
       <BrowserRouter basename="/MyTube-Piped-Frontend">
         <PlaylistProvider>
@@ -116,3 +115,4 @@ function mount() {
 }
 
 mount();
+
