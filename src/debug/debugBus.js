@@ -33,7 +33,7 @@ function emit(level, msg, data = null) {
 }
 
 /* ------------------------------------------------------------
-   Category helpers (REQUIRED by your app)
+   Category helpers
 ------------------------------------------------------------- */
 function log(msg, data) {
   emit("LOG", msg, data);
@@ -95,7 +95,7 @@ export const debugBus = {
   log,
   info,
   warn,
- error,
+  error,
   player,
   router,
   perf,
