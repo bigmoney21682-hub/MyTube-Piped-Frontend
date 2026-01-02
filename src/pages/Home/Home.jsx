@@ -11,8 +11,6 @@ import { Link } from "react-router-dom";
 
 import { fetchTrending } from "../../api/trending.js";
 
-console.log("TRENDING ITEM SAMPLE", trending[0]);
-
 import VideoActions from "../../components/VideoActions.jsx";
 
 /* ------------------------------------------------------------
