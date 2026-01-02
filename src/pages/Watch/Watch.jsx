@@ -13,8 +13,8 @@ import React, {
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 import { usePlayer } from "../../player/PlayerContext.jsx";
-import { AutonextEngine } from "../player/AutonextEngine.js";
-import { GlobalPlayer } from "../player/GlobalPlayer.js";
+import { AutonextEngine } from "../../player/AutonextEngine.js";
+import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
 import { debugBus } from "../debug/debugBus.js";
