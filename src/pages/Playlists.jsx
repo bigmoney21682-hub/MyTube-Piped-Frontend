@@ -1,7 +1,9 @@
 /**
  * File: Playlists.jsx
  * Path: src/pages/Playlists.jsx
- * Description: Lists all playlists with create/delete/rename options.
+ * Description: Lists all playlists with video counts and navigation
+ *              into individual Playlist pages. Playlist names are
+ *              now styled as clickable buttons.
  */
 
 import React from "react";
@@ -9,81 +11,67 @@ import { Link } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
 
 export default function Playlists() {
-  const { playlists, createPlaylist, deletePlaylist, renamePlaylist } = usePlaylists();
+  const { playlists, addPlaylist } = usePlaylists();
 
   function handleCreate() {
-    const name = prompt("New playlist name:");
-    if (name && name.trim()) createPlaylist(name.trim());
-  }
-
-  function handleRename(id, oldName) {
-    const newName = prompt("Rename playlist:", oldName);
-    if (newName && newName.trim()) renamePlaylist(id, newName.trim());
+    const name = prompt("Name your playlist:");
+    if (!name) return;
+    addPlaylist(name);
   }
 
   return (
-    <div style={{ padding: "16px", paddingTop: "var(--header-height)" }}>
-      <h2>Your Playlists</h2>
+    <div style={{ padding: "16px", color: "#fff" }}>
+      <h2 style={{ marginBottom: "16px" }}>Your Playlists</h2>
 
       <button
         onClick={handleCreate}
         style={{
-          marginTop: "12px",
           padding: "10px 16px",
           background: "#222",
           color: "#3ea6ff",
           border: "1px solid #444",
-          borderRadius: "6px"
+          borderRadius: "4px",
+          marginBottom: "20px"
         }}
       >
         + New Playlist
       </button>
 
-      <div style={{ marginTop: "20px" }}>
+      {playlists.length === 0 && (
+        <div style={{ opacity: 0.7 }}>You have no playlists yet.</div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {playlists.map((p) => (
           <div
             key={p.id}
             style={{
-              padding: "12px",
-              borderBottom: "1px solid #333",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center"
+              paddingBottom: "12px",
+              borderBottom: "1px solid #333"
             }}
           >
+            {/* Playlist name as a button */}
             <Link
               to={`/playlist/${p.id}`}
-              style={{ color: "#fff", textDecoration: "none", fontSize: "16px" }}
+              style={{
+                display: "inline-block",
+                padding: "10px 14px",
+                background: "#222",
+                border: "1px solid #444",
+                borderRadius: "6px",
+                color: "#fff",
+                textDecoration: "none",
+                fontSize: "15px",
+                fontWeight: "bold",
+                marginBottom: "6px"
+              }}
             >
               {p.name}
             </Link>
 
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                onClick={() => handleRename(p.id, p.name)}
-                style={{
-                  background: "none",
-                  border: "1px solid #444",
-                  color: "#3ea6ff",
-                  padding: "4px 8px",
-                  borderRadius: "6px"
-                }}
-              >
-                Rename
-              </button>
-
-              <button
-                onClick={() => deletePlaylist(p.id)}
-                style={{
-                  background: "none",
-                  border: "1px solid #444",
-                  color: "#ff4444",
-                  padding: "4px 8px",
-                  borderRadius: "6px"
-                }}
-              >
-                Delete
-              </button>
+            {/* Video count */}
+            <div style={{ fontSize: 13, opacity: 0.7, marginTop: "4px" }}>
+              {p.videos.length} videos
             </div>
           </div>
         ))}
