@@ -1,6 +1,7 @@
 /**
  * File: Watch.jsx
  * Path: src/pages/Watch.jsx
+ * Description: Fully optimized Watch page using YouTubeAPI.js
  */
 
 import React, {
@@ -18,7 +19,12 @@ import { GlobalPlayer } from "../player/GlobalPlayer.js";
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
 import { debugBus } from "../debug/debugBus.js";
 
-const YT_API_KEY = "AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0";
+// NEW optimized API layer
+import {
+  fetchVideo,
+  fetchRelated,
+  fetchTrending
+} from "../api/YouTubeAPI.js";
 
 /* ------------------------------------------------------------
    MEMOIZED PLAYER CONTAINER (prevents iframe unmount)
@@ -38,7 +44,7 @@ const PlayerContainer = React.memo(() => {
 });
 
 /* ------------------------------------------------------------
-   MEMOIZED AUTONEXT BUTTON (orange gradient)
+   MEMOIZED AUTONEXT BUTTON
 ------------------------------------------------------------ */
 const AutonextButton = React.memo(function AutonextButton({
   sourceLabel,
@@ -99,13 +105,12 @@ export default function Watch() {
     playlistIdFromURL || null
   );
 
-  // Only two sources now: "related" and "playlist"
   const [autonextSource, setAutonextSource] = useState(
     isPlaylistMode ? "playlist" : "related"
   );
 
   /* ------------------------------------------------------------
-     POPUP ISOLATION (useRef + uiTick)
+     POPUP ISOLATION
   ------------------------------------------------------------ */
   const showSourceMenuRef = useRef(false);
   const showPlaylistPickerRef = useRef(false);
@@ -198,52 +203,23 @@ export default function Watch() {
   }, [id, loadVideo]);
 
   /* ------------------------------------------------------------
-     Fetch video + related + trending (fallback only)
+     Fetch video + related + trending (optimized)
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
 
-    async function fetchData() {
-      try {
-        const videoRes = await fetch(
-          `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${id}&key=${YT_API_KEY}`
-        );
-        const videoJson = await videoRes.json();
-        setVideoData(videoJson.items?.[0] || null);
+    async function loadAll() {
+      const video = await fetchVideo(id);
+      setVideoData(video);
 
-        let relatedItems = [];
-        try {
-          const relatedRes = await fetch(
-            `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&relatedToVideoId=${id}&videoEmbeddable=true&maxResults=20&key=${YT_API_KEY}`
-          );
-          const relatedJson = await relatedRes.json();
+      const rel = await fetchRelated(id);
+      setRelated(rel);
 
-          if (relatedJson.error || !Array.isArray(relatedJson.items)) {
-            throw new Error("Related API error");
-          }
-
-          relatedItems = relatedJson.items;
-        } catch (innerErr) {
-          debugBus.warn("Watch.jsx → related search failed, will rely on trending");
-        }
-
-        setRelated(relatedItems);
-
-        try {
-          const trendingRes = await fetch(
-            `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=20&regionCode=US&key=${YT_API_KEY}`
-          );
-          const trendingJson = await trendingRes.json();
-          setTrending(trendingJson.items || []);
-        } catch (trendErr) {
-          debugBus.error("Watch.jsx trending fetch error", trendErr);
-        }
-      } catch (err) {
-        debugBus.error("Watch.jsx fetch error", err);
-      }
+      const trend = await fetchTrending("US");
+      setTrending(trend);
     }
 
-    fetchData();
+    loadAll();
   }, [id]);
 
   /* ------------------------------------------------------------
