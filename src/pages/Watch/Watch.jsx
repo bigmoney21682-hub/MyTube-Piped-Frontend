@@ -5,7 +5,7 @@
  *   - YouTube API loader
  *   - GlobalPlayer integration
  *   - Playlist + Related autonext
- *   - Autonext toggle
+ *   - Autonext source toggle (Playlist / Related / Off)
  *   - Add to playlist
  *   - Related list with safe fallback
  */
@@ -61,7 +61,22 @@ export default function Watch() {
   // ------------------------------------------------------------
   const [videoData, setVideoData] = useState(null);
   const [related, setRelated] = useState([]);
-  const [autonextEnabled, setAutonextEnabled] = useState(true);
+
+  // "playlist" | "related" | "off"
+  const [autonextSource, setAutonextSource] = useState(() =>
+    isPlaylistMode ? "playlist" : "related"
+  );
+
+  // Keep autonextSource in sync when route changes
+  useEffect(() => {
+    setAutonextSource((prev) => {
+      if (prev === "playlist" && !isPlaylistMode) {
+        return "related";
+      }
+      if (prev === "off") return "off";
+      return isPlaylistMode ? "playlist" : "related";
+    });
+  }, [isPlaylistMode]);
 
   // ------------------------------------------------------------
   // 4. YouTube API loader
@@ -90,17 +105,31 @@ export default function Watch() {
   }, []);
 
   // ------------------------------------------------------------
-  // 5. Autonext mode in PlayerContext
+  // 5. Autonext mode in PlayerContext (for global awareness)
   // ------------------------------------------------------------
   useEffect(() => {
-    if (isPlaylistMode) {
+    if (autonextSource === "playlist" && isPlaylistMode) {
       setAutonextMode("playlist");
       setActivePlaylistId(playlistIdFromURL);
-    } else {
+    } else if (autonextSource === "related") {
       setAutonextMode("related");
       setActivePlaylistId(null);
+    } else {
+      // Off: keep context sane, but handlers will no-op
+      setAutonextMode(isPlaylistMode ? "playlist" : "related");
+      if (isPlaylistMode) {
+        setActivePlaylistId(playlistIdFromURL);
+      } else {
+        setActivePlaylistId(null);
+      }
     }
-  }, [isPlaylistMode, playlistIdFromURL, setAutonextMode, setActivePlaylistId]);
+  }, [
+    autonextSource,
+    isPlaylistMode,
+    playlistIdFromURL,
+    setAutonextMode,
+    setActivePlaylistId
+  ]);
 
   // ------------------------------------------------------------
   // 6. Load video into GlobalPlayer
@@ -161,12 +190,11 @@ export default function Watch() {
   }, [id]);
 
   // ------------------------------------------------------------
-  // 8. Autonext lifecycle (playlist + related)
+  // 8. Autonext lifecycle (playlist + related, source-aware)
   // ------------------------------------------------------------
   useEffect(() => {
-    // PLAYLIST AUTONEXT
     const playlistHandler = () => {
-      if (!autonextEnabled) return;
+      if (autonextSource !== "playlist") return;
 
       const playlist = playlists.find((p) => p.id === playlistIdFromURL);
       if (!playlist) return;
@@ -180,9 +208,8 @@ export default function Watch() {
       navigate(`/watch/${nextVideo.id}?src=playlist&pl=${playlistIdFromURL}`);
     };
 
-    // RELATED AUTONEXT
     const relatedHandler = () => {
-      if (!autonextEnabled) return;
+      if (autonextSource !== "related") return;
       if (!related.length) return;
 
       const next = related[0];
@@ -192,14 +219,9 @@ export default function Watch() {
       navigate(`/watch/${vidId}?src=related`);
     };
 
-    // Register based on mode
-    if (isPlaylistMode) {
-      AutonextEngine.registerPlaylistCallback(playlistHandler);
-      AutonextEngine.registerRelatedCallback(null);
-    } else {
-      AutonextEngine.registerPlaylistCallback(null);
-      AutonextEngine.registerRelatedCallback(relatedHandler);
-    }
+    // Register both; handlers self‑gate on autonextSource
+    AutonextEngine.registerPlaylistCallback(playlistHandler);
+    AutonextEngine.registerRelatedCallback(relatedHandler);
 
     return () => {
       AutonextEngine.registerPlaylistCallback(null);
@@ -210,20 +232,37 @@ export default function Watch() {
     related,
     playlists,
     playlistIdFromURL,
-    autonextEnabled,
-    isPlaylistMode,
+    autonextSource,
     navigate
   ]);
 
   // ------------------------------------------------------------
-  // 9. UI
+  // 9. UI helpers
   // ------------------------------------------------------------
   const sourceLabel = useMemo(() => {
+    if (autonextSource === "off") return "Off";
+    if (autonextSource === "playlist") return "Playlist";
+    return "Related";
+  }, [autonextSource]);
+
+  const currentOriginLabel = useMemo(() => {
     if (isPlaylistMode) return "Playlist";
     if (srcParam === "related") return "Related";
     return "Trending";
   }, [isPlaylistMode, srcParam]);
 
+  const cycleAutonextSource = () => {
+    setAutonextSource((prev) => {
+      if (prev === "playlist") return "related";
+      if (prev === "related") return "off";
+      // off → default based on route
+      return isPlaylistMode ? "playlist" : "related";
+    });
+  };
+
+  // ------------------------------------------------------------
+  // 10. UI
+  // ------------------------------------------------------------
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
       <div
@@ -249,15 +288,16 @@ export default function Watch() {
 
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
         <button
-          onClick={() => setAutonextEnabled(!autonextEnabled)}
+          onClick={cycleAutonextSource}
           style={{
             padding: "6px 10px",
             borderRadius: "999px",
-            background: autonextEnabled ? "#22c55e" : "#4b5563",
+            background:
+              autonextSource === "off" ? "#4b5563" : "#22c55e",
             color: "#fff"
           }}
         >
-          Autonext: {autonextEnabled ? "On" : "Off"}
+          Autonext: {sourceLabel}
         </button>
 
         <button
@@ -279,7 +319,7 @@ export default function Watch() {
         </button>
 
         <span style={{ fontSize: "11px", opacity: 0.7 }}>
-          Source: {sourceLabel}
+          Source: {currentOriginLabel}
         </span>
       </div>
 
