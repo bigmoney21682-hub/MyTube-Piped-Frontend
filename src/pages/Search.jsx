@@ -16,6 +16,7 @@ import {
   setSearchCache
 } from "../cache/SearchCache.js";
 
+import { normalizeId } from "../utils/normalizeId.js";
 import VideoActions from "../components/VideoActions.jsx";
 
 export default function Search() {
@@ -83,7 +84,13 @@ export default function Search() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         {results.map((item) => {
-          const videoId = item.id;
+          const videoId = normalizeId(item);
+
+          if (!videoId) {
+            debugBus.warn("Search.jsx → Skipped item with invalid ID", item);
+            return null;
+          }
+
           const sn = item.snippet;
           const thumb = sn?.thumbnails?.medium?.url;
 
