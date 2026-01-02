@@ -1,4 +1,14 @@
-// File: src/pages/Watch/Watch.jsx
+/**
+ * File: Watch.jsx
+ * Path: src/pages/Watch/Watch.jsx
+ * Description:
+ *   Watch page with:
+ *   - Stable video loading
+ *   - Autonext (playlist + related only)
+ *   - Autonext toggle
+ *   - Add to playlist button
+ *   - Source indicator (Playlist / Related)
+ */
 
 import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -11,6 +21,9 @@ import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { debugBus } from "../../debug/debugBus.js";
 
 export default function Watch() {
+  /* ------------------------------------------------------------
+     1. Normalize route ID
+  ------------------------------------------------------------- */
   const params = useParams();
   const rawId = params.id;
 
@@ -27,38 +40,47 @@ export default function Watch() {
     setAutonextMode,
     setActivePlaylistId
   } = usePlayer();
+
   const { playlists, openAddToPlaylist } = usePlaylists();
 
   const [videoData, setVideoData] = useState(null);
   const [related, setRelated] = useState([]);
 
-  const hasPlaylistContext = useMemo(
-    () => Boolean(new URLSearchParams(location.search).get("pl")),
-    [location.search]
-  );
-
+  /* Local UI state */
   const [autonextEnabled, setAutonextEnabled] = useState(true);
 
+  /* Detect if we are in playlist mode */
+  const playlistIdFromURL = useMemo(() => {
+    return new URLSearchParams(location.search).get("pl");
+  }, [location.search]);
+
+  const isPlaylistMode = Boolean(playlistIdFromURL);
+
+  /* ------------------------------------------------------------
+     2. Ensure GlobalPlayer mounts
+  ------------------------------------------------------------- */
   useEffect(() => {
     GlobalPlayer.ensureMounted();
   }, []);
 
+  /* ------------------------------------------------------------
+     3. Determine autonext mode (playlist or related)
+  ------------------------------------------------------------- */
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const src = params.get("src");
-    const pl = params.get("pl");
-
-    if (src === "playlist" && pl) {
+    if (isPlaylistMode) {
       setAutonextMode("playlist");
-      setActivePlaylistId(pl);
+      setActivePlaylistId(playlistIdFromURL);
       debugBus.log("Mode set → playlist");
     } else {
       setAutonextMode("related");
       setActivePlaylistId(null);
       debugBus.log("Mode set → related");
     }
-  }, [location.search, setAutonextMode, setActivePlaylistId]);
+  }, [isPlaylistMode, playlistIdFromURL, setAutonextMode, setActivePlaylistId]);
 
+  /* ------------------------------------------------------------
+     4. Load video (once per ID)
+  ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
     debugBus.log("Watch.jsx → load(" + id + ")");
@@ -66,6 +88,9 @@ export default function Watch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  /* ------------------------------------------------------------
+     5. Fetch video details + related fallback
+  ------------------------------------------------------------- */
   useEffect(() => {
     if (!id) return;
 
@@ -96,16 +121,14 @@ export default function Watch() {
     fetchData();
   }, [id]);
 
+  /* ------------------------------------------------------------
+     6. Autonext: Playlist
+  ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerPlaylistCallback(() => {
       if (!autonextEnabled) return;
 
-      const params = new URLSearchParams(location.search);
-      const activePlaylistId = params.get("pl");
-
-      if (!activePlaylistId) return;
-
-      const playlist = playlists.find((p) => p.id === activePlaylistId);
+      const playlist = playlists.find((p) => p.id === playlistIdFromURL);
       if (!playlist || !playlist.videos.length) return;
 
       const index = playlist.videos.findIndex((v) => v.id === id);
@@ -114,11 +137,21 @@ export default function Watch() {
       const nextIndex = (index + 1) % playlist.videos.length;
       const nextVideo = playlist.videos[nextIndex];
 
-      navigate(`/watch/${nextVideo.id}?src=playlist&pl=${activePlaylistId}`);
+      navigate(`/watch/${nextVideo.id}?src=playlist&pl=${playlistIdFromURL}`);
       loadVideo(nextVideo.id);
     });
-  }, [navigate, loadVideo, playlists, id, location.search, autonextEnabled]);
+  }, [
+    navigate,
+    loadVideo,
+    playlists,
+    id,
+    playlistIdFromURL,
+    autonextEnabled
+  ]);
 
+  /* ------------------------------------------------------------
+     7. Autonext: Related
+  ------------------------------------------------------------- */
   useEffect(() => {
     AutonextEngine.registerRelatedCallback(() => {
       if (!autonextEnabled) return;
@@ -134,15 +167,17 @@ export default function Watch() {
     });
   }, [related, navigate, loadVideo, autonextEnabled]);
 
+  /* ------------------------------------------------------------
+     8. UI Handlers
+  ------------------------------------------------------------- */
   const handleToggleAutonext = () => {
     const next = !autonextEnabled;
     setAutonextEnabled(next);
-    debugBus.log("Watch.jsx → Autonext " + (next ? "enabled" : "disabled"));
+    debugBus.log("Autonext → " + (next ? "enabled" : "disabled"));
   };
 
   const handleAddToPlaylist = () => {
     if (!id || !videoData) return;
-    debugBus.log("Watch.jsx → Add to playlist " + id);
 
     openAddToPlaylist({
       id,
@@ -151,8 +186,12 @@ export default function Watch() {
     });
   };
 
+  /* ------------------------------------------------------------
+     9. Render
+  ------------------------------------------------------------- */
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
+      {/* Player container */}
       <div
         id="player"
         style={{
@@ -163,6 +202,7 @@ export default function Watch() {
         }}
       />
 
+      {/* Video title */}
       {videoData && (
         <div style={{ marginBottom: "12px" }}>
           <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
@@ -174,6 +214,7 @@ export default function Watch() {
         </div>
       )}
 
+      {/* Controls row */}
       <div
         style={{
           display: "flex",
@@ -210,13 +251,12 @@ export default function Watch() {
           + Add to playlist
         </button>
 
-        {hasPlaylistContext && (
-          <span style={{ fontSize: "11px", opacity: 0.7 }}>
-            Playlist mode active
-          </span>
-        )}
+        <span style={{ fontSize: "11px", opacity: 0.7 }}>
+          Source: {isPlaylistMode ? "Playlist" : "Related"}
+        </span>
       </div>
 
+      {/* Related list */}
       <h3 style={{ marginBottom: "10px" }}>Related Videos</h3>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
