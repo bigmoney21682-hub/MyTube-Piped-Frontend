@@ -7,13 +7,28 @@
 import React from "react";
 import { usePlayer } from "./PlayerContext.jsx";
 import { FOOTER_HEIGHT } from "../layout/Footer.jsx";
+import { normalizeId } from "../utils/normalizeId.js";
 
 export default function MiniPlayer() {
   const player = usePlayer();
   const isVisible = player?.mini?.visible;
-  const debugHeight = 0; // DebugOverlay auto-adjusts; MiniPlayer sits above it
+  const debugHeight = 0;
 
   if (!isVisible) return null;
+
+  // ⭐ Extract and validate the current video ID
+  const raw = player?.current ?? player?.mini ?? {};
+  const vidId = normalizeId(raw);
+
+  function safeExpand() {
+    if (!vidId) {
+      window.bootDebug?.warn("MiniPlayer → expand blocked: invalid video ID", raw);
+      return;
+    }
+
+    // Call the original expand function
+    player.mini.expand(vidId);
+  }
 
   return (
     <div
@@ -37,7 +52,7 @@ export default function MiniPlayer() {
       </div>
 
       <button
-        onClick={player.mini.expand}
+        onClick={safeExpand}
         style={{
           background: "#222",
           border: "1px solid #444",
