@@ -10,16 +10,13 @@
 window.bootDebug?.boot("VideoCard.jsx file loaded");
 
 import { useNavigate } from "react-router-dom";
+import { normalizeId } from "../utils/normalizeId.js"; // ← NEW
 
 export default function VideoCard({ video }) {
   const navigate = useNavigate();
 
-  // Defensive extraction
-  const id =
-    video?.id ||
-    video?.videoId ||
-    video?.snippet?.resourceId?.videoId ||
-    null;
+  // Normalize ID using shared utility
+  const id = normalizeId(video);
 
   const thumbnail =
     video?.thumbnail ||
@@ -44,12 +41,15 @@ export default function VideoCard({ video }) {
   return (
     <div
       onClick={() => {
-        if (!id) {
-          window.bootDebug?.warn("VideoCard → missing video ID, navigation skipped");
+        const vidId = normalizeId(video);
+
+        if (!vidId) {
+          window.bootDebug?.warn("VideoCard → missing or invalid video ID, navigation skipped");
           return;
         }
-        window.bootDebug?.info("VideoCard → navigate to " + id);
-        navigate(`/watch/${id}`);
+
+        window.bootDebug?.info("VideoCard → navigate to " + vidId);
+        navigate(`/watch/${vidId}?src=trending`);
       }}
       style={{
         display: "flex",
