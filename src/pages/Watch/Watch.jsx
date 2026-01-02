@@ -3,7 +3,7 @@
  * Description:
  *   Stable Watch page with:
  *   - YouTube API script loader
- *   - Lazy player creation
+ *   - Lazy player creation via GlobalPlayer
  *   - Playlist + Related autonext
  *   - Autonext toggle
  *   - Add to playlist button
@@ -54,22 +54,27 @@ export default function Watch() {
   // 2. Load YouTube API script (correct place)
   // ------------------------------------------------------------
   useEffect(() => {
+    // Already loaded?
     if (window.YT && window.YT.Player) {
-      debugBus.log("YT API already loaded");
-      GlobalPlayer.ensureMounted();
+      debugBus.log("YT API already loaded (Watch.jsx)");
+      GlobalPlayer.onApiReady();
       return;
     }
 
-    debugBus.log("Injecting YouTube API script");
+    debugBus.log("Injecting YouTube API script (Watch.jsx)");
 
-    const tag = document.createElement("script");
-    tag.src = "https://www.youtube.com/iframe_api";
-    tag.id = "youtube-iframe-api";
-    document.body.appendChild(tag);
+    const existing = document.getElementById("youtube-iframe-api");
+    if (!existing) {
+      const tag = document.createElement("script");
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.id = "youtube-iframe-api";
+      document.body.appendChild(tag);
+    }
 
+    // Wire callback
     window.onYouTubeIframeAPIReady = () => {
-      debugBus.log("YouTube API ready (Watch.jsx)");
-      GlobalPlayer.ensureMounted();
+      debugBus.log("YouTube API ready (Watch.jsx callback)");
+      GlobalPlayer.onApiReady();
     };
   }, []);
 
