@@ -6,28 +6,35 @@
 
 import { debugBus } from "./debugBus.js";
 
-// Tracks total units per key
+// Total units per key
 const quota = {};
 
-// Tracks total calls per key (success + failure)
+// Total calls per key
 const calls = {};
 
 /**
  * Records a quota event for a key.
- * 
+ *
  * @param {string} key  - API key used
- * @param {object} info - { cost, status, ok, url, endpoint, reason }
+ * @param {object|number} infoOrCost - either cost (number) or info object
+ *   info: { cost, status, ok, url, endpoint, reason }
  */
-export function recordQuotaUsage(key, info = {}) {
+export function recordQuotaUsage(key, infoOrCost) {
   if (!key) return;
 
-  const cost = info.cost ?? 1; // default cost = 1 unit
+  let info = {};
+  let cost = 1;
 
-  // Initialize counters
+  if (typeof infoOrCost === "number") {
+    cost = infoOrCost;
+  } else if (typeof infoOrCost === "object" && infoOrCost !== null) {
+    info = infoOrCost;
+    if (typeof info.cost === "number") cost = info.cost;
+  }
+
   quota[key] = (quota[key] || 0) + cost;
   calls[key] = (calls[key] || 0) + 1;
 
-  // Log full details
   debugBus.log(
     "NETWORK",
     `Quota → ${key} used ${cost} units (total=${quota[key]}, calls=${calls[key]})`,
@@ -36,9 +43,17 @@ export function recordQuotaUsage(key, info = {}) {
 }
 
 /**
- * Returns a snapshot of quota + call counts.
+ * Backwards‑compatible snapshot: returns just total units per key.
+ * This keeps your existing debug UI working.
  */
 export function getQuotaSnapshot() {
+  return { ...quota };
+}
+
+/**
+ * Optional: richer details if you want them later.
+ */
+export function getQuotaDetails() {
   return {
     quota: { ...quota },
     calls: { ...calls }
