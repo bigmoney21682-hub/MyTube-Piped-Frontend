@@ -1,9 +1,9 @@
 // File: src/api/YouTubeAPI.js
-// Description: Optimized YouTube API fetch layer with caching, dedupe, and fallback.
+// Description: Optimized YouTube API fetch layer with caching, dedupe, and key rotation.
 
 const API_KEYS = [
-  "AIzaSyA-TNtGohJAO_hsZW6zp9FcSOdfGV7VJW0",
-  "AIzaSyDe11K4v6RYBo2wPt6EW6-y4IfI2FeOlow"
+  import.meta.env.VITE_YT_API_PRIMARY,
+  import.meta.env.VITE_YT_API_FALLBACK1
 ];
 
 let keyIndex = 0;
@@ -33,6 +33,7 @@ async function safeFetch(url) {
 
       try {
         const res = await fetch(finalUrl);
+
         if (res.status === 200) {
           const json = await res.json();
           delete pending[url];
@@ -44,7 +45,6 @@ async function safeFetch(url) {
           continue;
         }
 
-        // Other errors → break
         break;
       } catch (err) {
         rotateKey();
