@@ -63,7 +63,7 @@ export default function Watch() {
   const [related, setRelated] = useState([]);
 
   // "playlist" | "related" | "off"
-  const [autonextSource, setAutonextSource] = useState(() =>
+  const [autonextSource, setAutonextSource] = useState(
     isPlaylistMode ? "playlist" : "related"
   );
 
@@ -219,7 +219,6 @@ export default function Watch() {
       navigate(`/watch/${vidId}?src=related`);
     };
 
-    // Register both; handlers self‑gate on autonextSource
     AutonextEngine.registerPlaylistCallback(playlistHandler);
     AutonextEngine.registerRelatedCallback(relatedHandler);
 
@@ -255,7 +254,6 @@ export default function Watch() {
     setAutonextSource((prev) => {
       if (prev === "playlist") return "related";
       if (prev === "related") return "off";
-      // off → default based on route
       return isPlaylistMode ? "playlist" : "related";
     });
   };
