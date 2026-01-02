@@ -8,36 +8,18 @@ let apiReady = false;
 let pendingLoads = [];
 
 /* ------------------------------------------------------------
-   YouTube API Ready
+   Called by YouTube API script
 ------------------------------------------------------------- */
-function onYouTubeIframeAPIReady() {
-  debugBus.log("YouTube API ready");
+window.onYouTubeIframeAPIReady = () => {
+  debugBus.log("YouTube API ready (GlobalPlayer)");
   apiReady = true;
 
-  // Do NOT create the player here.
-  // We will create it lazily on first load(), once #player exists.
-  pendingLoads.forEach((id) => load(id));
+  pendingLoads.forEach((id) => GlobalPlayer.load(id));
   pendingLoads = [];
-}
+};
 
 /* ------------------------------------------------------------
-   Inject YouTube IFrame API script (once)
-------------------------------------------------------------- */
-if (typeof window !== "undefined") {
-  if (!window.onYouTubeIframeAPIReady) {
-    window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-  }
-
-  if (!document.getElementById("youtube-iframe-api")) {
-    const tag = document.createElement("script");
-    tag.id = "youtube-iframe-api";
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
-  }
-}
-
-/* ------------------------------------------------------------
-   Internal: ensure player exists
+   Ensure player exists (lazy creation)
 ------------------------------------------------------------- */
 function ensurePlayer() {
   if (!apiReady) return false;
@@ -45,9 +27,11 @@ function ensurePlayer() {
 
   const container = document.getElementById("player");
   if (!container) {
-    debugBus.log("GlobalPlayer.ensurePlayer → #player not in DOM yet");
+    setTimeout(ensurePlayer, 50);
     return false;
   }
+
+  debugBus.log("Creating YT.Player");
 
   player = new window.YT.Player("player", {
     height: "220",
@@ -60,16 +44,11 @@ function ensurePlayer() {
       playsinline: 1
     },
     events: {
-      onReady: () => {
-        debugBus.log("Player ready");
-      },
+      onReady: () => debugBus.log("Player ready"),
       onStateChange: (event) => {
         debugBus.log(String(event.data));
 
         if (event.data === window.YT.PlayerState.ENDED) {
-          debugBus.log(
-            "Player state → ENDED, calling AutonextEngine.handleEnded()"
-          );
           AutonextEngine.handleEnded();
         }
       },
@@ -87,29 +66,23 @@ function ensurePlayer() {
 ------------------------------------------------------------- */
 export const GlobalPlayer = {
   ensureMounted() {
-    // no-op; #player div in Watch.jsx is enough
+    // no-op
   },
 
   load(id) {
     if (!id) return;
 
     if (!apiReady) {
-      debugBus.log("YT API not ready, queueing load(" + id + ")");
       pendingLoads.push(id);
       return;
     }
 
     if (!ensurePlayer()) {
-      debugBus.log("Player not ready, queueing load(" + id + ")");
       pendingLoads.push(id);
       return;
     }
 
     debugBus.log("Loading video " + id);
-    try {
-      player.loadVideoById(id);
-    } catch (err) {
-      debugBus.error("GlobalPlayer.load error:", err);
-    }
+    player.loadVideoById(id);
   }
 };
