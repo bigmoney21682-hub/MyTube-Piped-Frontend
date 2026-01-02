@@ -1,68 +1,38 @@
-/**
- * File: AutonextEngine.js
- * Path: src/player/AutonextEngine.js
- * Description:
- *   Centralized autonext controller for both playlist and related modes.
- *   Watch.jsx registers callbacks; GlobalPlayer triggers them on video end.
- */
+// File: src/player/AutonextEngine.js
 
 import { debugBus } from "../debug/debugBus.js";
 
-/* ------------------------------------------------------------
-   Internal state
-------------------------------------------------------------- */
 let mode = "related"; // "related" | "playlist"
-let relatedCallback = null;
 let playlistCallback = null;
+let relatedCallback = null;
 
-/* ------------------------------------------------------------
-   Public API
-------------------------------------------------------------- */
 export const AutonextEngine = {
-  /* ------------------------------------------------------------
-     Set autonext mode
-  ------------------------------------------------------------- */
-  setMode(newMode) {
-    mode = newMode;
-    debugBus.log("AutonextEngine", `Mode set → ${mode}`);
+  setMode(nextMode) {
+    mode = nextMode;
+    debugBus.log("AutonextEngine → mode set to " + mode);
   },
 
-  /* ------------------------------------------------------------
-     Register related-mode callback
-  ------------------------------------------------------------- */
-  registerRelatedCallback(cb) {
-    relatedCallback = cb;
-    debugBus.log("AutonextEngine", "Related callback registered");
-  },
-
-  /* ------------------------------------------------------------
-     Register playlist-mode callback
-  ------------------------------------------------------------- */
   registerPlaylistCallback(cb) {
     playlistCallback = cb;
-    debugBus.log("AutonextEngine", "Playlist callback registered");
+    debugBus.log("Playlist callback registered");
   },
 
-  /* ------------------------------------------------------------
-     Trigger autonext (called by GlobalPlayer on video end)
-  ------------------------------------------------------------- */
-  trigger() {
-    debugBus.log("AutonextEngine", `Triggering autonext for mode="${mode}"`);
+  registerRelatedCallback(cb) {
+    relatedCallback = cb;
+    debugBus.log("Related callback registered");
+  },
 
-    if (mode === "playlist") {
-      if (playlistCallback) {
-        playlistCallback();
-      } else {
-        debugBus.log("AutonextEngine", "No playlist callback registered");
-      }
+  handleEnded() {
+    debugBus.log("AutonextEngine → handleEnded, mode=" + mode);
+
+    if (mode === "playlist" && playlistCallback) {
+      playlistCallback();
       return;
     }
 
-    // Related mode
-    if (relatedCallback) {
+    if (mode === "related" && relatedCallback) {
       relatedCallback();
-    } else {
-      debugBus.log("AutonextEngine", "No related callback registered");
+      return;
     }
   }
 };
