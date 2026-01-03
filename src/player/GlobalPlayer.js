@@ -6,7 +6,7 @@
  *   - Never initializes with an invalid videoId
  *   - Never calls loadVideoById(null/undefined)
  *   - Never crashes on boot
- *   - Only creates the player AFTER a valid ID is provided
+ *   - Provides legacy onApiReady() stub for old call sites
  */
 
 let player = null;
@@ -66,7 +66,7 @@ window.onYouTubeIframeAPIReady = function () {
 
       // ⭐ CRITICAL FIX:
       // Never pass an invalid videoId on init.
-      // Use null so YouTube does NOT throw.
+      // null is safe — YouTube accepts it without throwing.
       videoId: null,
 
       playerVars: {
@@ -101,11 +101,22 @@ window.onYouTubeIframeAPIReady = function () {
 };
 
 // ---------------------------------------------------------
+// Legacy compatibility — prevents boot‑time crashes
+// ---------------------------------------------------------
+function onApiReady() {
+  // No-op: YouTube now calls window.onYouTubeIframeAPIReady directly
+  console.warn("[GlobalPlayer] onApiReady() legacy call ignored");
+}
+
+// ---------------------------------------------------------
 // Public API
 // ---------------------------------------------------------
 export const GlobalPlayer = {
   load: safeLoad,
   cue: safeCue,
   getPlayer: () => player,
-  isReady: () => apiReady
+  isReady: () => apiReady,
+
+  // ⭐ Required to stop Ul.onApiReady() crash in bundle
+  onApiReady
 };
