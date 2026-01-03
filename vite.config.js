@@ -1,5 +1,5 @@
 // File: vite.config.js
-// Path: vite.config.js  b
+// Path: vite.config.js  bbb
 // Description: Vite config for GitHub Pages deployment under /MyTube-Piped-Frontend/
 
 import { defineConfig } from "vite";
