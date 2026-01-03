@@ -50,11 +50,10 @@ export default function App() {
         color: "#fff"
       }}
     >
-      <Header />
 
       {/* ------------------------------------------------------------
           Global pinned YouTube player container
-          Always present in DOM so YT.Player can attach immediately.
+          MUST be first in DOM so YT.Player can attach immediately.
          ------------------------------------------------------------ */}
       <div
         style={{
@@ -76,6 +75,10 @@ export default function App() {
           }}
         ></div>
       </div>
+
+      {/* Header appears visually above the player, but DOM-wise
+          the player is first to guarantee early availability. */}
+      <Header />
 
       {/* ------------------------------------------------------------
           Main scrollable content area
