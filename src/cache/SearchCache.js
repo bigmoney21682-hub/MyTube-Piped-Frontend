@@ -5,7 +5,7 @@
  *              Now fully ID-normalized to prevent invalid video IDs.
  */
 
-import { normalizeId } from "../utils/normalizeId.js";
+import normalizeId from "../utils/normalizeId.js";
 
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_REUSE = 20;               // reuse cached result 20 times
