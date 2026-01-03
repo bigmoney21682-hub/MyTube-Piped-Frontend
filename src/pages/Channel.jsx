@@ -82,7 +82,7 @@ export default function Channel() {
     const vidId = normalizeId(raw);
 
     if (!vidId) {
-      debugBus.error("Channel.jsx → Invalid video ID:", raw);
+      debugBus.error("Channel.jsx → Invalid CHANNEL video ID:", raw);
       return;
     }
 
