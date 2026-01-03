@@ -10,7 +10,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { fetchTrending } from "../../api/trending.js";
-import { normalizeId } from "../../utils/normalizeId.js";
+import normalizeId from "../../utils/normalizeId.js";
 import VideoActions from "../../components/VideoActions.jsx";
 
 /* ------------------------------------------------------------
