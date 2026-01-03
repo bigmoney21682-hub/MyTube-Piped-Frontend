@@ -33,7 +33,7 @@ import {
 } from "../../api/YouTubeAPI.js";
 
 import normalizeId from "../../utils/normalizeId.js";
-
+console.log("AutonextEngine loaded:", AutonextEngine);
 /* ------------------------------------------------------------
    MEMOIZED PLAYER CONTAINER
 ------------------------------------------------------------ */
