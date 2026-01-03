@@ -1,94 +1,83 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MyTube</title>
+<!--
+  File: index.html (Boot Error Overlay Patch)
+  Path: public/index.html
+  Description:
+    Safe, non‑blocking boot error overlay.
+    Logs boot‑time errors without preventing React or playback.
+-->
 
-    <link rel="icon" type="image/png" href="/MyTube-Piped-Frontend/favicon.png" />
-  </head>
+<!-- Boot error overlay (safe version) -->
+<script>
+  (function () {
+    const overlay = document.createElement("div");
+    overlay.id = "boot-error-overlay";
 
-  <body>
-    <!-- React root -->
-    <div id="root"></div>
+    Object.assign(overlay.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      right: "0",
+      bottom: "0",
+      background: "rgba(0,0,0,0.92)",
+      color: "#ff4444",
+      fontFamily: "monospace",
+      fontSize: "14px",
+      padding: "20px",
+      zIndex: "2147483647",
+      overflowY: "auto",
+      whiteSpace: "pre-wrap",
+      display: "none",
+      pointerEvents: "auto"
+    });
 
-    <!-- Boot error overlay -->
-    <script>
-      (function () {
-        const overlay = document.createElement("div");
-        overlay.id = "boot-error-overlay";
+    document.body.appendChild(overlay);
 
-        Object.assign(overlay.style, {
-          position: "fixed",
-          top: "0",
-          left: "0",
-          right: "0",
-          bottom: "0",
-          background: "rgba(0,0,0,0.92)",
-          color: "#ff4444",
-          fontFamily: "monospace",
-          fontSize: "14px",
-          padding: "20px",
-          zIndex: "2147483647",
-          overflowY: "auto",
-          whiteSpace: "pre-wrap",
-          display: "none",
-          pointerEvents: "auto"
-        });
+    function makeButton(label, rightOffset, onClick) {
+      const btn = document.createElement("button");
+      btn.innerText = label;
 
-        document.body.appendChild(overlay);
+      Object.assign(btn.style, {
+        position: "absolute",
+        top: "10px",
+        right: rightOffset,
+        padding: "6px 12px",
+        background: "#444",
+        color: "#fff",
+        border: "1px solid #666",
+        borderRadius: "4px",
+        cursor: "pointer",
+        zIndex: "2147483647",
+        pointerEvents: "auto"
+      });
 
-        function makeButton(label, rightOffset, onClick) {
-          const btn = document.createElement("button");
-          btn.innerText = label;
+      btn.onclick = onClick;
+      overlay.appendChild(btn);
+    }
 
-          Object.assign(btn.style, {
-            position: "absolute",
-            top: "10px",
-            right: rightOffset,
-            padding: "6px 12px",
-            background: "#444",
-            color: "#fff",
-            border: "1px solid #666",
-            borderRadius: "4px",
-            cursor: "pointer",
-            zIndex: "2147483647",
-            pointerEvents: "auto"
-          });
+    makeButton("Continue", "10px", () => {
+      overlay.style.display = "none";
+    });
 
-          btn.onclick = onClick;
-          overlay.appendChild(btn);
-        }
+    makeButton("Copy Logs", "110px", () => {
+      navigator.clipboard.writeText(overlay.innerText);
+    });
 
-        makeButton("Continue", "10px", () => {
-          overlay.style.display = "none";
-        });
+    function showError(msg) {
+      overlay.style.display = "block";
+      overlay.innerText += msg + "\n";
 
-        makeButton("Copy Logs", "110px", () => {
-          navigator.clipboard.writeText(overlay.innerText);
-        });
+      // Never block boot — always allow React to mount
+      window.__BOOT_READY = true;
+    }
 
-        function showError(msg) {
-          overlay.style.display = "block";
-          overlay.innerText += msg + "\n";
-        }
+    window.addEventListener("error", (e) => {
+      showError("BOOT ERROR → " + e.message);
+    });
 
-        window.addEventListener("error", (e) =>
-          showError("BOOT ERROR → " + e.message)
-        );
+    window.addEventListener("unhandledrejection", (e) => {
+      showError("BOOT PROMISE → " + (e.reason?.message || e.reason));
+    });
 
-        window.addEventListener("unhandledrejection", (e) =>
-          showError("BOOT PROMISE → " + (e.reason?.message || e.reason))
-        );
-
-        window.__bootErrorOverlay = { showError };
-      })();
-    </script>
-
-    <!-- YouTube IFrame API -->
-    <script src="https://www.youtube.com/iframe_api"></script>
-
-    <!-- Vite entry point -->
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
+    window.__bootErrorOverlay = { showError };
+  })();
+</script>
