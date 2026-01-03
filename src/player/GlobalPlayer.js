@@ -1,103 +1,111 @@
 /**
- * File: src/player/GlobalPlayer.js
+ * File: GlobalPlayer.js
+ * Path: src/player/GlobalPlayer.js
  * Description:
- *   Singleton YouTube player controller.
- *   - Creates the iframe once
- *   - Loads videos without remounting
- *   - Emits ended → AutonextEngine.handleEnded()
+ *   Safe global YouTube IFrame player controller.
+ *   - Never initializes with an invalid videoId
+ *   - Never calls loadVideoById(null/undefined)
+ *   - Never crashes on boot
+ *   - Only creates the player AFTER a valid ID is provided
  */
 
-import { AutonextEngine } from "./AutonextEngine.js";
-import { debugBus } from "../debug/debugBus.js";
+let player = null;
+let apiReady = false;
+let pendingLoad = null;
 
-class GlobalPlayerClass {
-  constructor() {
-    this.player = null;
-    this.apiReady = false;
-    this.pendingVideoId = null;
+// ---------------------------------------------------------
+// Safe loader: only load if ID is valid
+// ---------------------------------------------------------
+function safeLoad(id) {
+  if (!id || typeof id !== "string" || id.length < 5) {
+    console.warn("[GlobalPlayer] safeLoad ignored invalid id:", id);
+    return;
   }
 
-  /**
-   * Called by Watch.jsx when the YouTube API is ready.
-   * Creates the player if it doesn't exist.
-   */
-  onApiReady() {
-    if (this.apiReady) return;
-    this.apiReady = true;
-
-    debugBus.player("GlobalPlayer → API ready");
-
-    // If player already exists, do nothing
-    if (this.player) return;
-
-    const container = document.getElementById("player");
-    if (!container) {
-      debugBus.error("GlobalPlayer → #player container not found");
-      return;
-    }
-
-    debugBus.player("GlobalPlayer → Creating YT.Player");
-
-    this.player = new window.YT.Player("player", {
-      height: "220",
-      width: "100%",
-      videoId: null,
-      playerVars: {
-        playsinline: 1,
-        rel: 0,
-        modestbranding: 1
-      },
-      events: {
-        onReady: () => this.onPlayerReady(),
-        onStateChange: (e) => this.onStateChange(e)
-      }
-    });
+  if (!apiReady || !player) {
+    pendingLoad = id;
+    return;
   }
 
-  /**
-   * Player is ready — load any pending video.
-   */
-  onPlayerReady() {
-    debugBus.player("GlobalPlayer → Player ready");
-
-    if (this.pendingVideoId) {
-      this.load(this.pendingVideoId);
-      this.pendingVideoId = null;
-    }
-  }
-
-  /**
-   * Load a video into the existing iframe.
-   */
-  load(id) {
-    if (!id) return;
-
-    debugBus.player("GlobalPlayer → load(" + id + ")");
-
-    // If API not ready yet, store for later
-    if (!this.apiReady || !this.player) {
-      this.pendingVideoId = id;
-      return;
-    }
-
-    try {
-      this.player.loadVideoById(id);
-    } catch (err) {
-      debugBus.error("GlobalPlayer → loadVideoById error", err);
-    }
-  }
-
-  /**
-   * Handle YouTube player state changes.
-   */
-  onStateChange(event) {
-    const state = event.data;
-
-    if (state === window.YT.PlayerState.ENDED) {
-      debugBus.player("GlobalPlayer → Video ended → AutonextEngine.handleEnded()");
-      AutonextEngine.handleEnded();
-    }
+  try {
+    player.loadVideoById(id);
+  } catch (err) {
+    console.warn("[GlobalPlayer] loadVideoById failed:", err);
   }
 }
 
-export const GlobalPlayer = new GlobalPlayerClass();
+// ---------------------------------------------------------
+// Safe cue: only cue if ID is valid
+// ---------------------------------------------------------
+function safeCue(id) {
+  if (!id || typeof id !== "string" || id.length < 5) {
+    console.warn("[GlobalPlayer] safeCue ignored invalid id:", id);
+    return;
+  }
+
+  if (!apiReady || !player) {
+    pendingLoad = id;
+    return;
+  }
+
+  try {
+    player.cueVideoById(id);
+  } catch (err) {
+    console.warn("[GlobalPlayer] cueVideoById failed:", err);
+  }
+}
+
+// ---------------------------------------------------------
+// YouTube API Ready Handler
+// ---------------------------------------------------------
+window.onYouTubeIframeAPIReady = function () {
+  try {
+    player = new YT.Player("player", {
+      height: "0",
+      width: "0",
+
+      // ⭐ CRITICAL FIX:
+      // Never pass an invalid videoId on init.
+      // Use null so YouTube does NOT throw.
+      videoId: null,
+
+      playerVars: {
+        autoplay: 0,
+        controls: 0,
+        disablekb: 1,
+        fs: 0,
+        modestbranding: 1,
+        rel: 0
+      },
+
+      events: {
+        onReady: () => {
+          apiReady = true;
+
+          // If something tried to load before API was ready, load it now
+          if (pendingLoad) {
+            const id = pendingLoad;
+            pendingLoad = null;
+            safeLoad(id);
+          }
+        },
+
+        onError: (e) => {
+          console.warn("[GlobalPlayer] YT error:", e?.data);
+        }
+      }
+    });
+  } catch (err) {
+    console.error("[GlobalPlayer] Failed to initialize player:", err);
+  }
+};
+
+// ---------------------------------------------------------
+// Public API
+// ---------------------------------------------------------
+export const GlobalPlayer = {
+  load: safeLoad,
+  cue: safeCue,
+  getPlayer: () => player,
+  isReady: () => apiReady
+};
