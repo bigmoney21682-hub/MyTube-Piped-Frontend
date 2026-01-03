@@ -21,7 +21,6 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 
 import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
-import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
 import { debugBus } from "../../debug/debugBus.js";
@@ -33,8 +32,6 @@ import {
 } from "../../api/YouTubeAPI.js";
 
 import normalizeId from "../../utils/normalizeId.js";
-
-console.log("AutonextEngine loaded:", AutonextEngine);
 
 export default function Watch() {
   const params = useParams();
@@ -70,7 +67,7 @@ export default function Watch() {
 
   const [videoData, setVideoData] = useState(null);
   const [related, setRelated] = useState([]);
-  const [trending, setTrending] = useState([]);
+  the [trending, setTrending] = useState([]);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(
     playlistIdFromURL || null
   );
@@ -386,13 +383,14 @@ export default function Watch() {
           background: "#000"
         }}
       >
-        {/* ⭐ RAW DOM NODE — NOT A COMPONENT */}
+        {/* ⭐ RAW DOM NODE — STABLE, NOT REPLACED BY REACT */}
         <div
           id="player"
           style={{
             width: "100%",
             height: "220px",
-            background: "#000"
+            background: "#000",
+            position: "relative"
           }}
         ></div>
       </div>
