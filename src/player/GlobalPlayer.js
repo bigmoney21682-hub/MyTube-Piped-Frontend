@@ -1,7 +1,7 @@
 /**
  * File: GlobalPlayer.js
  * Path: src/player/GlobalPlayer.js
- * Description::
+ * Description:
  *   Centralized YouTube Iframe Player controller.
  *   - Safe API loader
  *   - Safe DOM attach
