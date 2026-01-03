@@ -46,7 +46,7 @@ class GlobalPlayerClass {
     }
 
     /* ------------------------------------------------------------
-       ⭐ Handle case where API is already loaded
+       Handle case where API is already loaded
        (window.YT exists before this constructor runs)
     ------------------------------------------------------------ */
     if (window.YT && window.YT.Player) {
@@ -74,6 +74,13 @@ class GlobalPlayerClass {
     const container = document.getElementById("player");
     if (!container) {
       debugBus.warn("GlobalPlayer → #player not yet in DOM, retrying…");
+      setTimeout(this._createPlayer, 50);
+      return;
+    }
+
+    // Extra safety: ensure YT + YT.Player exist
+    if (!window.YT || !window.YT.Player) {
+      debugBus.warn("GlobalPlayer → YT API object not ready, retrying…");
       setTimeout(this._createPlayer, 50);
       return;
     }
