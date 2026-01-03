@@ -1,127 +1,111 @@
-// File: src/player/PlayerContext.jsx
-// Description:
-//   Global player state + safe video loading + autonext mode + MiniPlayer API.
-//   Fully ID‑safe. Prevents ALL "Invalid video id" crashes.
+/**
+ * File: PlayerContext.jsx
+ * Path: src/player/PlayerContext.jsx
+ * Description:
+ *   Central player state + bridge to GlobalPlayer.
+ *   - Single source of truth for:
+ *       - activeVideoId
+ *       - autonextMode ("related" | "playlist")
+ *       - activePlaylistId
+ *   - Guarantees:
+ *       - No double loads
+ *       - No stale state
+ *       - Clean integration with GlobalPlayer + AutonextEngine
+ */
 
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect
+} from "react";
+
 import { GlobalPlayer } from "./GlobalPlayer.js";
+import { AutonextEngine } from "./AutonextEngine.js";
 import { debugBus } from "../debug/debugBus.js";
 
 const PlayerContext = createContext(null);
 
-/* ------------------------------------------------------------
-   NORMALIZE VIDEO ID (CRITICAL)
------------------------------------------------------------- */
-function normalizeId(raw) {
-  if (!raw) return null;
-
-  if (typeof raw === "string") return raw;
-  if (typeof raw.id === "string") return raw.id;
-  if (typeof raw.videoId === "string") return raw.videoId;
-  if (raw.id && typeof raw.id.videoId === "string") return raw.id.videoId;
-  if (raw.snippet?.resourceId?.videoId) return raw.snippet.resourceId.videoId;
-
-  return null;
-}
-
-/* ------------------------------------------------------------
-   PROVIDER
------------------------------------------------------------- */
 export function PlayerProvider({ children }) {
-  const [currentVideoId, setCurrentVideoId] = useState(null);
-  const [currentVideoTitle, setCurrentVideoTitle] = useState("Playing…");
-
-  const [autonextMode, setAutonextModeState] = useState("related");
+  const [activeVideoId, setActiveVideoId] = useState(null);
+  const [autonextMode, setAutonextModeState] = useState("related"); // "related" | "playlist"
   const [activePlaylistId, setActivePlaylistIdState] = useState(null);
 
   /* ------------------------------------------------------------
-     SAFE loadVideo() — ALWAYS receives a clean ID
+     Public: loadVideo
+     - Updates activeVideoId
+     - Sends to GlobalPlayer
   ------------------------------------------------------------ */
-  const loadVideo = useCallback((raw) => {
-    const id = normalizeId(raw);
+  const loadVideo = useCallback((videoId) => {
+    if (!videoId) return;
 
-    if (!id) {
-      debugBus.error("PlayerContext → Invalid video id:", raw);
-      return;
-    }
-
-    debugBus.player("PlayerContext → loadVideo(" + id + ")");
-    setCurrentVideoId(id);
-
-    // Update title if available
-    if (raw?.title || raw?.snippet?.title) {
-      setCurrentVideoTitle(raw.title ?? raw.snippet.title);
-    }
-
-    GlobalPlayer.load(id);
+    debugBus.player("PlayerContext.loadVideo(" + videoId + ")");
+    setActiveVideoId(videoId);
+    GlobalPlayer.load(videoId);
   }, []);
 
   /* ------------------------------------------------------------
-     AUTONEXT MODE
+     Public: setAutonextMode
   ------------------------------------------------------------ */
   const setAutonextMode = useCallback((mode) => {
-    debugBus.player("PlayerContext → setAutonextMode(" + mode + ")");
+    if (mode !== "related" && mode !== "playlist") {
+      debugBus.warn("PlayerContext.setAutonextMode → invalid mode", mode);
+      return;
+    }
+
+    debugBus.player("PlayerContext.setAutonextMode(" + mode + ")");
     setAutonextModeState(mode);
   }, []);
 
   /* ------------------------------------------------------------
-     ACTIVE PLAYLIST ID
+     Public: setActivePlaylistId
   ------------------------------------------------------------ */
-  const setActivePlaylistId = useCallback((plId) => {
-    debugBus.player("PlayerContext → setActivePlaylistId(" + plId + ")");
-    setActivePlaylistIdState(plId);
+  const setActivePlaylistId = useCallback((playlistId) => {
+    debugBus.player(
+      "PlayerContext.setActivePlaylistId(" + JSON.stringify(playlistId) + ")"
+    );
+    setActivePlaylistIdState(playlistId || null);
   }, []);
 
   /* ------------------------------------------------------------
-     ⭐ SAFE MiniPlayer.expand()
-     Prevents ALL /watch/undefined crashes
+     Wire autonext mode + playlist into AutonextEngine
   ------------------------------------------------------------ */
-  const mini = {
-    visible: Boolean(currentVideoId),
-    title: currentVideoTitle,
+  useEffect(() => {
+    debugBus.player(
+      "PlayerContext → AutonextEngine config. mode = " +
+        autonextMode +
+        ", activePlaylistId = " +
+        JSON.stringify(activePlaylistId) +
+        ", activeVideoId = " +
+        JSON.stringify(activeVideoId)
+    );
 
-    expand: () => {
-      const id = normalizeId(currentVideoId);
+    AutonextEngine.setConfig({
+      mode: autonextMode,
+      activePlaylistId,
+      activeVideoId
+    });
+  }, [autonextMode, activePlaylistId, activeVideoId]);
 
-      if (!id) {
-        debugBus.warn("PlayerContext.mini.expand → blocked: invalid ID", currentVideoId);
-        return;
-      }
-
-      debugBus.player("MiniPlayer → expand(" + id + ")");
-      window.location.hash = `#/watch/${id}?src=miniplayer`;
-
-      // Ensure player loads correct video
-      GlobalPlayer.load(id);
-    }
+  const value = {
+    activeVideoId,
+    autonextMode,
+    activePlaylistId,
+    loadVideo,
+    setAutonextMode,
+    setActivePlaylistId
   };
 
-  /* ------------------------------------------------------------
-     CONTEXT VALUE
-  ------------------------------------------------------------ */
   return (
-    <PlayerContext.Provider
-      value={{
-        currentVideoId,
-        currentVideoTitle,
-
-        loadVideo,
-
-        autonextMode,
-        setAutonextMode,
-
-        activePlaylistId,
-        setActivePlaylistId,
-
-        mini
-      }}
-    >
-      {children}
-    </PlayerContext.Provider>
+    <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>
   );
 }
 
 export function usePlayer() {
-  return useContext(PlayerContext);
+  const ctx = useContext(PlayerContext);
+  if (!ctx) {
+    throw new Error("usePlayer must be used within a PlayerProvider");
+  }
+  return ctx;
 }
-
