@@ -67,7 +67,7 @@ export default function Watch() {
 
   const [videoData, setVideoData] = useState(null);
   const [related, setRelated] = useState([]);
-  the [trending, setTrending] = useState([]);
+  const [trending, setTrending] = useState([]);
   const [selectedPlaylistId, setSelectedPlaylistId] = useState(
     playlistIdFromURL || null
   );
