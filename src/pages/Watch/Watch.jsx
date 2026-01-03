@@ -2,13 +2,12 @@
  * File: Watch.jsx
  * Path: src/pages/Watch/Watch.jsx
  * Description:
- *   Fully optimized Watch page with:
+ *   Watch page with:
  *     - Full ID normalization
  *     - Crash-proof autonext
  *     - Crash-proof related list
  *     - Crash-proof playlist mode
- *     - Stable YouTube API usage (GlobalPlayer loads API)
- *     - ID-safe boot guard (prevents BOOT ERROR)
+ *     - Uses global #player from App.jsx
  */
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
@@ -18,10 +17,7 @@ import { usePlayer } from "../../player/PlayerContext.jsx";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
-import { debugBus } from "../../debug/debugBus.js";
-
 import { fetchVideo, fetchRelated, fetchTrending } from "../../api/YouTubeAPI.js";
-
 import normalizeId from "../../utils/normalizeId.js";
 
 export default function Watch() {
@@ -29,9 +25,6 @@ export default function Watch() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  /* ------------------------------------------------------------
-     ID NORMALIZATION + JUNK-ID FILTER
-  ------------------------------------------------------------ */
   const rawId = params.id;
 
   const id = useMemo(() => {
@@ -67,12 +60,9 @@ export default function Watch() {
     isPlaylistMode ? "playlist" : "related"
   );
 
-  /* ------------------------------------------------------------
-     BOOT GUARD
-  ------------------------------------------------------------ */
   if (!id) {
     return (
-      <div style={{ paddingTop: "60px", color: "#f87171", padding: "16px" }}>
+      <div style={{ paddingTop: "16px", color: "#f87171", padding: "16px" }}>
         <h2 style={{ fontSize: "18px", marginBottom: "8px" }}>
           Invalid video
         </h2>
@@ -83,9 +73,6 @@ export default function Watch() {
     );
   }
 
-  /* ------------------------------------------------------------
-     POPUP ISOLATION
-  ------------------------------------------------------------ */
   const showSourceMenuRef = useRef(false);
   const showPlaylistPickerRef = useRef(false);
   const [uiTick, setUiTick] = useState(0);
@@ -110,9 +97,6 @@ export default function Watch() {
     setUiTick((x) => x + 1);
   }
 
-  /* ------------------------------------------------------------
-     Autonext mode correction
-  ------------------------------------------------------------ */
   useEffect(() => {
     setAutonextSource((prev) => {
       if (prev === "playlist" && !isPlaylistMode && !selectedPlaylistId) {
@@ -122,9 +106,6 @@ export default function Watch() {
     });
   }, [isPlaylistMode, selectedPlaylistId]);
 
-  /* ------------------------------------------------------------
-     Autonext mode -> PlayerContext
-  ------------------------------------------------------------ */
   useEffect(() => {
     if (
       autonextSource === "playlist" &&
@@ -144,17 +125,11 @@ export default function Watch() {
     setActivePlaylistId
   ]);
 
-  /* ------------------------------------------------------------
-     Load video into GlobalPlayer
-  ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
     loadVideo(id);
   }, [id, loadVideo]);
 
-  /* ------------------------------------------------------------
-     Fetch video + related + trending
-  ------------------------------------------------------------ */
   useEffect(() => {
     if (!id) return;
 
@@ -172,17 +147,11 @@ export default function Watch() {
     loadAll();
   }, [id]);
 
-  /* ------------------------------------------------------------
-     Effective playlist ID
-  ------------------------------------------------------------ */
   const effectivePlaylistId = useMemo(
     () => selectedPlaylistId || playlistIdFromURL || null,
     [selectedPlaylistId, playlistIdFromURL]
   );
 
-  /* ------------------------------------------------------------
-     Playlist Metadata Hydration
-  ------------------------------------------------------------ */
   useEffect(() => {
     if (autonextSource !== "playlist") return;
     if (!effectivePlaylistId) return;
@@ -211,11 +180,7 @@ export default function Watch() {
     hydrate();
   }, [autonextSource, effectivePlaylistId, playlists]);
 
-  /* ------------------------------------------------------------
-     AutonextEngine callback registration
-  ------------------------------------------------------------ */
   useEffect(() => {
-    // PLAYLIST MODE
     if (autonextSource === "playlist" && effectivePlaylistId) {
       const playlistHandler = () => {
         const playlist = playlists.find((p) => p.id === effectivePlaylistId);
@@ -243,7 +208,6 @@ export default function Watch() {
       };
     }
 
-    // RELATED MODE
     const relatedHandler = () => {
       const list = related.length ? related : trending;
       if (!list.length) return;
@@ -273,9 +237,6 @@ export default function Watch() {
     trending.length
   ]);
 
-  /* ------------------------------------------------------------
-     Related / Playlist List
-  ------------------------------------------------------------ */
   const relatedList = useMemo(() => {
     if (autonextSource === "playlist" && effectivePlaylistId) {
       const pl = playlists.find((p) => p.id === effectivePlaylistId);
@@ -308,9 +269,6 @@ export default function Watch() {
     return "Related";
   }, [autonextSource]);
 
-  /* ------------------------------------------------------------
-     Popup styles
-  ------------------------------------------------------------ */
   const overlayStyle = {
     position: "fixed",
     top: 0,
@@ -345,238 +303,190 @@ export default function Watch() {
     cursor: "pointer"
   };
 
-  /* ------------------------------------------------------------
-     Render
-  ------------------------------------------------------------ */
   return (
-    <div style={{ paddingTop: "60px", color: "#fff" }}>
-      {/* PLAYER CONTAINER IN NORMAL FLOW (STABLE DOM) */}
-      <div
-        id="player"
-        style={{
-          width: "100%",
-          height: "220px",
-          background: "#000",
-          position: "relative"
-        }}
-      ></div>
-
-      {/* PINNING LAYER OVERLAY (VISUAL PIN, DOES NOT WRAP #player) */}
-      <div
-        style={{
-          position: "fixed",
-          top: "60px",
-          left: 0,
-          right: 0,
-          height: "220px",
-          zIndex: 900,
-          pointerEvents: "none"
-        }}
-      >
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            background: "transparent",
-            pointerEvents: "auto"
-          }}
-        ></div>
-      </div>
-
-      {/* SCROLLABLE CONTENT BELOW PLAYER */}
-      <div
-        style={{
-          marginTop: "220px",
-          height: "calc(100vh - 60px - 220px)",
-          overflowY: "auto",
-          WebkitOverflowScrolling: "touch",
-          padding: "16px",
-          paddingBottom: "40px"
-        }}
-      >
-        {/* Autonext Source Menu */}
-        {showSourceMenuRef.current && (
-          <div style={overlayStyle} onClick={closeSourceMenu}>
-            <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
-              <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
-                Autonext Source
-              </h3>
-
-              <button
-                style={menuButton}
-                onClick={() => {
-                  setAutonextSource("related");
-                  closeSourceMenu();
-                }}
-              >
-                Related
-              </button>
-
-              <button
-                style={menuButton}
-                onClick={() => {
-                  closeSourceMenu();
-                  openPlaylistPicker();
-                }}
-              >
-                Playlist...
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Playlist Picker */}
-        {showPlaylistPickerRef.current && (
-          <div style={overlayStyle} onClick={closePlaylistPicker}>
-            <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
-              <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
-                Choose Playlist
-              </h3>
-
-              {playlists.length === 0 && (
-                <div style={{ fontSize: "13px", opacity: 0.7 }}>
-                  No playlists yet.
-                </div>
-              )}
-
-              {playlists.map((pl) => (
-                <button
-                  key={pl.id}
-                  style={menuButton}
-                  onClick={() => {
-                    setSelectedPlaylistId(pl.id);
-                    setAutonextSource("playlist");
-                    closePlaylistPicker();
-                  }}
-                >
-                  {pl.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Video Info */}
-        {videoData && (
-          <div style={{ marginBottom: "12px" }}>
-            <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
-              {videoData.snippet.title}
-            </h2>
-            <div style={{ opacity: 0.7, fontSize: "13px" }}>
-              {videoData.snippet.channelTitle}
-            </div>
-          </div>
-        )}
-
-        {/* Controls */}
-        <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-          <button
-            onClick={openSourceMenu}
-            style={{
-              padding: "8px 14px",
-              borderRadius: "999px",
-              border: "none",
-              fontSize: "14px",
-              fontWeight: 600,
-              color: "#fff",
-              background: "radial-gradient(circle at 30% 30%, #ff7a18, #ff3f00)",
-              boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
-              cursor: "pointer"
-            }}
-          >
-            Autonext: {sourceLabel}
-          </button>
-
-          <button
-            onClick={() =>
-              openAddToPlaylist({
-                id,
-                title: videoData?.snippet?.title,
-                thumbnail: videoData?.snippet?.thumbnails?.medium?.url
-              })
-            }
-            style={{
-              padding: "6px 10px",
-              borderRadius: "999px",
-              background: "#3b82f6",
-              color: "#fff"
-            }}
-          >
-            + Add to playlist
-          </button>
-
-          <span style={{ fontSize: "11px", opacity: 0.7 }}>
-            Source: {currentOriginLabel}
-          </span>
-        </div>
-
-        {/* Related / Playlist List */}
-        {relatedList.length > 0 && (
-          <div style={{ marginTop: "8px" }}>
-            <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>
-              {relatedTitle}
+    <div style={{ padding: "16px", color: "#fff" }}>
+      {/* Autonext Source Menu */}
+      {showSourceMenuRef.current && (
+        <div style={overlayStyle} onClick={closeSourceMenu}>
+          <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
+              Autonext Source
             </h3>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px"
+            <button
+              style={menuButton}
+              onClick={() => {
+                setAutonextSource("related");
+                closeSourceMenu();
               }}
             >
-              {relatedList.map((item) => {
-                const vidId = normalizeId(item);
-                if (!vidId) return null;
+              Related
+            </button>
 
-                const thumb = item.snippet?.thumbnails?.medium?.url;
-                const title = item.snippet?.title;
+            <button
+              style={menuButton}
+              onClick={() => {
+                closeSourceMenu();
+                openPlaylistPicker();
+              }}
+            >
+              Playlist...
+            </button>
+          </div>
+        </div>
+      )}
 
-                const url = `/watch/${vidId}?src=${autonextSource}${
-                  effectivePlaylistId ? `&pl=${effectivePlaylistId}` : ""
-                }`;
+      {/* Playlist Picker */}
+      {showPlaylistPickerRef.current && (
+        <div style={overlayStyle} onClick={closePlaylistPicker}>
+          <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
+              Choose Playlist
+            </h3>
 
-                return (
+            {playlists.length === 0 && (
+              <div style={{ fontSize: "13px", opacity: 0.7 }}>
+                No playlists yet.
+              </div>
+            )}
+
+            {playlists.map((pl) => (
+              <button
+                key={pl.id}
+                style={menuButton}
+                onClick={() => {
+                  setSelectedPlaylistId(pl.id);
+                  setAutonextSource("playlist");
+                  closePlaylistPicker();
+                }}
+              >
+                {pl.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Video Info */}
+      {videoData && (
+        <div style={{ marginBottom: "12px" }}>
+          <h2 style={{ fontSize: "18px", fontWeight: "600" }}>
+            {videoData.snippet.title}
+          </h2>
+          <div style={{ opacity: 0.7, fontSize: "13px" }}>
+            {videoData.snippet.channelTitle}
+          </div>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+        <button
+          onClick={openSourceMenu}
+          style={{
+            padding: "8px 14px",
+            borderRadius: "999px",
+            border: "none",
+            fontSize: "14px",
+            fontWeight: 600,
+            color: "#fff",
+            background: "radial-gradient(circle at 30% 30%, #ff7a18, #ff3f00)",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.35)",
+            cursor: "pointer"
+          }}
+        >
+          Autonext: {sourceLabel}
+        </button>
+
+        <button
+          onClick={() =>
+            openAddToPlaylist({
+              id,
+              title: videoData?.snippet?.title,
+              thumbnail: videoData?.snippet?.thumbnails?.medium?.url
+            })
+          }
+          style={{
+            padding: "6px 10px",
+            borderRadius: "999px",
+            background: "#3b82f6",
+            color: "#fff"
+          }}
+        >
+          + Add to playlist
+        </button>
+
+        <span style={{ fontSize: "11px", opacity: 0.7 }}>
+          Source: {currentOriginLabel}
+        </span>
+      </div>
+
+      {/* Related / Playlist List */}
+      {relatedList.length > 0 && (
+        <div style={{ marginTop: "8px" }}>
+          <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>
+            {relatedTitle}
+          </h3>
+
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px"
+            }}
+          >
+            {relatedList.map((item) => {
+              const vidId = normalizeId(item);
+              if (!vidId) return null;
+
+              const thumb = item.snippet?.thumbnails?.medium?.url;
+              const title = item.snippet?.title;
+
+              const url = `/watch/${vidId}?src=${autonextSource}${
+                effectivePlaylistId ? `&pl=${effectivePlaylistId}` : ""
+              }`;
+
+              return (
+                <div
+                  key={vidId}
+                  style={{
+                    display: "flex",
+                    gap: "8px",
+                    cursor: "pointer"
+                  }}
+                  onClick={() => navigate(url)}
+                >
+                  <img
+                    src={thumb}
+                    alt={title}
+                    style={{
+                      width: "160px",
+                      height: "90px",
+                      objectFit: "cover",
+                      borderRadius: "8px"
+                    }}
+                  />
+
                   <div
-                    key={vidId}
                     style={{
                       display: "flex",
-                      gap: "8px",
-                      cursor: "pointer"
+                      flexDirection: "column",
+                      justifyContent: "center"
                     }}
-                    onClick={() => navigate(url)}
                   >
-                    <img
-                      src={thumb}
-                      alt={title}
-                      style={{
-                        width: "160px",
-                        height: "90px",
-                        objectFit: "cover",
-                        borderRadius: "8px"
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center"
-                      }}
-                    >
-                      <div style={{ fontSize: "13px", fontWeight: 500 }}>
-                        {title}
-                      </div>
-                      <div style={{ fontSize: "11px", opacity: 0.7 }}>
-                        {item.snippet?.channelTitle}
-                      </div>
+                    <div style={{ fontSize: "13px", fontWeight: 500 }}>
+                      {title}
+                    </div>
+                    <div style={{ fontSize: "11px", opacity: 0.7 }}>
+                      {item.snippet?.channelTitle}
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
