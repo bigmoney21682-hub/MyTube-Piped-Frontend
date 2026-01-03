@@ -10,19 +10,21 @@
  *   - Guarantees:
  *       - No double loads
  *       - No stale state
- *       - Clean integration with GlobalPlayer + AutonextEngine
+ *       - Clean integration with GlobalPlayer
+ *
+ *   NOTE:
+ *     AutonextEngine is now controlled ONLY by Watch.jsx.
+ *     This file no longer calls AutonextEngine.setConfig().
  */
 
 import React, {
   createContext,
   useContext,
   useState,
-  useCallback,
-  useEffect
+  useCallback
 } from "react";
 
 import { GlobalPlayer } from "./GlobalPlayer.js";
-import { AutonextEngine } from "./AutonextEngine.js";
 import { debugBus } from "../debug/debugBus.js";
 
 const PlayerContext = createContext(null);
@@ -69,25 +71,8 @@ export function PlayerProvider({ children }) {
   }, []);
 
   /* ------------------------------------------------------------
-     Wire autonext mode + playlist into AutonextEngine
+     Provide context
   ------------------------------------------------------------ */
-  useEffect(() => {
-    debugBus.player(
-      "PlayerContext → AutonextEngine config. mode = " +
-        autonextMode +
-        ", activePlaylistId = " +
-        JSON.stringify(activePlaylistId) +
-        ", activeVideoId = " +
-        JSON.stringify(activeVideoId)
-    );
-
-    AutonextEngine.setConfig({
-      mode: autonextMode,
-      activePlaylistId,
-      activeVideoId
-    });
-  }, [autonextMode, activePlaylistId, activeVideoId]);
-
   const value = {
     activeVideoId,
     autonextMode,
