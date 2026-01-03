@@ -3,7 +3,7 @@
  * Path: src/player/GlobalPlayer.js
  * Description:
  *   Centralized YouTube Iframe Player controller.
- *   - Loads YouTube Iframe API safely
+ *   - Loads YouTube Iframe API safely (single source of truth)
  *   - Creates player only when DOM is ready
  *   - Queues loads until API + player are ready
  *   - Retries player creation on transient failures
