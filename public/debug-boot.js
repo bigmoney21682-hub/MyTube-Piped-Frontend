@@ -21,7 +21,13 @@
     error: (msg) => push("ERROR", msg),
     boot: (msg) => push("BOOT", msg),
     net: (msg) => push("NET", msg),
-    _buffer: buffer
+    _buffer: buffer,
+
+    // React will overwrite this with the real implementation
+    ready: () => {
+      const overlay = document.getElementById("boot-debug-overlay");
+      if (overlay) overlay.remove();
+    }
   };
 
   window.bootDebug.boot("Boot logger initialized");
@@ -61,5 +67,16 @@
     });
     return origSend.apply(this, arguments);
   };
-})();
 
+  // --- Auto-dismiss boot overlay after 5 seconds ---
+  setTimeout(() => {
+    try {
+      if (window.bootDebug && typeof window.bootDebug.ready === "function") {
+        window.bootDebug.ready();
+      }
+    } catch (err) {
+      console.warn("bootDebug auto-dismiss failed:", err);
+    }
+  }, 5000);
+
+})();
