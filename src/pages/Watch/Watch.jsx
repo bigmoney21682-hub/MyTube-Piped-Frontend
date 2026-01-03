@@ -210,8 +210,15 @@ export default function Watch() {
 
   return (
     <div style={{ paddingBottom: "80px" }}>
-      {/* YouTube iframe container */}
-      <div id="player" />
+      {/* Stable YouTube iframe container */}
+      <div
+        id="player"
+        style={{
+          width: "100%",
+          height: "220px",
+          background: "black"
+        }}
+      ></div>
 
       <div style={{ padding: "16px" }}>
         <h2>{videoData.snippet.title}</h2>
