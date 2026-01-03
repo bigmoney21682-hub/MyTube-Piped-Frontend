@@ -94,12 +94,13 @@
         }
 
         window.addEventListener("error", (e) => {
-          showError("BOOT ERROR → " + e.message);
-        });
+  showError("BOOT ERROR → [GLOBAL] " + e.message);
+});
 
-        window.addEventListener("unhandledrejection", (e) => {
-          showError("BOOT PROMISE → " + (e.reason?.message || e.reason));
-        });
+window.addEventListener("unhandledrejection", (e) => {
+  showError("BOOT PROMISE → [GLOBAL] " + (e.reason?.message || e.reason));
+});
+
 
         window.__bootErrorOverlay = { showError };
       })();
