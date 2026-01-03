@@ -6,7 +6,7 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { usePlaylists } from "../contexts/PlaylistContext.jsx";
-import { normalizeId } from "../utils/normalizeId.js";
+import normalizeId from "../utils/normalizeId.js";
 
 export default function Playlist() {
   const { id } = useParams();
