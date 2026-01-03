@@ -16,7 +16,7 @@ import { GlobalPlayer } from "../../player/GlobalPlayer.js";
 import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { debugBus } from "../../debug/debugBus.js";
 
-// ⭐ Force Vite to include AutonextEngine
+// Force Vite to include AutonextEngine
 console.log("AutonextEngine loaded:", AutonextEngine);
 
 // API keys
@@ -32,7 +32,6 @@ async function ytFetch(urlBuilder) {
     const res = await fetch(url);
     const json = await res.json();
 
-    // Quota exceeded or error?
     if (json.error) {
       console.warn("YouTube API error:", json.error);
       continue;
@@ -190,6 +189,15 @@ export default function Watch() {
   }, [id, playlistId, playlistItems, relatedVideos]);
 
   /* ------------------------------------------------------------
+     Load video into GlobalPlayer
+  ------------------------------------------------------------ */
+  useEffect(() => {
+    if (!id) return;
+    debugBus.player("Watch.jsx → GlobalPlayer.load(" + id + ")");
+    GlobalPlayer.load(id);
+  }, [id]);
+
+  /* ------------------------------------------------------------
      Render
   ------------------------------------------------------------ */
   if (!videoData) {
@@ -202,7 +210,8 @@ export default function Watch() {
 
   return (
     <div style={{ paddingBottom: "80px" }}>
-      <GlobalPlayer videoId={id} />
+      {/* YouTube iframe container */}
+      <div id="player" />
 
       <div style={{ padding: "16px" }}>
         <h2>{videoData.snippet.title}</h2>
