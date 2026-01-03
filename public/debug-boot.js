@@ -21,6 +21,10 @@
     error: (msg) => push("ERROR", msg),
     boot: (msg) => push("BOOT", msg),
     net: (msg) => push("NET", msg),
+
+    // ⭐ New: router channel for navigation + ID tracing
+    router: (msg) => push("ROUTER", msg),
+
     _buffer: buffer,
 
     // React will overwrite this with the real implementation
@@ -68,15 +72,5 @@
     return origSend.apply(this, arguments);
   };
 
-  // --- Auto-dismiss boot overlay after 5 seconds ---
-  setTimeout(() => {
-    try {
-      if (window.bootDebug && typeof window.bootDebug.ready === "function") {
-        window.bootDebug.ready();
-      }
-    } catch (err) {
-      console.warn("bootDebug auto-dismiss failed:", err);
-    }
-  }, 5000);
-
+  // (No auto-dismiss here anymore; React will call bootDebug.ready())
 })();
