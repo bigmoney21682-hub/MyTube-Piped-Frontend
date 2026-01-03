@@ -7,7 +7,7 @@
  *     - Crash-proof autonext
  *     - Crash-proof related list
  *     - Crash-proof playlist mode
- *     - Stable YouTube API loader
+ *     - Stable YouTube API usage (GlobalPlayer loads API)
  *     - ⭐ ID-safe boot guard (prevents BOOT ERROR)
  */
 
@@ -119,19 +119,6 @@ export default function Watch() {
       return prev;
     });
   }, [isPlaylistMode, selectedPlaylistId]);
-
-  /* ------------------------------------------------------------
-     ⭐ FIXED YOUTUBE API LOADER
-  ------------------------------------------------------------ */
-  useEffect(() => {
-    const existing = document.getElementById("youtube-iframe-api");
-    if (!existing) {
-      const tag = document.createElement("script");
-      tag.src = "https://www.youtube.com/iframe_api";
-      tag.id = "youtube-iframe-api";
-      document.body.appendChild(tag);
-    }
-  }, []);
 
   /* ------------------------------------------------------------
      Autonext mode → PlayerContext
