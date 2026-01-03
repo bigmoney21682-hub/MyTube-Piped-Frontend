@@ -22,7 +22,7 @@ export default function MiniPlayer() {
 
   function safeExpand() {
     if (!vidId) {
-      window.bootDebug?.warn("MiniPlayer → expand blocked: invalid video ID", raw);
+      window.bootDebug?.warn("MiniPlayer → expand blocked: invalid miniplayer video ID", raw);
       return;
     }
 
