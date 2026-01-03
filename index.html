@@ -1,19 +1,55 @@
 <!--
   File: index.html
-  Path: public/index.html bb  ggh
+  Path: public/index.html
   Description:
-    Main HTML entry point for MyTube.
-    Includes safe, non‑blocking boot error overlay,
-    YouTube IFrame API, and Vite entry point.
+    Main HTML entry point for MyTube PWA.
+    Includes:
+      - PWA manifest link
+      - iOS standalone meta tags
+      - CSP allowing YouTube iframes
+      - Boot error overlay (non-blocking)
+      - YouTube IFrame API loader
+      - Vite entry point
 -->
 
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
+    <!-- Viewport -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- iOS PWA Compatibility -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="MyTube" />
+
+    <!-- iOS Touch Icon -->
+    <link
+      rel="apple-touch-icon"
+      href="/MyTube-Piped-Frontend/favicon.png"
+    />
+
+    <!-- Content Security Policy (required for YouTube iframe in iOS PWA) -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+        default-src * 'unsafe-inline' 'unsafe-eval';
+        img-src * data:;
+        media-src *;
+        script-src * 'unsafe-inline' 'unsafe-eval';
+        frame-src https://www.youtube.com https://www.youtube-nocookie.com;
+        child-src https://www.youtube.com https://www.youtube-nocookie.com;
+      "
+    />
+
     <title>MyTube</title>
 
+    <!-- Favicon -->
     <link
       rel="icon"
       type="image/png"
@@ -26,14 +62,10 @@
     <div id="root"></div>
 
     <!--
-      File: index.html (Boot Error Overlay Patch)
-      Path: public/index.html
-      Description:
-        Safe, non‑blocking boot error overlay.
-        Logs boot‑time errors without preventing React or playback.
+      Boot Error Overlay
+      Safe, non-blocking overlay for capturing boot-time errors.
+      Never prevents React from mounting.
     -->
-
-    <!-- Boot error overlay (enhanced version) -->
     <script>
       (function () {
         const overlay = document.createElement("div");
@@ -92,12 +124,9 @@
         function showError(msg) {
           overlay.style.display = "block";
           overlay.innerText += msg + "\n";
-
-          // Never block boot — always allow React to mount
           window.__BOOT_READY = true;
         }
 
-        // 🔥 Enhanced global error handler
         window.addEventListener("error", (e) => {
           try {
             const msg = [
@@ -117,7 +146,6 @@
           }
         });
 
-        // 🔥 Enhanced unhandled rejection handler
         window.addEventListener("unhandledrejection", (e) => {
           try {
             const reason = e.reason;
@@ -145,7 +173,7 @@
     <!-- YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
 
-    <!-- Vite entry point (CRITICAL) -->
+    <!-- Vite entry point -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
