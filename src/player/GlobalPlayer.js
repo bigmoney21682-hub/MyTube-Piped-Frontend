@@ -78,7 +78,7 @@ class GlobalPlayerClass {
       return;
     }
 
-    // Extra safety: ensure YT + YT.Player exist
+    // ⭐ Extra safety: ensure YT + YT.Player exist
     if (!window.YT || !window.YT.Player) {
       debugBus.warn("GlobalPlayer → YT API object not ready, retrying…");
       setTimeout(this._createPlayer, 50);
