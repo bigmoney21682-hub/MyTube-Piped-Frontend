@@ -11,6 +11,7 @@
  *
  *   This engine then calls whichever callback is active.
  */
+console.log("REBUILD MARKER 001");
 
 import { debugBus } from "../debug/debugBus.js";
 
