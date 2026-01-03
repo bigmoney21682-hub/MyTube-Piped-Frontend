@@ -2,82 +2,113 @@
   File: index.html
   Path: public/index.html
   Description:
-    Safe, non‑blocking boot error overlay.
-    Logs boot‑time errors without preventing React or playback.
+    Main HTML entry point for MyTube.
+    Includes safe, non‑blocking boot error overlay,
+    YouTube IFrame API, and Vite entry point.
 -->
 
-<!-- Boot error overlay (safe version) -->
-<script>
-  (function () {
-    const overlay = document.createElement("div");
-    overlay.id = "boot-error-overlay";
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyTube</title>
 
-    Object.assign(overlay.style, {
-      position: "fixed",
-      top: "0",
-      left: "0",
-      right: "0",
-      bottom: "0",
-      background: "rgba(0,0,0,0.92)",
-      color: "#ff4444",
-      fontFamily: "monospace",
-      fontSize: "14px",
-      padding: "20px",
-      zIndex: "2147483647",
-      overflowY: "auto",
-      whiteSpace: "pre-wrap",
-      display: "none",
-      pointerEvents: "auto"
-    });
+    <link rel="icon" type="image/png" href="/MyTube-Piped-Frontend/favicon.png" />
+  </head>
 
-    document.body.appendChild(overlay);
+  <body>
+    <!-- React root -->
+    <div id="root"></div>
 
-    function makeButton(label, rightOffset, onClick) {
-      const btn = document.createElement("button");
-      btn.innerText = label;
+    <!--
+      File: index.html (Boot Error Overlay Patch)
+      Path: public/index.html
+      Description:
+        Safe, non‑blocking boot error overlay.
+        Logs boot‑time errors without preventing React or playback.
+    -->
 
-      Object.assign(btn.style, {
-        position: "absolute",
-        top: "10px",
-        right: rightOffset,
-        padding: "6px 12px",
-        background: "#444",
-        color: "#fff",
-        border: "1px solid #666",
-        borderRadius: "4px",
-        cursor: "pointer",
-        zIndex: "2147483647",
-        pointerEvents: "auto"
-      });
+    <!-- Boot error overlay (safe version) -->
+    <script>
+      (function () {
+        const overlay = document.createElement("div");
+        overlay.id = "boot-error-overlay";
 
-      btn.onclick = onClick;
-      overlay.appendChild(btn);
-    }
+        Object.assign(overlay.style, {
+          position: "fixed",
+          top: "0",
+          left: "0",
+          right: "0",
+          bottom: "0",
+          background: "rgba(0,0,0,0.92)",
+          color: "#ff4444",
+          fontFamily: "monospace",
+          fontSize: "14px",
+          padding: "20px",
+          zIndex: "2147483647",
+          overflowY: "auto",
+          whiteSpace: "pre-wrap",
+          display: "none",
+          pointerEvents: "auto"
+        });
 
-    makeButton("Continue", "10px", () => {
-      overlay.style.display = "none";
-    });
+        document.body.appendChild(overlay);
 
-    makeButton("Copy Logs", "110px", () => {
-      navigator.clipboard.writeText(overlay.innerText);
-    });
+        function makeButton(label, rightOffset, onClick) {
+          const btn = document.createElement("button");
+          btn.innerText = label;
 
-    function showError(msg) {
-      overlay.style.display = "block";
-      overlay.innerText += msg + "\n";
+          Object.assign(btn.style, {
+            position: "absolute",
+            top: "10px",
+            right: rightOffset,
+            padding: "6px 12px",
+            background: "#444",
+            color: "#fff",
+            border: "1px solid #666",
+            borderRadius: "4px",
+            cursor: "pointer",
+            zIndex: "2147483647",
+            pointerEvents: "auto"
+          });
 
-      // Never block boot — always allow React to mount
-      window.__BOOT_READY = true;
-    }
+          btn.onclick = onClick;
+          overlay.appendChild(btn);
+        }
 
-    window.addEventListener("error", (e) => {
-      showError("BOOT ERROR → " + e.message);
-    });
+        makeButton("Continue", "10px", () => {
+          overlay.style.display = "none";
+        });
 
-    window.addEventListener("unhandledrejection", (e) => {
-      showError("BOOT PROMISE → " + (e.reason?.message || e.reason));
-    });
+        makeButton("Copy Logs", "110px", () => {
+          navigator.clipboard.writeText(overlay.innerText);
+        });
 
-    window.__bootErrorOverlay = { showError };
-  })();
-</script>
+        function showError(msg) {
+          overlay.style.display = "block";
+          overlay.innerText += msg + "\n";
+
+          // Never block boot — always allow React to mount
+          window.__BOOT_READY = true;
+        }
+
+        window.addEventListener("error", (e) => {
+          showError("BOOT ERROR → " + e.message);
+        });
+
+        window.addEventListener("unhandledrejection", (e) => {
+          showError("BOOT PROMISE → " + (e.reason?.message || e.reason));
+        });
+
+        window.__bootErrorOverlay = { showError };
+      })();
+    </script>
+
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <!-- Vite entry point (CRITICAL) -->
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
