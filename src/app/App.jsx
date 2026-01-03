@@ -14,8 +14,8 @@ import Playlist from "../pages/Playlist.jsx";
 import Channel from "../pages/Channel.jsx";
 
 
-import Header from "./components/Header.jsx";
-import Footer from "./layout/Footer.jsx";
+import Header from "../components/Header.jsx";
+import Footer from "../layout/Footer.jsx";
 
 export default function App() {
   // Signal boot overlay to dismiss once React is mounted
