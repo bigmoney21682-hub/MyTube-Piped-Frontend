@@ -11,7 +11,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { usePlayer } from "../player/PlayerContext.jsx";
 import { debugBus } from "../debug/debugBus.js";
 import { getApiKey } from "../api/getApiKey.js";
-import { normalizeId } from "../utils/normalizeId.js"; // ← NEW
+import normalizeId from "../utils/normalizeId.js"; // ← NEW
 
 const API_KEY = getApiKey();
 
