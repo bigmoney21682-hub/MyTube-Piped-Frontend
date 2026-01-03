@@ -1,7 +1,16 @@
 /**
- * File: App.jsx
- * Path: src/app/App.jsx
- * Description: Main application shell with router + layout + global pinned player.
+ * ------------------------------------------------------------
+ *  File: App.jsx
+ *  Path: src/app/App.jsx
+ *  Description:
+ *    Main application shell for MyTube.
+ *    Provides:
+ *      - Global pinned YouTube player container (always in DOM)
+ *      - Header + Footer layout
+ *      - Scrollable routed content area
+ *      - React Router page routing
+ *      - Boot debug readiness hook
+ * ------------------------------------------------------------
  */
 
 import React, { useEffect } from "react";
@@ -43,7 +52,10 @@ export default function App() {
     >
       <Header />
 
-      {/* ⭐ Global pinned player container (always in DOM) */}
+      {/* ------------------------------------------------------------
+          Global pinned YouTube player container
+          Always present in DOM so YT.Player can attach immediately.
+         ------------------------------------------------------------ */}
       <div
         style={{
           position: "fixed",
@@ -65,7 +77,10 @@ export default function App() {
         ></div>
       </div>
 
-      {/* Main content area, scrolls under the pinned player */}
+      {/* ------------------------------------------------------------
+          Main scrollable content area
+          Routed pages scroll underneath the pinned player.
+         ------------------------------------------------------------ */}
       <div
         style={{
           flex: 1,
