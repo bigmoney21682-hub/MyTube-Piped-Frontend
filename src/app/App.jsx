@@ -1,7 +1,7 @@
 /**
  * File: App.jsx
  * Path: src/app/App.jsx
- * Description: Main application shell with router + layout + boot-ready signal.
+ * Description: Main application shell with router + layout + global pinned player.
  */
 
 import React, { useEffect } from "react";
@@ -13,7 +13,7 @@ import Watch from "../pages/Watch/Watch.jsx";
 import Playlist from "../pages/Playlist.jsx";
 import Channel from "../pages/Channel.jsx";
 
-// ⭐ Restore missing pages
+// Restored pages
 import Menu from "../pages/Menu.jsx";
 import Playlists from "../pages/Playlists.jsx";
 import Shorts from "../pages/Shorts.jsx";
@@ -23,7 +23,6 @@ import Header from "../components/Header.jsx";
 import Footer from "../layout/Footer.jsx";
 
 export default function App() {
-  // Signal boot overlay to dismiss once React is mounted
   useEffect(() => {
     try {
       window.bootDebug?.ready();
@@ -39,27 +38,60 @@ export default function App() {
         flexDirection: "column",
         minHeight: "100vh",
         background: "#111",
-        color: "#fff",
-        overflow: "visible"
+        color: "#fff"
       }}
     >
       <Header />
 
-      {/* Main content area */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/search" element={<Search />} />
-          <Route path="/watch/:id" element={<Watch />} />
-          <Route path="/playlist/:id" element={<Playlist />} />
-          <Route path="/channel/:id" element={<Channel />} />
+      {/* ⭐ Global pinned player container (always in DOM) */}
+      <div
+        style={{
+          position: "fixed",
+          top: "60px",
+          left: 0,
+          right: 0,
+          zIndex: 900,
+          background: "#000"
+        }}
+      >
+        <div
+          id="player"
+          style={{
+            width: "100%",
+            height: "220px",
+            background: "#000",
+            position: "relative"
+          }}
+        ></div>
+      </div>
 
-          {/* ⭐ Restored routes */}
-          <Route path="/menu" element={<Menu />} />
-          <Route path="/playlists" element={<Playlists />} />
-          <Route path="/shorts" element={<Shorts />} />
-          <Route path="/subs" element={<Subs />} />
-        </Routes>
+      {/* Main content area, scrolls under the pinned player */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto",
+          paddingTop: "60px", // header
+          paddingBottom: "56px" // footer
+        }}
+      >
+        <div
+          style={{
+            paddingTop: "220px" // space for pinned player
+          }}
+        >
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/search" element={<Search />} />
+            <Route path="/watch/:id" element={<Watch />} />
+            <Route path="/playlist/:id" element={<Playlist />} />
+            <Route path="/channel/:id" element={<Channel />} />
+
+            <Route path="/menu" element={<Menu />} />
+            <Route path="/playlists" element={<Playlists />} />
+            <Route path="/shorts" element={<Shorts />} />
+            <Route path="/subs" element={<Subs />} />
+          </Routes>
+        </div>
       </div>
 
       <Footer />
