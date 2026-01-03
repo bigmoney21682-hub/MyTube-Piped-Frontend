@@ -1,5 +1,3 @@
-THIS_SHOULD_BREAK_THE_BUILD
-
 
 /**
  * File: src/player/AutonextEngine.js
