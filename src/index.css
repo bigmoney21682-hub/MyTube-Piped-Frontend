@@ -8,15 +8,21 @@
  *   - Lifted footer
  *   - Pinned Watch player
  *   - Smaller, cleaner oval popup buttons
+ *   - Smooth page transitions
+ *   - Thin scrollbars
+ *   - No tap highlight
+ *   - Global button press animation
+ *   - Text clamping
+ *   - Divider utility
  */
 
 /* ------------------------------------------------------------
    Global layout variables
 ------------------------------------------------------------- */
 :root {
-  --header-height: 60px;   /* Fixed Header.jsx height */
-  --player-height: 220px;  /* Watch.jsx pinned player height */
-  --footer-height: 56px;   /* MiniPlayer/Footer height */
+  --header-height: 60px;
+  --player-height: 220px;
+  --footer-height: 56px;
 }
 
 /* ------------------------------------------------------------
@@ -36,6 +42,7 @@ html, body {
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent; /* iOS polish */
 }
 
 /* ------------------------------------------------------------
@@ -46,9 +53,23 @@ body {
 }
 
 /* ------------------------------------------------------------
+   Thin modern scrollbars
+------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ------------------------------------------------------------
    Layout shell padding
-   - Prevents header overlap
-   - Reserves space for footer / mini-player
 ------------------------------------------------------------- */
 #root {
   padding-top: var(--header-height);
@@ -56,29 +77,51 @@ body {
 }
 
 /* ------------------------------------------------------------
+   Page fade-in transitions
+------------------------------------------------------------- */
+.page {
+  animation: fadeIn 0.25s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ------------------------------------------------------------
+   Global button press animation
+------------------------------------------------------------- */
+button {
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+button:active {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+/* ------------------------------------------------------------
    Utility classes
 ------------------------------------------------------------- */
-.flex {
-  display: flex;
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.center { display: flex; justify-content: center; align-items: center; }
+.text-muted { opacity: 0.7; }
+.rounded { border-radius: 8px; }
+
+/* Text clamping */
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.flex-col {
-  display: flex;
-  flex-direction: column;
-}
-
-.center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.text-muted {
-  opacity: 0.7;
-}
-
-.rounded {
-  border-radius: 8px;
+/* Divider */
+.divider {
+  height: 1px;
+  background: #1a1a1a;
+  margin: 12px 0;
 }
 
 /* ------------------------------------------------------------
@@ -113,24 +156,24 @@ body {
 ------------------------------------------------------------- */
 .popup-btn {
   width: 100%;
-  padding: 6px 12px;              /* smaller, tighter */
-  margin-bottom: 6px;             /* reduced spacing */
-  border-radius: 9999px;          /* perfect oval */
+  padding: 6px 12px;
+  margin-bottom: 6px;
+  border-radius: 9999px;
   border: none;
-  background: #1a1f27;            /* cleaner dark tone */
+  background: #1a1f27;
   color: #fff;
-  font-size: 13px;                /* slightly smaller text */
-  font-weight: 500;               /* crisp, modern */
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.1s ease;
 }
 
 .popup-btn:hover {
-  background: #242b36;            /* gentle hover */
+  background: #242b36;
 }
 
 .popup-btn:active {
-  transform: scale(0.97);         /* subtle press effect */
+  transform: scale(0.97);
 }
 
 /* ------------------------------------------------------------
@@ -150,14 +193,13 @@ footer {
   justify-content: space-around;
   align-items: center;
 
-  padding: 6px 0;                 /* tighter vertical spacing */
+  padding: 6px 0;
   z-index: 9998;
 
-  /* Lift the footer visually */
-  transform: translateY(-6px);
+  transform: translateY(-6px); /* lift */
 }
 
-/* Footer buttons (small, clean, oval) */
+/* Footer buttons */
 .footer-btn {
   background: #1a1f27;
   color: #fff;
@@ -179,9 +221,7 @@ footer {
 }
 
 /* ------------------------------------------------------------
-   Scrollable content area (Watch.jsx)
-   - Player is pinned under header
-   - Content scrolls beneath
+   Watch scroll area
 ------------------------------------------------------------- */
 .scroll-area {
   overflow-y: auto;
