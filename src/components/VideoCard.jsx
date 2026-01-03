@@ -9,15 +9,33 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-import normalizeId from "../utils/normalizeId.js";   // ✅ FIXED
-// (was: import { normalizeId } from "../utils/normalizeId.js")
+import normalizeId from "../utils/normalizeId.js";
 
 export default function VideoCard({ item, index = 0 }) {
-  if (!item) return null;
+  if (!item) {
+    window.bootDebug?.router("VideoCard.jsx → item is null/undefined");
+    return null;
+  }
+
+  // Log raw upstream item
+  try {
+    window.bootDebug?.router(
+      "VideoCard.jsx → raw item = " + JSON.stringify(item)
+    );
+  } catch (_) {}
 
   const id = normalizeId(item);
+
+  // Log normalized ID
+  window.bootDebug?.router(
+    "VideoCard.jsx → normalizeId(item) = " + JSON.stringify(id)
+  );
+
   if (!id) {
-    window.bootDebug?.warn("VideoCard.jsx → Invalid video item", item);
+    window.bootDebug?.router(
+      "VideoCard.jsx → INVALID ID, skipping card. Upstream item = " +
+        JSON.stringify(item)
+    );
     return null;
   }
 
@@ -26,9 +44,19 @@ export default function VideoCard({ item, index = 0 }) {
   const title = snippet?.title || "Untitled";
   const channel = snippet?.channelTitle || "Unknown Channel";
 
+  // Log navigation intent
+  window.bootDebug?.router(
+    `VideoCard.jsx → will navigate to /watch/${id}?src=card`
+  );
+
   return (
     <Link
       to={`/watch/${id}?src=card`}
+      onClick={() => {
+        window.bootDebug?.router(
+          `VideoCard.jsx → CLICK → navigating to /watch/${id}?src=card`
+        );
+      }}
       style={{
         display: "block",
         marginBottom: "20px",
