@@ -2,26 +2,25 @@
  * File: Channel.jsx
  * Path: src/pages/Channel.jsx
  * Description:
- *   Channel page with safe navigation using normalizeId().
+ *   Channel page with safe ID normalization + unified playVideo().
  */
 
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { usePlayer } from "../player/PlayerContext.jsx";
 import { debugBus } from "../debug/debugBus.js";
 import { getApiKey } from "../api/getApiKey.js";
 import normalizeId from "../utils/normalizeId.js";
+import { playVideo } from "../utils/playVideo.js";
 
 const API_KEY = getApiKey();
 
 export default function Channel() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
-  const player = usePlayer() ?? {};
-  const loadVideo = player.loadVideo ?? (() => {});
-  const queueAdd = player.queueAdd ?? (() => {});
+  const player = usePlayer();
+  const queueAdd = player?.queueAdd ?? (() => {});
 
   const [videos, setVideos] = useState([]);
   const [channelInfo, setChannelInfo] = useState(null);
@@ -88,7 +87,7 @@ export default function Channel() {
   }
 
   /* ------------------------------------------------------------
-     Safe navigation using normalizeId()
+     Unified play handler (replaces navigation)
   ------------------------------------------------------------ */
   function openVideo(raw) {
     try {
@@ -104,22 +103,23 @@ export default function Channel() {
     );
 
     if (!vidId) {
-      // 🔥 Do NOT throw here. Just log and bail.
       debugBus.log("PLAYER", "Channel.jsx → Invalid video ID (skipping)", raw);
       window.bootDebug?.router(
-        "Channel.jsx → INVALID video ID, skipping navigation."
+        "Channel.jsx → INVALID video ID, skipping playVideo()."
       );
       return;
     }
 
-    const url = `/watch/${vidId}?src=channel`;
+    const sn = raw?.snippet ?? {};
 
-    window.bootDebug?.router(
-      "Channel.jsx → navigate(" + JSON.stringify(url) + ")"
-    );
-
-    navigate(url);
-    loadVideo(vidId);
+    playVideo({
+      id: vidId,
+      title: sn?.title ?? "",
+      thumbnail: sn?.thumbnails?.medium?.url ?? "",
+      channel: sn?.channelTitle ?? "",
+      player,
+      autonext: "related" // Channel videos behave like related videos
+    });
   }
 
   /* ------------------------------------------------------------
