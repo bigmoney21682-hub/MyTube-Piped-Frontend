@@ -34,10 +34,10 @@ import Subs from "../pages/Subs.jsx";
 import Header from "../components/Header.jsx";
 import Footer from "../layout/Footer.jsx";
 
-// ⭐ NEW: PlayerShell replaces the old pinned #player container
+// ⭐ PlayerShell (Mini + Full)
 import PlayerShell from "../player/PlayerShell.jsx";
 
-// ⭐ Correct global player import
+// ⭐ Global player init
 import { GlobalPlayer } from "../player/GlobalPlayer_v2.js";
 
 export default function App() {
@@ -48,7 +48,6 @@ export default function App() {
       console.warn("bootDebug.ready() failed:", err);
     }
 
-    // ⭐ Initialize the global YouTube player (v2)
     try {
       GlobalPlayer.init();
     } catch (err) {
@@ -68,7 +67,7 @@ export default function App() {
     >
       <Header />
 
-      {/* ⭐ NEW: PlayerShell (Mini + Full) */}
+      {/* ⭐ PlayerShell (Mini + Full) */}
       <PlayerShell />
 
       {/* Scrollable content area */}
@@ -76,26 +75,22 @@ export default function App() {
         style={{
           flex: 1,
           overflowY: "auto",
-          paddingTop: "60px", // header height
+          paddingTop: "60px",   // header height
           paddingBottom: "56px" // footer height
         }}
       >
-        {/* Content automatically sits below PlayerShell */}
-        <div style={{ paddingTop: "48px" }}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/search" element={<Search />} />
-            <Route path="/playlist/:id" element={<Playlist />} />
-            <Route path="/channel/:id" element={<Channel />} />
+        {/* ⭐ Removed the hardcoded 48px padding */}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/playlist/:id" element={<Playlist />} />
+          <Route path="/channel/:id" element={<Channel />} />
 
-            <Route path="/menu" element={<Menu />} />
-            <Route path="/playlists" element={<Playlists />} />
-            <Route path="/shorts" element={<Shorts />} />
-            <Route path="/subs" element={<Subs />} />
-
-            {/* Removed: /watch/:id */}
-          </Routes>
-        </div>
+          <Route path="/menu" element={<Menu />} />
+          <Route path="/playlists" element={<Playlists />} />
+          <Route path="/shorts" element={<Shorts />} />
+          <Route path="/subs" element={<Subs />} />
+        </Routes>
       </div>
 
       <Footer />
