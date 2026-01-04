@@ -1,212 +1,148 @@
 /**
  * ------------------------------------------------------------
- *  File: GlobalPlayer_v2.js  jjj
- *  Path: src/player/GlobalPlayer_v2.js
- *  Description:
- *    Global YouTube player singleton with deep diagnostics.
- *    Adds detailed logging for:
- *      - DOM container existence
- *      - CSP visibility
- *      - YT API readiness
- *      - iframe creation attempts
- *      - loadVideoById failures
- *    Restores the GlobalPlayer.init + GlobalPlayer.load API
- *    expected by PlayerContext and App.jsx.
+ * File: GlobalPlayer_v2.js (DEBUG INSTRUMENTED)
+ * Path: src/player/GlobalPlayer_v2.js
+ * Description:
+ *   Centralized YouTube IFrame API controller.
+ *   This version includes full debug logging to trace:
+ *     - File load
+ *     - init() execution
+ *     - API readiness
+ *     - Mount point existence
+ *     - Player creation
+ *     - loadVideoById calls
+ *     - onReady / onStateChange
  * ------------------------------------------------------------
  */
 
 window.bootDebug?.player("GlobalPlayer_v2.js → FILE LOADED");
 console.log("GlobalPlayer_v2.js → FILE LOADED");
 
-
-let player = null;
-let isReady = false;
-let pendingVideoId = null;
-
-function log(...args) {
-  console.log("[GlobalPlayer]", ...args);
-}
-
-function logError(...args) {
-  console.error("[GlobalPlayer][ERROR]", ...args);
-}
-
-/**
- * Check if #player exists and log its dimensions.
- */
-function getPlayerContainer() {
-  const el = document.getElementById("player");
-  if (!el) {
-    logError("DOM → #player NOT FOUND at time of check");
-  } else {
-    const rect = el.getBoundingClientRect();
-    log("DOM → #player FOUND", {
-      width: rect.width,
-      height: rect.height,
-      top: rect.top,
-      left: rect.left
-    });
-  }
-  return el;
-}
-
-/**
- * Log environment details: YT globals, CSP, document state.
- */
-function debugEnvironment() {
-  log("ENV → window.YT:", !!window.YT, "window.YT.Player:", !!(window.YT && window.YT.Player));
-  log("ENV → document.readyState:", document.readyState);
-  log("ENV → location.href:", window.location.href);
-
-  try {
-    const metas = Array.from(
-      document.querySelectorAll("meta[http-equiv='Content-Security-Policy']")
-    ).map(m => m.getAttribute("content"));
-    log("ENV → CSP meta tags:", metas);
-  } catch (e) {
-    logError("ENV → Failed to read CSP meta tags:", e);
-  }
-}
-
-/**
- * Initialize the global YouTube player.
- */
-export function initGlobalPlayer() {
-  log("initGlobalPlayer() called");
-
-  debugEnvironment();
-
-  const container = getPlayerContainer();
-  if (!container) {
-    logError("INIT → Aborting: #player container missing");
-    return;
-  }
-
-  if (!window.YT || !window.YT.Player) {
-    logError("INIT → Aborting: YT or YT.Player not available at init time", {
-      hasYT: !!window.YT,
-      hasYTPlayer: !!(window.YT && window.YT.Player)
-    });
-    return;
-  }
-
-  try {
-    log("INIT → Creating YT.Player instance with id 'player'");
-    player = new window.YT.Player("player", {
-      height: "220",
-      width: "100%",
-      playerVars: {
-        autoplay: 0,
-        controls: 1,
-        rel: 0,
-        playsinline: 1
-      },
-      events: {
-        onReady: () => {
-          log("EVENT → onReady fired");
-          isReady = true;
-
-          if (pendingVideoId) {
-            const vid = pendingVideoId;
-            pendingVideoId = null;
-            log("EVENT → onReady → pendingVideoId found, loading:", vid);
-            safeLoadVideoById(vid);
-          }
-        },
-        onError: (event) => {
-          logError("EVENT → onError from YT.Player", event && event.data);
-        },
-        onStateChange: (event) => {
-          log("EVENT → onStateChange", event && event.data);
-        }
-      }
-    });
-
-    if (!player || typeof player.loadVideoById !== "function") {
-      logError("INIT → YT.Player instance INVALID right after construction", {
-        playerType: typeof player,
-        keys: player ? Object.keys(player) : null
-      });
-    } else {
-      log("INIT → YT.Player instance created successfully (has loadVideoById)");
-    }
-  } catch (err) {
-    logError("INIT → Exception while creating YT.Player", err);
-  }
-}
-
-/**
- * Safely call loadVideoById with diagnostics.
- */
-function safeLoadVideoById(videoId) {
-  log("LOAD → safeLoadVideoById called with:", videoId);
-
-  if (!player) {
-    logError("LOAD → Aborting: player is null/undefined");
-    debugEnvironment();
-    getPlayerContainer();
-    return;
-  }
-
-  if (typeof player.loadVideoById !== "function") {
-    logError("LOAD → Aborting: player.loadVideoById is not a function", {
-      playerType: typeof player,
-      keys: Object.keys(player || {})
-    });
-    return;
-  }
-
-  try {
-    log("LOAD → Calling player.loadVideoById:", videoId);
-    player.loadVideoById(videoId);
-    log("LOAD → player.loadVideoById call returned (no exception)");
-  } catch (err) {
-    logError("LOAD → Exception during player.loadVideoById", err);
-    debugEnvironment();
-    getPlayerContainer();
-  }
-}
-
-/**
- * Public load() API used by PlayerContext.
- */
-export function load(videoId) {
-  log("API → load() called with:", videoId);
-
-  if (!player || !isReady) {
-    log("API → Player not ready yet. Stashing pendingVideoId:", videoId, {
-      hasPlayer: !!player,
-      isReady
-    });
-    pendingVideoId = videoId;
-    return;
-  }
-
-  safeLoadVideoById(videoId);
-}
-
-/**
- * ------------------------------------------------------------
- * Public API wrapper (matches old interface)
- * ------------------------------------------------------------
- */
 export const GlobalPlayer = {
-  init: initGlobalPlayer,
-  load
+  _player: null,
+  _apiReady: false,
+  _pendingVideoId: null,
+  _initialized: false,
+
+  init() {
+    window.bootDebug?.player("GlobalPlayer.init() → ENTERED");
+    console.log("GlobalPlayer.init() → ENTERED");
+
+    if (this._initialized) {
+      window.bootDebug?.player("GlobalPlayer.init() → ALREADY INITIALIZED");
+      return;
+    }
+
+    this._initialized = true;
+
+    // Check mount point
+    const mount = document.getElementById("global-player-iframe");
+    window.bootDebug?.player("GlobalPlayer.init() → mount =", mount);
+    console.log("GlobalPlayer.init() → mount =", mount);
+
+    if (!mount) {
+      window.bootDebug?.player("GlobalPlayer.init() → MOUNT NOT FOUND");
+      console.warn("GlobalPlayer.init(): mount point missing");
+      return;
+    }
+
+    // If API already ready, create player immediately
+    if (this._apiReady) {
+      window.bootDebug?.player("GlobalPlayer.init() → API READY, creating player");
+      this._createPlayer(mount);
+      return;
+    }
+
+    // Otherwise wait for API
+    window.bootDebug?.player("GlobalPlayer.init() → Waiting for YT API");
+    console.log("GlobalPlayer.init() → Waiting for YT API");
+  },
+
+  _createPlayer(mount) {
+    window.bootDebug?.player("GlobalPlayer → Creating YT.Player instance");
+    console.log("GlobalPlayer → Creating YT.Player instance");
+
+    try {
+      this._player = new YT.Player(mount, {
+        height: "100%",
+        width: "100%",
+        playerVars: {
+          autoplay: 0,
+          controls: 1,
+          rel: 0,
+          playsinline: 1
+        },
+        events: {
+          onReady: (e) => {
+            window.bootDebug?.player("GlobalPlayer → onReady");
+            console.log("GlobalPlayer → onReady");
+
+            if (this._pendingVideoId) {
+              this.loadVideo(this._pendingVideoId);
+              this._pendingVideoId = null;
+            }
+          },
+          onStateChange: (e) => {
+            window.bootDebug?.player("GlobalPlayer → onStateChange =", e.data);
+            console.log("GlobalPlayer → onStateChange =", e.data);
+          }
+        }
+      });
+    } catch (err) {
+      window.bootDebug?.player("GlobalPlayer → FAILED to create player");
+      console.error("GlobalPlayer → FAILED to create player", err);
+    }
+  },
+
+  loadVideo(videoId) {
+    window.bootDebug?.player("GlobalPlayer.loadVideo() →", videoId);
+    console.log("GlobalPlayer.loadVideo() →", videoId);
+
+    if (!this._player) {
+      window.bootDebug?.player("GlobalPlayer.loadVideo() → NO PLAYER, QUEUING");
+      console.log("GlobalPlayer.loadVideo() → NO PLAYER, QUEUING");
+      this._pendingVideoId = videoId;
+      return;
+    }
+
+    try {
+      this._player.loadVideoById(videoId);
+      window.bootDebug?.player("GlobalPlayer.loadVideo() → loadVideoById OK");
+      console.log("GlobalPlayer.loadVideo() → loadVideoById OK");
+    } catch (err) {
+      window.bootDebug?.player("GlobalPlayer.loadVideo() → ERROR");
+      console.error("GlobalPlayer.loadVideo() → ERROR", err);
+    }
+  },
+
+  togglePlay() {
+    if (!this._player) {
+      window.bootDebug?.player("GlobalPlayer.togglePlay() → NO PLAYER");
+      console.log("GlobalPlayer.togglePlay() → NO PLAYER");
+      return;
+    }
+
+    const state = this._player.getPlayerState();
+    window.bootDebug?.player("GlobalPlayer.togglePlay() → state =", state);
+    console.log("GlobalPlayer.togglePlay() → state =", state);
+
+    if (state === YT.PlayerState.PLAYING) {
+      this._player.pauseVideo();
+    } else {
+      this._player.playVideo();
+    }
+  }
 };
 
-/**
- * Debug hooks for console inspection.
- */
-window.__GlobalPlayerDebug = {
-  initGlobalPlayer,
-  load,
-  getPlayerContainer,
-  debugEnvironment,
-  get player() {
-    return player;
-  },
-  get isReady() {
-    return isReady;
-  }
+// ------------------------------------------------------------
+// YouTube API Ready Callback
+// ------------------------------------------------------------
+window.onYouTubeIframeAPIReady = () => {
+  window.bootDebug?.player("YT API → READY");
+  console.log("YT API → READY");
+
+  GlobalPlayer._apiReady = true;
+
+  // Try to initialize again now that API is ready
+  GlobalPlayer.init();
 };
