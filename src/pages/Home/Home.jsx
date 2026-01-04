@@ -1,17 +1,25 @@
 /**
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
- * Description: Home page showing trending videos (most popular) with
- *              stacked 16:9 thumbnails, collapsible descriptions,
- *              and minimal quota usage.
+ * Description:
+ *   Trending page + unified player trigger.
+ *
+ *   New behavior:
+ *     - Clicking a video now:
+ *         • loads the video into GlobalPlayer_v2
+ *         • sets player metadata (title, thumbnail, channel)
+ *         • expands the PlayerShell
+ *
+ *     - No navigation to /watch (route removed)
  */
 
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 
 import { fetchTrending } from "../../api/trending.js";
 import normalizeId from "../../utils/normalizeId.js";
 import VideoActions from "../../components/VideoActions.jsx";
+
+import { usePlayer } from "../../player/PlayerContext.jsx";
 
 /* ------------------------------------------------------------
    Shared card styles
@@ -46,6 +54,9 @@ export default function Home() {
   const [videos, setVideos] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
 
+  // ⭐ NEW: Player controls
+  const { loadVideo, setPlayerMeta, expandPlayer } = usePlayer();
+
   useEffect(() => {
     loadTrending();
   }, []);
@@ -60,7 +71,6 @@ export default function Home() {
         return;
       }
 
-      // ⭐ CRITICAL FIX: Normalize IDs for ALL trending items
       const normalized = list
         .map((item) => {
           const vid = normalizeId(item);
@@ -82,7 +92,7 @@ export default function Home() {
             }
           };
         })
-        .filter(Boolean); // remove nulls
+        .filter(Boolean);
 
       window.bootDebug?.player(
         `Home.jsx → Trending loaded (${normalized.length} items)`
@@ -93,6 +103,29 @@ export default function Home() {
       window.bootDebug?.player("Home.jsx → loadTrending error: " + err?.message);
       setVideos([]);
     }
+  }
+
+  /* ------------------------------------------------------------
+     NEW: Handle clicking a trending video
+     - Loads video into global player
+     - Sets metadata for MiniPlayer + FullPlayer
+     - Expands the player
+  ------------------------------------------------------------ */
+  function handlePlay(item) {
+    const vid = item?.id;
+    const sn = item?.snippet ?? {};
+
+    if (!vid) return;
+
+    loadVideo(vid);
+
+    setPlayerMeta({
+      title: sn.title ?? "",
+      thumbnail: sn?.thumbnails?.medium?.url ?? "",
+      channel: sn.channelTitle ?? ""
+    });
+
+    expandPlayer();
   }
 
   return (
@@ -111,9 +144,9 @@ export default function Home() {
         return (
           <div key={vid + "_" + i} style={{ marginBottom: "24px" }}>
             {/* Thumbnail + Title clickable */}
-            <Link
-              to={`/watch/${vid}?src=trending`}
-              style={{ textDecoration: "none", color: "#fff" }}
+            <div
+              onClick={() => handlePlay(item)}
+              style={{ textDecoration: "none", color: "#fff", cursor: "pointer" }}
             >
               <img
                 src={thumb}
@@ -123,7 +156,7 @@ export default function Home() {
 
               <div style={titleStyle}>{sn.title ?? "Untitled"}</div>
               <div style={channelStyle}>{sn.channelTitle ?? "Unknown Channel"}</div>
-            </Link>
+            </div>
 
             {/* Collapsible description */}
             <div
