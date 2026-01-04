@@ -1,6 +1,7 @@
 // File: navigateTo.js
 // Path: src/utils/navigateTo.js
 // Description: Safe navigation helper for HashRouter + Safari Private Mode.
+// NOTE: Watch route removed — goWatch() deleted.
 
 export function navigateTo(navigate, pathname, params = {}) {
   // Build query string
@@ -18,10 +19,6 @@ export function navigateTo(navigate, pathname, params = {}) {
 }
 
 // Convenience wrappers
-export function goWatch(navigate, id, extra = {}) {
-  navigateTo(navigate, `/watch/${id}`, extra);
-}
-
 export function goSearch(navigate, query) {
   navigateTo(navigate, `/search`, { q: query });
 }
