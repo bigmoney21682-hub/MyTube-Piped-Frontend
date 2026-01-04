@@ -9,8 +9,8 @@
  *     - Crash-proof playlist mode
  *     - Uses global #player from App.jsx
  *   UI:
- *     - Autonext + Add-to-Playlist use unified pill-style orange buttons
- *       (30% smaller, matched size and style)
+ *     - Autonext + Add-to-Playlist use unified pill-style gradient buttons
+ *       (30% smaller, header-title gradient)
  */
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
@@ -24,20 +24,21 @@ import { fetchVideo, fetchRelated, fetchTrending } from "../../api/YouTubeAPI.js
 import normalizeId from "../../utils/normalizeId.js";
 
 //
-// Shared pill-style button (used by BOTH Autonext and Add-to-Playlist)
+// Shared pill-style button (Autonext + Add to Playlist)
+// 30% smaller + header-title gradient
 //
 const pillButton = {
-  padding: "6px 14px", // 30% smaller footprint
-  fontSize: "13px",
-  borderRadius: "999px", // pill shape
-  background: "linear-gradient(135deg, #ff7a18, #ffb347)", // orange gradient
+  padding: "4px 10px",
+  fontSize: "11px",
+  borderRadius: "999px",
+  background: "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
   color: "#fff",
   border: "none",
   fontWeight: "600",
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  gap: "6px",
+  gap: "4px",
   cursor: "pointer",
   boxShadow: "0 2px 4px rgba(0,0,0,0.25)",
   transition: "transform 0.15s ease"
@@ -404,17 +405,17 @@ export default function Watch() {
 
       {/* Controls */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center" }}>
-        {/* Autonext button (pill, orange, 30% smaller) */}
+        {/* Autonext button */}
         <button
           onClick={openSourceMenu}
           style={pillButton}
-          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
+          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.94)")}
           onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           Autonext: {sourceLabel}
         </button>
 
-        {/* Add to Playlist button (matches Autonext style) */}
+        {/* Add to Playlist button */}
         <button
           onClick={() =>
             openAddToPlaylist({
@@ -424,7 +425,7 @@ export default function Watch() {
             })
           }
           style={pillButton}
-          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
+          onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.94)")}
           onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
         >
           + Add to playlist
