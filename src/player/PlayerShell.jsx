@@ -1,3 +1,7 @@
+console.log("PlayerShell.jsx → FILE LOADED");
+window.bootDebug?.player("PlayerShell.jsx → FILE LOADED");
+
+
 /**
  * File: PlayerShell.jsx
  * Path: src/player/PlayerShell.jsx
