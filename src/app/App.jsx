@@ -4,12 +4,16 @@
  *  Path: src/app/App.jsx
  *  Description:
  *    Main application shell for MyTube.
- *    Provides:
- *      - Global pinned YouTube player container (always in DOM)
- *      - Header + Footer layout
- *      - Scrollable routed content area
- *      - React Router page routing
- *      - Boot debug readiness hook
+ *
+ *    New architecture:
+ *      - Header (fixed)
+ *      - PlayerShell (fixed under header)
+ *      - Scrollable content area
+ *      - Footer (fixed)
+ *
+ *    Notes:
+ *      - GlobalPlayer_v2 is initialized here
+ *      - /watch route removed (Home is now Now Playing page)
  * ------------------------------------------------------------
  */
 
@@ -18,7 +22,6 @@ import { Routes, Route } from "react-router-dom";
 
 import Home from "../pages/Home/Home.jsx";
 import Search from "../pages/Search.jsx";
-import Watch from "../pages/Watch/Watch.jsx";
 import Playlist from "../pages/Playlist.jsx";
 import Channel from "../pages/Channel.jsx";
 
@@ -31,7 +34,10 @@ import Subs from "../pages/Subs.jsx";
 import Header from "../components/Header.jsx";
 import Footer from "../layout/Footer.jsx";
 
-// ⭐ NEW: Import the deep‑debug global player
+// ⭐ NEW: PlayerShell replaces the old pinned #player container
+import PlayerShell from "../player/PlayerShell.jsx";
+
+// ⭐ Correct global player import
 import { GlobalPlayer } from "../player/GlobalPlayer_v2.js";
 
 export default function App() {
@@ -42,11 +48,11 @@ export default function App() {
       console.warn("bootDebug.ready() failed:", err);
     }
 
-    // ⭐ Initialize the global YouTube player
+    // ⭐ Initialize the global YouTube player (v2)
     try {
       GlobalPlayer.init();
     } catch (err) {
-      console.warn("GlobalPlayer.init() failed:", err);
+      console.warn("GlobalPlayer_v2.init() failed:", err);
     }
   }, []);
 
@@ -60,43 +66,25 @@ export default function App() {
         color: "#fff"
       }}
     >
-      {/* Global pinned YouTube player container */}
-      <div
-        style={{
-          position: "fixed",
-          top: "60px",
-          left: 0,
-          right: 0,
-          zIndex: 900,
-          background: "#000"
-        }}
-      >
-        <div
-          id="player"
-          style={{
-            width: "100%",
-            height: "220px",
-            background: "#000",
-            position: "relative"
-          }}
-        ></div>
-      </div>
-
       <Header />
 
+      {/* ⭐ NEW: PlayerShell (Mini + Full) */}
+      <PlayerShell />
+
+      {/* Scrollable content area */}
       <div
         style={{
           flex: 1,
           overflowY: "auto",
-          paddingTop: "60px",
-          paddingBottom: "56px"
+          paddingTop: "60px", // header height
+          paddingBottom: "56px" // footer height
         }}
       >
-        <div style={{ paddingTop: "220px" }}>
+        {/* Content automatically sits below PlayerShell */}
+        <div style={{ paddingTop: "48px" }}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
-            <Route path="/watch/:id" element={<Watch />} />
             <Route path="/playlist/:id" element={<Playlist />} />
             <Route path="/channel/:id" element={<Channel />} />
 
@@ -104,6 +92,8 @@ export default function App() {
             <Route path="/playlists" element={<Playlists />} />
             <Route path="/shorts" element={<Shorts />} />
             <Route path="/subs" element={<Subs />} />
+
+            {/* Removed: /watch/:id */}
           </Routes>
         </div>
       </div>
