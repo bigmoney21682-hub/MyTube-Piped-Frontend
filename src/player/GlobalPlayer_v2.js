@@ -1,4 +1,4 @@
-throw new Error("GlobalPlayer_v2.js → FORCED CRASH");
+
 
 
 /**
