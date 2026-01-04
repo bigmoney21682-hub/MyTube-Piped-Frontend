@@ -31,12 +31,22 @@ import Subs from "../pages/Subs.jsx";
 import Header from "../components/Header.jsx";
 import Footer from "../layout/Footer.jsx";
 
+// ⭐ NEW: Import the deep‑debug global player
+import { GlobalPlayer } from "../player/GlobalPlayer_v2.js";
+
 export default function App() {
   useEffect(() => {
     try {
       window.bootDebug?.ready();
     } catch (err) {
       console.warn("bootDebug.ready() failed:", err);
+    }
+
+    // ⭐ Initialize the global YouTube player
+    try {
+      GlobalPlayer.init();
+    } catch (err) {
+      console.warn("GlobalPlayer.init() failed:", err);
     }
   }, []);
 
@@ -50,11 +60,7 @@ export default function App() {
         color: "#fff"
       }}
     >
-
-      {/* ------------------------------------------------------------
-          Global pinned YouTube player container
-          MUST be first in DOM so YT.Player can attach immediately.
-         ------------------------------------------------------------ */}
+      {/* Global pinned YouTube player container */}
       <div
         style={{
           position: "fixed",
@@ -76,27 +82,17 @@ export default function App() {
         ></div>
       </div>
 
-      {/* Header appears visually above the player, but DOM-wise
-          the player is first to guarantee early availability. */}
       <Header />
 
-      {/* ------------------------------------------------------------
-          Main scrollable content area
-          Routed pages scroll underneath the pinned player.
-         ------------------------------------------------------------ */}
       <div
         style={{
           flex: 1,
           overflowY: "auto",
-          paddingTop: "60px", // header
-          paddingBottom: "56px" // footer
+          paddingTop: "60px",
+          paddingBottom: "56px"
         }}
       >
-        <div
-          style={{
-            paddingTop: "220px" // space for pinned player
-          }}
-        >
+        <div style={{ paddingTop: "220px" }}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
