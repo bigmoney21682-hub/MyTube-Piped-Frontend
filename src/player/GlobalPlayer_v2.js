@@ -1,6 +1,6 @@
 /**
  * ------------------------------------------------------------
- *  File: GlobalPlayer_v2.js
+ *  File: GlobalPlayer_v2.js  jjj
  *  Path: src/player/GlobalPlayer_v2.js
  *  Description:
  *    Global YouTube player singleton with deep diagnostics.
