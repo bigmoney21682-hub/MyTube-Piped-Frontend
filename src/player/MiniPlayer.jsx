@@ -1,115 +1,69 @@
 /**
- * ------------------------------------------------------------
  * File: MiniPlayer.jsx
  * Path: src/player/MiniPlayer.jsx
- * Description:
- *   Full‑width compact mini-player bar.
- *   Appears when PlayerShell is collapsed (isExpanded === false).
- *
- *   Shows:
- *     - Thumbnail (40x40, rounded rectangle)
- *     - Title (ellipsis)
- *     - Play/Pause button (orange gradient)
- *     - Expand button (orange gradient)
- *
- *   Behavior:
- *     - Tapping anywhere expands the player
- *     - No navigation, no floating box, no close button
- * ------------------------------------------------------------
  */
 
 import React from "react";
-import { GlobalPlayer } from "./GlobalPlayer_v2.js";
 
 export default function MiniPlayer({ meta, onExpand }) {
-  if (!meta) return null;
-
-  const { title, thumbnail } = meta;
+  const { title, channel } = meta;
 
   return (
     <div
-      onClick={onExpand}
       style={{
-        height: "48px",
         width: "100%",
+        height: "48px",
+        background: "#000",
         display: "flex",
         alignItems: "center",
-        padding: "4px 8px",
-        background: "#000",
-        cursor: "pointer",
-        userSelect: "none"
+        padding: "6px 10px",
+        position: "relative"
       }}
+      onClick={onExpand}
     >
-      {/* Thumbnail */}
-      <img
-        src={thumbnail}
-        alt={title}
+      {/* ⭐ GlobalPlayer_v2 iframe mount point (same as FullPlayer) */}
+      <div
+        id="global-player-iframe"
         style={{
-          width: "40px",
-          height: "40px",
-          borderRadius: "6px",
-          objectFit: "cover",
-          flexShrink: 0
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "100%",
+          opacity: 0,          // invisible but present
+          pointerEvents: "none" // MiniPlayer UI stays clickable
         }}
       />
 
-      {/* Title */}
-      <div
-        style={{
-          flex: 1,
-          marginLeft: "10px",
-          fontSize: "14px",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis"
-        }}
-      >
-        {title || "Loading…"}
+      {/* Thumbnail + text */}
+      <div style={{ flex: 1, overflow: "hidden" }}>
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: "bold",
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis"
+          }}
+        >
+          {title}
+        </div>
+
+        <div
+          style={{
+            fontSize: "11px",
+            opacity: 0.7,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis"
+          }}
+        >
+          {channel}
+        </div>
       </div>
 
-      {/* Play/Pause button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          GlobalPlayer.togglePlay();
-        }}
-        style={{
-          marginLeft: "8px",
-          width: "32px",
-          height: "32px",
-          borderRadius: "50%",
-          border: "none",
-          background:
-            "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
-          color: "#fff",
-          fontSize: "14px",
-          cursor: "pointer"
-        }}
-      >
-        ▶︎
-      </button>
-
-      {/* Expand button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onExpand();
-        }}
-        style={{
-          marginLeft: "8px",
-          width: "32px",
-          height: "32px",
-          borderRadius: "50%",
-          border: "none",
-          background:
-            "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
-          color: "#fff",
-          fontSize: "16px",
-          cursor: "pointer"
-        }}
-      >
-        ⇧
-      </button>
+      {/* Expand icon */}
+      <div style={{ fontSize: "18px", paddingLeft: "10px" }}>⇧</div>
     </div>
   );
 }
