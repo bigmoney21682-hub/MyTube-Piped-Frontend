@@ -1,3 +1,18 @@
+<!--
+  ------------------------------------------------------------
+  File: index.html
+  Path: /index.html
+  Description:
+    Root HTML entry for MyTube PWA (Vite).
+    Includes:
+      - PWA manifest
+      - iOS standalone meta tags
+      - YouTube IFrame API loader
+      - FINAL CSP compatible with iOS PWA + YouTube widget API
+      - Correct Vite entry path
+  ------------------------------------------------------------
+-->
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -13,8 +28,19 @@
     <meta name="apple-mobile-web-app-title" content="MyTube" />
     <link rel="apple-touch-icon" href="/MyTube-Piped-Frontend/favicon.png" />
 
-    <!-- ⭐ SINGLE-LINE CSP (iOS PWA SAFE) -->
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval'; img-src * data:; media-src *; script-src * 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com; frame-src https://www.youtube.com https://www.youtube-nocookie.com; child-src https://www.youtube.com https://www.youtube-nocookie.com;">
+    <!--
+      ------------------------------------------------------------
+      FINAL CSP (iOS PWA + YouTube widget API compatible)
+      ------------------------------------------------------------
+      Must be:
+        - single line
+        - no comments inside
+        - no indentation
+        - no trailing semicolons
+        - includes youtube.com/s/ for widget API
+        - includes blob: for internal video URLs
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' blob: data:; img-src * data: blob:; media-src *; script-src * 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; child-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/;">
 
     <title>MyTube</title>
     <link rel="icon" type="image/png" href="/MyTube-Piped-Frontend/favicon.png" />
@@ -28,6 +54,5 @@
 
     <!-- Vite entry -->
     <script type="module" src="/src/main.jsx"></script>
-
   </body>
 </html>
