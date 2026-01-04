@@ -1,3 +1,5 @@
+console.log("GlobalPlayer_v2.js → FILE LOADED at path:", import.meta.url);
+window.bootDebug?.player("GlobalPlayer_v2.js → FILE LOADED at path: " + import.meta.url);
 
 
 
