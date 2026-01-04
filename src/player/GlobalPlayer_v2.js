@@ -15,6 +15,10 @@
  * ------------------------------------------------------------
  */
 
+window.bootDebug?.player("GlobalPlayer_v2.js → FILE LOADED");
+console.log("GlobalPlayer_v2.js → FILE LOADED");
+
+
 let player = null;
 let isReady = false;
 let pendingVideoId = null;
