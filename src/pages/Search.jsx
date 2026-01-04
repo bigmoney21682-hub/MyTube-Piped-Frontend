@@ -1,12 +1,18 @@
 /**
  * File: Search.jsx
  * Path: src/pages/Search.jsx
- * Description: Search page with Smart SearchCache + 250ms debounce
- *              and full-width 16:9 stacked video cards + actions.
+ * Description:
+ *   Search page with:
+ *     - Smart SearchCache
+ *     - 250ms debounce
+ *     - Full-width stacked 16:9 cards
+ *     - VideoActions
+ *     - Search suggestions (NEW)
+ *     - Unified playVideo() (no navigation)
  */
 
 import React, { useState, useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import { searchVideos } from "../api/search.js";
 import { debugBus } from "../debug/debugBus.js";
@@ -19,12 +25,20 @@ import {
 import normalizeId from "../utils/normalizeId.js";
 import VideoActions from "../components/VideoActions.jsx";
 
+import { usePlayer } from "../player/PlayerContext.jsx";
+import { playVideo } from "../utils/playVideo.js";
+
 export default function Search() {
   const [params] = useSearchParams();
   const query = params.get("q") || "";
 
+  const player = usePlayer();
+
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
+
+  // ⭐ NEW: search suggestions
+  const [suggestions, setSuggestions] = useState([]);
 
   // Debounce
   const [debouncedQuery, setDebouncedQuery] = useState(query);
@@ -41,6 +55,7 @@ export default function Search() {
   useEffect(() => {
     if (!debouncedQuery.trim()) {
       setResults([]);
+      setSuggestions([]);
       return;
     }
 
@@ -51,6 +66,7 @@ export default function Search() {
       if (cached) {
         debugBus.log("NETWORK", `SearchCache → HIT for "${debouncedQuery}"`);
         setResults(cached);
+        setSuggestions(extractSuggestions(cached));
         setLoading(false);
         return;
       }
@@ -62,8 +78,10 @@ export default function Search() {
       if (data && Array.isArray(data.items)) {
         setSearchCache(debouncedQuery, data.items);
         setResults(data.items);
+        setSuggestions(extractSuggestions(data.items));
       } else {
         setResults([]);
+        setSuggestions([]);
       }
 
       setLoading(false);
@@ -72,9 +90,79 @@ export default function Search() {
     runSearch();
   }, [debouncedQuery]);
 
+  /* ------------------------------------------------------------
+     NEW: Extract simple suggestions from search results
+     - Titles
+     - Channel names
+     - Deduped
+  ------------------------------------------------------------ */
+  function extractSuggestions(items) {
+    const set = new Set();
+
+    for (const item of items) {
+      const sn = item.snippet;
+      if (!sn) continue;
+
+      if (sn.title) set.add(sn.title);
+      if (sn.channelTitle) set.add(sn.channelTitle);
+    }
+
+    return Array.from(set).slice(0, 6); // limit to 6 suggestions
+  }
+
+  /* ------------------------------------------------------------
+     Play handler for search results
+  ------------------------------------------------------------ */
+  function handlePlay(sn, videoId) {
+    playVideo({
+      id: videoId,
+      title: sn?.title ?? "",
+      thumbnail: sn?.thumbnails?.medium?.url ?? "",
+      channel: sn?.channelTitle ?? "",
+      player,
+      autonext: "related"
+    });
+  }
+
   return (
-    <div style={{ padding: "12px" }}>
+    <div style={{ padding: "12px", color: "#fff" }}>
       <h2 style={{ marginBottom: 12 }}>Search: {query}</h2>
+
+      {/* ⭐ Search Suggestions */}
+      {suggestions.length > 0 && (
+        <div
+          style={{
+            marginBottom: "16px",
+            padding: "8px",
+            background: "#111",
+            borderRadius: "8px"
+          }}
+        >
+          <div style={{ fontSize: "13px", opacity: 0.7, marginBottom: "6px" }}>
+            Suggestions
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+            {suggestions.map((s) => (
+              <div
+                key={s}
+                onClick={() => {
+                  window.location.hash = `#/search?q=${encodeURIComponent(s)}`;
+                }}
+                style={{
+                  padding: "6px 10px",
+                  background: "#1f2937",
+                  borderRadius: "999px",
+                  fontSize: "12px",
+                  cursor: "pointer"
+                }}
+              >
+                {s}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading && <div style={{ color: "#888" }}>Loading…</div>}
 
@@ -96,12 +184,13 @@ export default function Search() {
 
           return (
             <div key={videoId}>
-              <Link
-                to={`/watch/${videoId}`}
+              <div
+                onClick={() => handlePlay(sn, videoId)}
                 style={{
                   textDecoration: "none",
                   color: "#fff",
-                  display: "block"
+                  display: "block",
+                  cursor: "pointer"
                 }}
               >
                 <img
@@ -145,7 +234,7 @@ export default function Search() {
                 >
                   {sn?.description}
                 </div>
-              </Link>
+              </div>
 
               {/* Actions */}
               <VideoActions videoId={videoId} videoSnippet={sn} />
