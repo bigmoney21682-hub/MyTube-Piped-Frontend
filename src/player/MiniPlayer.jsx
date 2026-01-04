@@ -4,24 +4,29 @@
  */
 
 import React from "react";
+import { GlobalPlayer } from "./GlobalPlayer_v2.js";
 
 export default function MiniPlayer({ meta, onExpand }) {
-  const { title, channel } = meta;
+  if (!meta) return null;
+
+  const { title, thumbnail } = meta;
 
   return (
     <div
+      onClick={onExpand}
       style={{
-        width: "100%",
         height: "48px",
-        background: "#000",
+        width: "100%",
         display: "flex",
         alignItems: "center",
-        padding: "6px 10px",
-        position: "relative"
+        padding: "4px 8px",
+        background: "#000",
+        cursor: "pointer",
+        userSelect: "none",
+        position: "relative"   // ⭐ required for iframe layering
       }}
-      onClick={onExpand}
     >
-      {/* ⭐ GlobalPlayer_v2 iframe mount point (same as FullPlayer) */}
+      {/* ⭐ GlobalPlayer_v2 iframe mount point (must exist in BOTH Mini + Full) */}
       <div
         id="global-player-iframe"
         style={{
@@ -30,40 +35,85 @@ export default function MiniPlayer({ meta, onExpand }) {
           left: 0,
           width: "100%",
           height: "100%",
-          opacity: 0,          // invisible but present
-          pointerEvents: "none" // MiniPlayer UI stays clickable
+          opacity: 0,            // invisible but present
+          pointerEvents: "none", // UI stays clickable
+          zIndex: 0
         }}
       />
 
-      {/* Thumbnail + text */}
-      <div style={{ flex: 1, overflow: "hidden" }}>
+      {/* UI sits above iframe */}
+      <div style={{ display: "flex", alignItems: "center", width: "100%", zIndex: 1 }}>
+        {/* Thumbnail */}
+        <img
+          src={thumbnail}
+          alt={title}
+          style={{
+            width: "40px",
+            height: "40px",
+            borderRadius: "6px",
+            objectFit: "cover",
+            flexShrink: 0
+          }}
+        />
+
+        {/* Title */}
         <div
           style={{
-            fontSize: "13px",
-            fontWeight: "bold",
+            flex: 1,
+            marginLeft: "10px",
+            fontSize: "14px",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis"
           }}
         >
-          {title}
+          {title || "Loading…"}
         </div>
 
-        <div
+        {/* Play/Pause button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            GlobalPlayer.togglePlay();
+          }}
           style={{
-            fontSize: "11px",
-            opacity: 0.7,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis"
+            marginLeft: "8px",
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
+            border: "none",
+            background:
+              "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
+            color: "#fff",
+            fontSize: "14px",
+            cursor: "pointer"
           }}
         >
-          {channel}
-        </div>
+          ▶︎
+        </button>
+
+        {/* Expand button */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onExpand();
+          }}
+          style={{
+            marginLeft: "8px",
+            width: "32px",
+            height: "32px",
+            borderRadius: "50%",
+            border: "none",
+            background:
+              "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
+            color: "#fff",
+            fontSize: "16px",
+            cursor: "pointer"
+          }}
+        >
+          ⇧
+        </button>
       </div>
-
-      {/* Expand icon */}
-      <div style={{ fontSize: "18px", paddingLeft: "10px" }}>⇧</div>
     </div>
   );
 }
