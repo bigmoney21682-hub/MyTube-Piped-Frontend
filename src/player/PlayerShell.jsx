@@ -19,7 +19,7 @@ export default function PlayerShell() {
     playerMeta
   } = usePlayer();
 
-  // ⭐ Initialize GlobalPlayer AFTER the mount point exists
+  // ⭐ Initialize GlobalPlayer AFTER mount point exists
   useEffect(() => {
     try {
       GlobalPlayer.init();
