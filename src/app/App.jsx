@@ -20,8 +20,11 @@ import Header from "../components/Header.jsx";
 import Footer from "../layout/Footer.jsx";
 
 import PlayerShell from "../player/PlayerShell.jsx";
+import { usePlayer } from "../player/PlayerContext.jsx";
 
 export default function App() {
+  const { playerHeight } = usePlayer();
+
   useEffect(() => {
     try {
       window.bootDebug?.ready();
@@ -48,7 +51,11 @@ export default function App() {
         style={{
           flex: 1,
           overflowY: "auto",
-          paddingTop: "60px",
+
+          // ⭐ Smooth animated offset below player
+          paddingTop: `${60 + playerHeight}px`,
+          transition: "padding-top 0.25s ease",
+
           paddingBottom: "56px"
         }}
       >
