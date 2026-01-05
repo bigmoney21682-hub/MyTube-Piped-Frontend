@@ -20,8 +20,6 @@ import Header from "../components/Header.jsx";
 import Footer from "../layout/Footer.jsx";
 
 import PlayerShell from "../player/PlayerShell.jsx";
-// TEMP: force-load GlobalPlayer_v2.js as a side-effect module
-import "../player/GlobalPlayer_v2.js";
 
 export default function App() {
   useEffect(() => {
