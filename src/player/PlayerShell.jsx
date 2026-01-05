@@ -1,15 +1,16 @@
-console.log("PlayerShell.jsx → FILE LOADED");
-window.bootDebug?.player("PlayerShell.jsx → FILE LOADED");
-
-
 /**
  * File: PlayerShell.jsx
  * Path: src/player/PlayerShell.jsx
  */
 
+console.log("PlayerShell.jsx → FILE LOADED");
+window.bootDebug?.player("PlayerShell.jsx → FILE LOADED");
+
 import React, { useEffect } from "react";
 import { usePlayer } from "./PlayerContext.jsx";
-import { GlobalPlayer } from "./GlobalPlayer_v2.js";
+
+// ⭐ Updated to use the new non‑tree‑shaken file
+import { GlobalPlayer } from "./GlobalPlayerFix.js";
 
 import MiniPlayer from "./MiniPlayer.jsx";
 import FullPlayer from "./FullPlayer.jsx";
@@ -34,6 +35,7 @@ export default function PlayerShell() {
     }
   }, []);
 
+  // If no active video, do not render the shell
   if (!activeVideoId) return null;
 
   return (
