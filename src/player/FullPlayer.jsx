@@ -23,7 +23,7 @@ export default function FullPlayer({ onCollapse }) {
         position: "relative"
       }}
     >
-      {/* ⭐ GlobalPlayer_v2 iframe mount point */}
+      {/* ⭐ GlobalPlayerFix iframe mount point */}
       <div
         id="global-player-iframe"
         style={{
