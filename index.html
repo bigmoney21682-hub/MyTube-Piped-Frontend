@@ -8,7 +8,6 @@
       - PWA manifest
       - iOS standalone meta tags
       - YouTube IFrame API loader
-      - FINAL CSP compatible with iOS PWA + YouTube widget API
       - Forced early load of GlobalPlayerFix.js
       - Correct Vite entry path
   ------------------------------------------------------------
@@ -50,13 +49,13 @@
   <body>
     <div id="root"></div>
 
-    <!-- Force GlobalPlayerFix.js to execute FIRST -->
-<script type="module" src="/src/player/GlobalPlayerFix.js"></script>
+    <!-- Force GlobalPlayerFix.js to execute BEFORE main.jsx -->
+    <script type="module" src="/src/player/GlobalPlayerFix.js"></script>
 
-<!-- YouTube IFrame API -->
-<script src="https://www.youtube.com/iframe_api"></script>
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
 
-<!-- Vite entry -->
-<script type="module" src="/src/main.jsx"></script>
+    <!-- Vite entry -->
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
