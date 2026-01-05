@@ -28,7 +28,6 @@ export function PlayerProvider({ children }) {
     channel: ""
   });
 
-  // ⭐ NEW: dynamic player height (48 mini, 220 full)
   const [playerHeight, setPlayerHeight] = useState(0);
 
   const loadVideo = useCallback((videoId) => {
@@ -40,7 +39,7 @@ export function PlayerProvider({ children }) {
   }, []);
 
   const setAutonextMode = useCallback((mode) => {
-    if (mode !== "related" && mode !== "playlist") {
+    if (mode !== "related" && mode !== "playlist" && mode !== "trending") {
       debugBus.warn("PlayerContext.setAutonextMode → invalid mode", mode);
       return;
     }
@@ -89,8 +88,6 @@ export function PlayerProvider({ children }) {
     expandPlayer,
     collapsePlayer,
     setPlayerMeta,
-
-    // ⭐ expose setter
     setPlayerHeight
   };
 
