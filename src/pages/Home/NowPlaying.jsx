@@ -1,10 +1,6 @@
 /**
- * ------------------------------------------------------------
  * File: NowPlaying.jsx
  * Path: src/pages/Home/NowPlaying.jsx
- * Description:
- *   Unified Now Playing section for Home page.
- * ------------------------------------------------------------
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -18,9 +14,6 @@ import normalizeId from "../../utils/normalizeId.js";
 
 import { GlobalPlayer } from "../../player/GlobalPlayerFix.js";
 
-/* ------------------------------------------------------------
-   Shared pill-style button
-------------------------------------------------------------- */
 const pillButton = {
   padding: "4px 10px",
   fontSize: "11px",
@@ -80,9 +73,6 @@ export default function NowPlaying() {
     setUiTick((x) => x + 1);
   }
 
-  /* ------------------------------------------------------------
-     Load metadata + related + trending
-  ------------------------------------------------------------ */
   useEffect(() => {
     if (!activeVideoId) return;
 
@@ -106,9 +96,6 @@ export default function NowPlaying() {
     loadAll();
   }, [activeVideoId, setPlayerMeta]);
 
-  /* ------------------------------------------------------------
-     Playlist hydration
-  ------------------------------------------------------------ */
   useEffect(() => {
     if (autonextMode !== "playlist") return;
     if (!activePlaylistId) return;
@@ -138,12 +125,12 @@ export default function NowPlaying() {
   }, [autonextMode, activePlaylistId, playlists]);
 
   /* ------------------------------------------------------------
-     AutonextEngine callback registration
+     Autonext callback registration
   ------------------------------------------------------------ */
   useEffect(() => {
     if (!activeVideoId) return;
 
-    // PLAYLIST AUTONEXT
+    // PLAYLIST MODE
     if (autonextMode === "playlist" && activePlaylistId) {
       const playlistHandler = () => {
         const playlist = playlists.find((p) => p.id === activePlaylistId);
@@ -178,57 +165,93 @@ export default function NowPlaying() {
       };
     }
 
-    // RELATED AUTONEXT
-    const relatedHandler = () => {
-      const list = related.length ? related : trending;
-      if (!list.length) return;
+    // RELATED MODE
+    if (autonextMode === "related") {
+      const relatedHandler = () => {
+        if (!related.length) return;
 
-      const next = list[0];
-      const vidId = normalizeId(next);
-      if (!vidId) return;
+        const next = related[0];
+        const vidId = normalizeId(next);
+        if (!vidId) return;
 
-      GlobalPlayer.load(vidId);
+        GlobalPlayer.load(vidId);
 
-      setPlayerMeta({
-        title: next.snippet?.title ?? "",
-        thumbnail: next.snippet?.thumbnails?.medium?.url ?? "",
-        channel: next.snippet?.channelTitle ?? ""
-      });
+        setPlayerMeta({
+          title: next.snippet?.title ?? "",
+          thumbnail: next.snippet?.thumbnails?.medium?.url ?? "",
+          channel: next.snippet?.channelTitle ?? ""
+        });
 
-      expandPlayer();
-    };
+        expandPlayer();
+      };
 
-    AutonextEngine.registerPlaylistCallback(null);
-    AutonextEngine.registerRelatedCallback(relatedHandler);
-
-    return () => {
       AutonextEngine.registerPlaylistCallback(null);
-      AutonextEngine.registerRelatedCallback(null);
-    };
+      AutonextEngine.registerRelatedCallback(relatedHandler);
+
+      return () => {
+        AutonextEngine.registerPlaylistCallback(null);
+        AutonextEngine.registerRelatedCallback(null);
+      };
+    }
+
+    // TRENDING MODE
+    if (autonextMode === "trending") {
+      const trendingHandler = () => {
+        if (!trending.length) return;
+
+        const next = trending[0];
+        const vidId = normalizeId(next);
+        if (!vidId) return;
+
+        GlobalPlayer.load(vidId);
+
+        setPlayerMeta({
+          title: next.snippet?.title ?? "",
+          thumbnail: next.snippet?.thumbnails?.medium?.url ?? "",
+          channel: next.snippet?.channelTitle ?? ""
+        });
+
+        expandPlayer();
+      };
+
+      AutonextEngine.registerPlaylistCallback(null);
+      AutonextEngine.registerRelatedCallback(trendingHandler);
+
+      return () => {
+        AutonextEngine.registerPlaylistCallback(null);
+        AutonextEngine.registerRelatedCallback(null);
+      };
+    }
+
   }, [
     activeVideoId,
     autonextMode,
     activePlaylistId,
     playlists,
-    related.length,
-    trending.length,
+    related,
+    trending,
     setPlayerMeta,
     expandPlayer
   ]);
 
   /* ------------------------------------------------------------
-     Related / Playlist list
+     Corrected list logic (no bleed-through)
   ------------------------------------------------------------ */
   const relatedList = useMemo(() => {
     if (autonextMode === "playlist" && activePlaylistId) {
       const pl = playlists.find((p) => p.id === activePlaylistId);
       return pl ? pl.videos : [];
     }
+
     if (autonextMode === "related") {
-      if (related.length) return related;
+      return related;
+    }
+
+    if (autonextMode === "trending") {
       return trending;
     }
-    return related;
+
+    return [];
   }, [autonextMode, activePlaylistId, playlists, related, trending]);
 
   const relatedTitle = useMemo(() => {
@@ -236,6 +259,7 @@ export default function NowPlaying() {
       const pl = playlists.find((p) => p.id === activePlaylistId);
       return pl ? pl.name : "Playlist";
     }
+    if (autonextMode === "trending") return "Trending";
     return "Related";
   }, [autonextMode, activePlaylistId, playlists]);
 
@@ -289,6 +313,7 @@ export default function NowPlaying() {
               Autonext Source
             </h3>
 
+            {/* A) Related */}
             <button
               style={menuButton}
               onClick={() => {
@@ -299,6 +324,7 @@ export default function NowPlaying() {
               Related
             </button>
 
+            {/* B) Playlist */}
             <button
               style={menuButton}
               onClick={() => {
@@ -307,6 +333,17 @@ export default function NowPlaying() {
               }}
             >
               Playlist...
+            </button>
+
+            {/* C) Trending */}
+            <button
+              style={menuButton}
+              onClick={() => {
+                setAutonextMode("trending");
+                closeSourceMenu();
+              }}
+            >
+              Trending
             </button>
           </div>
         </div>
@@ -380,7 +417,7 @@ export default function NowPlaying() {
         </button>
       </div>
 
-      {/* Related / Playlist List */}
+      {/* Related / Playlist / Trending List */}
       {relatedList.length > 0 && (
         <div style={{ marginTop: "2px" }}>
           <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>
