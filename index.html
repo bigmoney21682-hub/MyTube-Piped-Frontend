@@ -10,6 +10,7 @@
       - YouTube IFrame API loader
       - Forced early load of GlobalPlayerFix.js
       - Correct Vite entry path
+      - Corrected CSP allowing YouTube iframe to load
   ------------------------------------------------------------
 -->
 
@@ -37,12 +38,13 @@
         - no comments inside
         - no indentation
         - no trailing semicolons
+        - includes youtube.com/embed/ for actual video player
         - includes youtube.com/s/ for widget API
         - includes blob: for internal video URLs
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src * 'unsafe-inline' 'unsafe-eval' blob: data:; img-src * data: blob:; media-src *; script-src * 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; child-src https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/;"
+      content="default-src * 'unsafe-inline' 'unsafe-eval' blob: data: https://www.youtube.com/embed/; img-src * data: blob:; media-src *; script-src * 'unsafe-inline' 'unsafe-eval' https://www.youtube.com https://www.youtube-nocookie.com https://www.youtube.com/s/; frame-src https://www.youtube.com https://www.youtube.com/embed/ https://www.youtube-nocookie.com https://www.youtube.com/s/; child-src https://www.youtube.com https://www.youtube.com/embed/ https://www.youtube-nocookie.com https://www.youtube.com/s/;"
     />
 
     <title>MyTube</title>
