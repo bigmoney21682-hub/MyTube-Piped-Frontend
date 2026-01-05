@@ -30,7 +30,7 @@ import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { fetchVideo, fetchRelated, fetchTrending } from "../../api/YouTubeAPI.js";
 import normalizeId from "../../utils/normalizeId.js";
 
-import { GlobalPlayer } from "../../player/GlobalPlayer_v2.js";
+import { GlobalPlayer } from "../../player/GlobalPlayerFix.js";
 
 /* ------------------------------------------------------------
    Shared pill-style button (from Watch.jsx)
