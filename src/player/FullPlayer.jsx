@@ -1,73 +1,57 @@
 /**
- * File: PlayerShell.jsx
- * Path: src/player/PlayerShell.jsx
+ * File: FullPlayer.jsx
+ * Path: src/player/FullPlayer.jsx
+ * Description:
+ *   Expanded full player UI.
+ *
+ *   Contains ONLY:
+ *     - Global iframe container
+ *     - Collapse button
+ *
+ *   All metadata + controls now live in NowPlaying.jsx
  */
 
-console.log("PlayerShell.jsx → FILE LOADED");
-window.bootDebug?.player("PlayerShell.jsx → FILE LOADED");
+import React from "react";
 
-import React, { useEffect } from "react";
-import { usePlayer } from "./PlayerContext.jsx";
-
-// ⭐ Updated to use the new non‑tree‑shaken file
-import { GlobalPlayer } from "./GlobalPlayerFix.js";
-
-import MiniPlayer from "./MiniPlayer.jsx";
-import FullPlayer from "./FullPlayer.jsx";
-
-export default function PlayerShell() {
-  const {
-    activeVideoId,
-    isExpanded,
-    expandPlayer,
-    collapsePlayer,
-    playerMeta
-  } = usePlayer();
-
-  // ⭐ If no active video, do not render the shell
-  //    (IMPORTANT: this must come BEFORE the init() effect)
-  if (!activeVideoId) return null;
-
-  // ⭐ Initialize GlobalPlayer AFTER mount point exists
-  useEffect(() => {
-    try {
-      GlobalPlayer.init();
-      window.bootDebug?.player("PlayerShell → GlobalPlayer.init() OK");
-    } catch (err) {
-      window.bootDebug?.player("PlayerShell → GlobalPlayer.init() FAILED");
-      console.warn(err);
-    }
-  }, []);
-
+export default function FullPlayer({ onCollapse }) {
   return (
     <div
       style={{
         width: "100%",
+        height: "100%",
         background: "#000",
-        position: "fixed",
-        top: "60px",
-        left: 0,
-        right: 0,
-        zIndex: 900,
-        transition: "height 0.25s ease",
-        height: isExpanded ? "220px" : "48px",
-        overflow: "hidden",
-        borderBottom: "1px solid #222"
+        position: "relative"
       }}
     >
-      {isExpanded && (
-        <FullPlayer
-          onCollapse={collapsePlayer}
-          meta={playerMeta}
-        />
-      )}
+      {/* ⭐ GlobalPlayerFix iframe mount point */}
+      <div
+        id="global-player-iframe"
+        style={{
+          width: "100%",
+          height: "100%",
+          background: "#000"
+        }}
+      />
 
-      {!isExpanded && (
-        <MiniPlayer
-          meta={playerMeta}
-          onExpand={expandPlayer}
-        />
-      )}
+      {/* Collapse button */}
+      <button
+        onClick={onCollapse}
+        style={{
+          position: "absolute",
+          top: "8px",
+          right: "8px",
+          padding: "6px 10px",
+          borderRadius: "6px",
+          border: "none",
+          background: "rgba(0,0,0,0.6)",
+          color: "#fff",
+          fontSize: "16px",
+          cursor: "pointer",
+          zIndex: 10
+        }}
+      >
+        ⇩
+      </button>
     </div>
   );
 }
