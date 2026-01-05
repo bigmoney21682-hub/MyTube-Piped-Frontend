@@ -9,7 +9,6 @@ window.bootDebug?.player("PlayerShell.jsx → FILE LOADED");
 import React, { useEffect } from "react";
 import { usePlayer } from "./PlayerContext.jsx";
 
-// ⭐ Updated to use the new non‑tree‑shaken file
 import { GlobalPlayer } from "./GlobalPlayerFix.js";
 
 import MiniPlayer from "./MiniPlayer.jsx";
@@ -21,14 +20,21 @@ export default function PlayerShell() {
     isExpanded,
     expandPlayer,
     collapsePlayer,
-    playerMeta
+    playerMeta,
+    setPlayerHeight
   } = usePlayer();
 
-  // ⭐ If no active video, do not render the shell
-  //    (IMPORTANT: this must come BEFORE the init() effect)
   if (!activeVideoId) return null;
 
-  // ⭐ Initialize GlobalPlayer AFTER mount point exists
+  // ⭐ Determine height (used by App.jsx)
+  const height = isExpanded ? 220 : 48;
+
+  // ⭐ Report height to context (smooth content shift)
+  useEffect(() => {
+    setPlayerHeight(height);
+  }, [height, setPlayerHeight]);
+
+  // ⭐ Initialize GlobalPlayer AFTER mount exists
   useEffect(() => {
     try {
       GlobalPlayer.init();
@@ -50,7 +56,7 @@ export default function PlayerShell() {
         right: 0,
         zIndex: 900,
         transition: "height 0.25s ease",
-        height: isExpanded ? "220px" : "48px",
+        height,
         overflow: "hidden",
         borderBottom: "1px solid #222"
       }}
