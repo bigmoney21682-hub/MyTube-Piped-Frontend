@@ -402,7 +402,7 @@ export default function NowPlaying() {
 
       {/* Related / Playlist List */}
       {relatedList.length > 0 && (
-        <div style={{ marginTop: "8px" }}>
+        <div style={{ marginTop: "2px" }}>
           <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>
             {relatedTitle}
           </h3>
