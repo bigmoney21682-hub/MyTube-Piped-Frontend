@@ -7,7 +7,7 @@ window.bootDebug?.player("GlobalPlayer_v2.js → FILE LOADED at path: " + import
  * ------------------------------------------------------------
  * File: GlobalPlayer_v2.js (DEBUG INSTRUMENTED)
  * Path: src/player/GlobalPlayer_v2.js
- * Description:
+ * Description: 123
  *   Centralized YouTube IFrame API controller.
  *   This version includes full debug logging to trace:
  *     - File load
