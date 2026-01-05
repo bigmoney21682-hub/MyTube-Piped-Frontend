@@ -1,6 +1,8 @@
 /**
+ * ------------------------------------------------------------
  * File: NowPlaying.jsx
  * Path: src/pages/Home/NowPlaying.jsx
+ * ------------------------------------------------------------
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -14,6 +16,9 @@ import normalizeId from "../../utils/normalizeId.js";
 
 import { GlobalPlayer } from "../../player/GlobalPlayerFix.js";
 
+/* ------------------------------------------------------------
+   Shared pill-style button
+------------------------------------------------------------- */
 const pillButton = {
   padding: "4px 10px",
   fontSize: "11px",
@@ -73,6 +78,9 @@ export default function NowPlaying() {
     setUiTick((x) => x + 1);
   }
 
+  /* ------------------------------------------------------------
+     Load metadata + related + trending
+  ------------------------------------------------------------ */
   useEffect(() => {
     if (!activeVideoId) return;
 
@@ -96,6 +104,9 @@ export default function NowPlaying() {
     loadAll();
   }, [activeVideoId, setPlayerMeta]);
 
+  /* ------------------------------------------------------------
+     Playlist hydration
+  ------------------------------------------------------------ */
   useEffect(() => {
     if (autonextMode !== "playlist") return;
     if (!activePlaylistId) return;
@@ -130,7 +141,7 @@ export default function NowPlaying() {
   useEffect(() => {
     if (!activeVideoId) return;
 
-    // PLAYLIST MODE
+    /* ---------------- PLAYLIST MODE ---------------- */
     if (autonextMode === "playlist" && activePlaylistId) {
       const playlistHandler = () => {
         const playlist = playlists.find((p) => p.id === activePlaylistId);
@@ -165,7 +176,7 @@ export default function NowPlaying() {
       };
     }
 
-    // RELATED MODE
+    /* ---------------- RELATED MODE ---------------- */
     if (autonextMode === "related") {
       const relatedHandler = () => {
         if (!related.length) return;
@@ -194,7 +205,7 @@ export default function NowPlaying() {
       };
     }
 
-    // TRENDING MODE
+    /* ---------------- TRENDING MODE ---------------- */
     if (autonextMode === "trending") {
       const trendingHandler = () => {
         if (!trending.length) return;
@@ -222,7 +233,6 @@ export default function NowPlaying() {
         AutonextEngine.registerRelatedCallback(null);
       };
     }
-
   }, [
     activeVideoId,
     autonextMode,
@@ -235,7 +245,7 @@ export default function NowPlaying() {
   ]);
 
   /* ------------------------------------------------------------
-     Corrected list logic (no bleed-through)
+     Corrected autonext list logic (no bleed-through)
   ------------------------------------------------------------ */
   const relatedList = useMemo(() => {
     if (autonextMode === "playlist" && activePlaylistId) {
