@@ -1,6 +1,8 @@
 /**
+ * ------------------------------------------------------------
  * File: Playlist.jsx
  * Path: src/pages/Playlist.jsx
+ * ------------------------------------------------------------
  */
 
 import React from "react";
@@ -21,7 +23,7 @@ export default function Playlist() {
 
   if (!playlist) {
     return (
-      <div style={{ paddingTop: "60px", padding: "16px" }}>
+      <div style={{ paddingTop: "60px", padding: "16px", color: "#fff" }}>
         <h2>Playlist not found</h2>
       </div>
     );
@@ -29,7 +31,9 @@ export default function Playlist() {
 
   return (
     <div style={{ paddingTop: "60px", padding: "16px", color: "#fff" }}>
-      <h2 style={{ fontSize: "20px", marginBottom: "16px" }}>{playlist.name}</h2>
+      <h2 style={{ fontSize: "20px", marginBottom: "16px" }}>
+        {playlist.name}
+      </h2>
 
       {playlist.videos.length === 0 && (
         <div style={{ opacity: 0.7 }}>No videos in this playlist.</div>
@@ -38,15 +42,28 @@ export default function Playlist() {
       <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
         {playlist.videos.map((v) => {
           const vidId = normalizeId(v);
-
           if (!vidId) {
             console.warn("Playlist.jsx → Skipped invalid playlist entry:", v);
             return null;
           }
 
-          const title = v.title ?? "";
-          const thumbnail = v.thumbnail ?? "";
-          const channel = v.channelTitle ?? v.snippet?.channelTitle ?? "";
+          const title = v.title ?? v.snippet?.title ?? "";
+          const thumbnail =
+            v.thumbnail ?? v.snippet?.thumbnails?.medium?.url ?? "";
+          const channel =
+            v.channelTitle ?? v.snippet?.channelTitle ?? "";
+
+          function handlePlay() {
+            playVideo({
+              id: vidId,
+              title,
+              thumbnail,
+              channel,
+              player,
+              playlistId: id,
+              autonext: "playlist"
+            });
+          }
 
           return (
             <div
@@ -69,32 +86,12 @@ export default function Playlist() {
                   borderRadius: "6px",
                   cursor: "pointer"
                 }}
-                onClick={() =>
-                  playVideo({
-                    id: vidId,
-                    title,
-                    thumbnail,
-                    channel,
-                    player,
-                    playlistId: id,
-                    autonext: "playlist"
-                  })
-                }
+                onClick={handlePlay}
               />
 
               <div style={{ flex: 1 }}>
                 <div
-                  onClick={() =>
-                    playVideo({
-                      id: vidId,
-                      title,
-                      thumbnail,
-                      channel,
-                      player,
-                      playlistId: id,
-                      autonext: "playlist"
-                    })
-                  }
+                  onClick={handlePlay}
                   style={{
                     fontSize: "14px",
                     fontWeight: 600,
@@ -102,6 +99,16 @@ export default function Playlist() {
                   }}
                 >
                   {title}
+                </div>
+
+                <div
+                  style={{
+                    fontSize: "12px",
+                    opacity: 0.7,
+                    marginTop: "4px"
+                  }}
+                >
+                  {channel}
                 </div>
 
                 <button
