@@ -10,14 +10,12 @@
  *   - Clean YT.Player lifecycle
  */
 
-import { AutonextEngine } from "./AutonextEngine.js";
-
 console.log("GlobalPlayerFix.js → FILE LOADED at path:", import.meta.url);
-window.bootDebug?.player(
-  "GlobalPlayerFix.js → FILE LOADED at path: " + import.meta.url
-);
 window.bootDebug?.player("GlobalPlayerFix.js → FILE LOADED");
 
+/* ------------------------------------------------------------
+   GlobalPlayer object
+------------------------------------------------------------ */
 export const GlobalPlayer = {
   _player: null,
   _apiReady: false,
@@ -30,7 +28,6 @@ export const GlobalPlayer = {
   ------------------------------------------------------------ */
   init() {
     window.bootDebug?.player("GlobalPlayer.init() → ENTERED");
-    console.log("GlobalPlayer.init() → ENTERED");
 
     if (this._initialized) {
       window.bootDebug?.player("GlobalPlayer.init() → ALREADY INITIALIZED");
@@ -41,7 +38,6 @@ export const GlobalPlayer = {
 
     const mount = document.getElementById("global-player-iframe");
     window.bootDebug?.player("GlobalPlayer.init() → mount =", mount);
-    console.log("GlobalPlayer.init() → mount =", mount);
 
     if (!mount) {
       window.bootDebug?.player("GlobalPlayer.init() → MOUNT NOT FOUND");
@@ -51,9 +47,7 @@ export const GlobalPlayer = {
 
     // If API already ready, create player immediately
     if (this._apiReady) {
-      window.bootDebug?.player(
-        "GlobalPlayer.init() → API READY, creating player"
-      );
+      window.bootDebug?.player("GlobalPlayer.init() → API READY, creating player");
       this._createPlayer(mount);
       return;
     }
@@ -68,7 +62,6 @@ export const GlobalPlayer = {
   ------------------------------------------------------------ */
   load(videoId) {
     window.bootDebug?.player("GlobalPlayer.load(" + videoId + ")");
-    console.log("GlobalPlayer.load(" + videoId + ")");
 
     if (!this._player) {
       window.bootDebug?.player("GlobalPlayer.load → NO PLAYER YET, pending");
@@ -88,7 +81,6 @@ export const GlobalPlayer = {
   ------------------------------------------------------------ */
   _createPlayer(mount) {
     window.bootDebug?.player("GlobalPlayer._createPlayer() → ENTERED");
-    console.log("GlobalPlayer._createPlayer() → ENTERED");
 
     this._player = new YT.Player(mount, {
       height: "100%",
@@ -103,7 +95,6 @@ export const GlobalPlayer = {
       events: {
         onReady: (e) => {
           window.bootDebug?.player("GlobalPlayer → onReady");
-          console.log("GlobalPlayer → onReady");
 
           if (this._pendingVideoId) {
             e.target.loadVideoById(this._pendingVideoId);
@@ -113,10 +104,7 @@ export const GlobalPlayer = {
 
         onStateChange: (e) => {
           const state = e.data;
-          window.bootDebug?.player(
-            "GlobalPlayer → onStateChange " + state
-          );
-          console.log("GlobalPlayer → onStateChange", state);
+          window.bootDebug?.player("GlobalPlayer → onStateChange " + state);
 
           // YT.PlayerState.ENDED === 0
           if (state === YT.PlayerState.ENDED || state === 0) {
@@ -138,7 +126,6 @@ export const GlobalPlayer = {
           window.bootDebug?.player(
             "GlobalPlayer → onError " + JSON.stringify(e)
           );
-          console.log("GlobalPlayer → onError", e);
         }
       }
     });
@@ -151,16 +138,18 @@ export const GlobalPlayer = {
 ------------------------------------------------------------ */
 window.onYouTubeIframeAPIReady = () => {
   window.bootDebug?.player("YT API → READY");
-  console.log("YT API → READY");
 
   GlobalPlayer._apiReady = true;
 
-  // If init() already ran and mount exists, create player now
-  if (GlobalPlayer._initialized) {
-    const mount = document.getElementById("global-player-iframe");
-    if (mount) {
-      window.bootDebug?.player("YT API → creating player immediately");
-      GlobalPlayer._createPlayer(mount);
-    }
+  // Always attempt to create player if mount exists
+  const mount = document.getElementById("global-player-iframe");
+  if (mount) {
+    window.bootDebug?.player("YT API → creating player immediately");
+    GlobalPlayer._createPlayer(mount);
   }
 };
+
+/* ------------------------------------------------------------
+   SAFE IMPORT (after API callback)
+------------------------------------------------------------ */
+import { AutonextEngine } from "./AutonextEngine.js";
