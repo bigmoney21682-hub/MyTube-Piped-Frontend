@@ -12,7 +12,7 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
-import Header from "./components/Header.jsx";
+import Header from "../components/Header.jsx";
 import Footer from "./layout/Footer.jsx";
 import MiniPlayer from "./player/MiniPlayer.jsx";
 
