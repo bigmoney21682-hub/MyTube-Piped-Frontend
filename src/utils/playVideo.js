@@ -2,54 +2,27 @@
  * ------------------------------------------------------------
  * File: playVideo.js
  * Path: src/utils/playVideo.js
+ * Description:
+ *   Legacy helper removed — replaced with unified player logic.
+ *   Uses new PlayerContext API + window.GlobalPlayer.
  * ------------------------------------------------------------
  */
 
-import { GlobalPlayer } from "../player/GlobalPlayerFix.js";
-
-export function playVideo({
-  id,
-  title,
-  thumbnail,
-  channel,
-  player,
-  playlistId = null,
-  autonext = null
-}) {
+export function playVideo({ id, player }) {
   if (!id || !player) {
     console.warn("playVideo() called without id or player context");
     return;
   }
 
-  window.bootDebug?.player(`playVideo() → ${id}`);
+  console.log("[playVideo] →", id);
 
-  // ⭐ CRITICAL: update PlayerContext state
+  // Update PlayerContext state
   player.loadVideo(id);
 
-  // Still load into GlobalPlayer (iframe)
-  GlobalPlayer.load(id);
-
-  // Update metadata
-  player.setPlayerMeta({
-    title: title ?? "",
-    thumbnail: thumbnail ?? "",
-    channel: channel ?? ""
-  });
-
-  // Playlist context
-  if (playlistId) {
-    player.setActivePlaylistId(playlistId);
+  // Load into iframe player
+  if (window.GlobalPlayer) {
+    window.GlobalPlayer.loadVideo(id);
+  } else {
+    console.warn("[playVideo] GlobalPlayer missing");
   }
-
-  // Autonext mode
-  if (autonext === "playlist") {
-    player.setAutonextMode("playlist");
-  } else if (autonext === "related") {
-    player.setAutonextMode("related");
-  } else if (autonext === "trending") {
-    player.setAutonextMode("trending");
-  }
-
-  // Expand player
-  player.expandPlayer();
 }
