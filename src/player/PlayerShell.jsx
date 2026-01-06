@@ -65,9 +65,8 @@ export default function PlayerShell() {
   const showSourceMenuRef = useRef(false);
   const showPlaylistPickerRef = useRef(false);
 
-  if (!activeVideoId) return null;
-
-  const height = isExpanded ? 260 : 48;
+  // Height is 0 when no active video, so shell collapses
+  const height = activeVideoId ? (isExpanded ? 260 : 48) : 0;
 
   useEffect(() => {
     setPlayerHeight(height);
@@ -107,7 +106,12 @@ export default function PlayerShell() {
      Load metadata + related + trending (global)
   ------------------------------------------------------------ */
   useEffect(() => {
-    if (!activeVideoId) return;
+    if (!activeVideoId) {
+      setVideoData(null);
+      setRelated([]);
+      setTrending([]);
+      return;
+    }
 
     async function loadAll() {
       const video = await fetchVideo(activeVideoId);
@@ -164,7 +168,11 @@ export default function PlayerShell() {
      Autonext callback registration (global)
   ------------------------------------------------------------ */
   useEffect(() => {
-    if (!activeVideoId) return;
+    if (!activeVideoId) {
+      AutonextEngine.registerPlaylistCallback(null);
+      AutonextEngine.registerRelatedCallback(null);
+      return;
+    }
 
     if (autonextMode === "playlist" && activePlaylistId) {
       const playlistHandler = () => {
@@ -255,6 +263,10 @@ export default function PlayerShell() {
         AutonextEngine.registerRelatedCallback(null);
       };
     }
+
+    // Fallback: clear both if mode is unknown
+    AutonextEngine.registerPlaylistCallback(null);
+    AutonextEngine.registerRelatedCallback(null);
   }, [
     activeVideoId,
     autonextMode,
@@ -271,6 +283,8 @@ export default function PlayerShell() {
      Autonext list + title (global)
   ------------------------------------------------------------ */
   const relatedList = useMemo(() => {
+    if (!activeVideoId) return [];
+
     if (autonextMode === "playlist" && activePlaylistId) {
       const pl = playlists.find((p) => p.id === activePlaylistId);
       return pl ? pl.videos : [];
@@ -285,7 +299,7 @@ export default function PlayerShell() {
     }
 
     return [];
-  }, [autonextMode, activePlaylistId, playlists, related, trending]);
+  }, [activeVideoId, autonextMode, activePlaylistId, playlists, related, trending]);
 
   const relatedTitle = useMemo(() => {
     if (autonextMode === "playlist" && activePlaylistId) {
@@ -346,214 +360,221 @@ export default function PlayerShell() {
         borderBottom: "1px solid #222"
       }}
     >
-      {isExpanded && (
-        <FullPlayer onCollapse={collapsePlayer} meta={playerMeta} />
-      )}
+      {/* Nothing rendered when no active video */}
+      {activeVideoId && (
+        <>
+          {isExpanded && (
+            <FullPlayer onCollapse={collapsePlayer} meta={playerMeta} />
+          )}
 
-      {!isExpanded && (
-        <MiniPlayer meta={playerMeta} onExpand={expandPlayer} />
-      )}
+          {!isExpanded && (
+            <MiniPlayer meta={playerMeta} onExpand={expandPlayer} />
+          )}
 
-      {/* Autonext Source Menu */}
-      {showSourceMenuRef.current && (
-        <div style={overlayStyle} onClick={closeSourceMenu}>
-          <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
-              Autonext Source
-            </h3>
+          {/* Autonext Source Menu */}
+          {showSourceMenuRef.current && (
+            <div style={overlayStyle} onClick={closeSourceMenu}>
+              <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
+                  Autonext Source
+                </h3>
 
-            <button
-              style={menuButton}
-              onClick={() => {
-                setAutonextMode("related");
-                closeSourceMenu();
-              }}
-            >
-              Related
-            </button>
+                <button
+                  style={menuButton}
+                  onClick={() => {
+                    setAutonextMode("related");
+                    closeSourceMenu();
+                  }}
+                >
+                  Related
+                </button>
 
-            <button
-              style={menuButton}
-              onClick={() => {
-                closeSourceMenu();
-                openPlaylistPicker();
-              }}
-            >
-              Playlist...
-            </button>
+                <button
+                  style={menuButton}
+                  onClick={() => {
+                    closeSourceMenu();
+                    openPlaylistPicker();
+                  }}
+                >
+                  Playlist...
+                </button>
 
-            <button
-              style={menuButton}
-              onClick={() => {
-                setAutonextMode("trending");
-                closeSourceMenu();
-              }}
-            >
-              Trending
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Playlist Picker */}
-      {showPlaylistPickerRef.current && (
-        <div style={overlayStyle} onClick={closePlaylistPicker}>
-          <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
-              Choose Playlist
-            </h3>
-
-            {playlists.length === 0 && (
-              <div style={{ fontSize: "13px", opacity: 0.7 }}>
-                No playlists yet.
-              </div>
-            )}
-
-            {playlists.map((pl) => (
-              <button
-                key={pl.id}
-                style={menuButton}
-                onClick={() => {
-                  setActivePlaylistId(pl.id);
-                  setAutonextMode("playlist");
-                  closePlaylistPicker();
-                }}
-              >
-                {pl.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Global Autonext Controls + List (only when expanded and metadata ready) */}
-      {isExpanded && videoData && (
-        <div style={{ padding: "4px 16px 12px 16px", color: "#fff" }}>
-          <div
-            style={{
-              display: "flex",
-              gap: "10px",
-              marginBottom: "10px",
-              alignItems: "center"
-            }}
-          >
-            <button
-              onClick={openSourceMenu}
-              style={pillButton}
-              onMouseDown={(e) =>
-                (e.currentTarget.style.transform = "scale(0.94)")
-              }
-              onMouseUp={(e) =>
-                (e.currentTarget.style.transform = "scale(1)")
-              }
-            >
-              Autonext: {autonextMode}
-            </button>
-
-            <button
-              onClick={() =>
-                openAddToPlaylist({
-                  id: activeVideoId,
-                  title: videoData?.snippet?.title,
-                  thumbnail:
-                    videoData?.snippet?.thumbnails?.medium?.url
-                })
-              }
-              style={pillButton}
-              onMouseDown={(e) =>
-                (e.currentTarget.style.transform = "scale(0.94)")
-              }
-              onMouseUp={(e) =>
-                (e.currentTarget.style.transform = "scale(1)")
-              }
-            >
-              + Add to playlist
-            </button>
-          </div>
-
-          {relatedList.length > 0 && (
-            <div style={{ marginTop: "2px" }}>
-              <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>
-                {relatedTitle}
-              </h3>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "8px"
-                }}
-              >
-                {relatedList.map((item) => {
-                  const vidId = normalizeId(item);
-                  if (!vidId) return null;
-
-                  const thumb = item.snippet?.thumbnails?.medium?.url;
-                  const title = item.snippet?.title;
-
-                  return (
-                    <div
-                      key={vidId}
-                      style={{
-                        display: "flex",
-                        gap: "8px",
-                        cursor: "pointer"
-                      }}
-                      onClick={() => {
-                        loadVideo(vidId);
-
-                        setPlayerMeta({
-                          title: item.snippet?.title ?? "",
-                          thumbnail:
-                            item.snippet?.thumbnails?.medium?.url ?? "",
-                          channel: item.snippet?.channelTitle ?? ""
-                        });
-
-                        expandPlayer();
-                      }}
-                    >
-                      <img
-                        src={thumb}
-                        alt={title}
-                        style={{
-                          width: "160px",
-                          height: "90px",
-                          objectFit: "cover",
-                          borderRadius: "8px"
-                        }}
-                      />
-
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "center"
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "13px",
-                            fontWeight: 500
-                          }}
-                        >
-                          {title}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "11px",
-                            opacity: 0.7
-                          }}
-                        >
-                          {item.snippet?.channelTitle}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                <button
+                  style={menuButton}
+                  onClick={() => {
+                    setAutonextMode("trending");
+                    closeSourceMenu();
+                  }}
+                >
+                  Trending
+                </button>
               </div>
             </div>
           )}
-        </div>
+
+          {/* Playlist Picker */}
+          {showPlaylistPickerRef.current && (
+            <div style={overlayStyle} onClick={closePlaylistPicker}>
+              <div style={menuStyle} onClick={(e) => e.stopPropagation()}>
+                <h3 style={{ marginBottom: "12px", fontSize: "16px" }}>
+                  Choose Playlist
+                </h3>
+
+                {playlists.length === 0 && (
+                  <div style={{ fontSize: "13px", opacity: 0.7 }}>
+                    No playlists yet.
+                  </div>
+                )}
+
+                {playlists.map((pl) => (
+                  <button
+                    key={pl.id}
+                    style={menuButton}
+                    onClick={() => {
+                      setActivePlaylistId(pl.id);
+                      setAutonextMode("playlist");
+                      closePlaylistPicker();
+                    }}
+                  >
+                    {pl.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Global Autonext Controls + List */}
+          {isExpanded && videoData && (
+            <div style={{ padding: "4px 16px 12px 16px", color: "#fff" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  marginBottom: "10px",
+                  alignItems: "center"
+                }}
+              >
+                <button
+                  onClick={openSourceMenu}
+                  style={pillButton}
+                  onMouseDown={(e) =>
+                    (e.currentTarget.style.transform = "scale(0.94)")
+                  }
+                  onMouseUp={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
+                >
+                  Autonext: {autonextMode}
+                </button>
+
+                <button
+                  onClick={() =>
+                    openAddToPlaylist({
+                      id: activeVideoId,
+                      title: videoData?.snippet?.title,
+                      thumbnail:
+                        videoData?.snippet?.thumbnails?.medium?.url
+                    })
+                  }
+                  style={pillButton}
+                  onMouseDown={(e) =>
+                    (e.currentTarget.style.transform = "scale(0.94)")
+                  }
+                  onMouseUp={(e) =>
+                    (e.currentTarget.style.transform = "scale(1)")
+                  }
+                >
+                  + Add to playlist
+                </button>
+              </div>
+
+              {relatedList.length > 0 && (
+                <div style={{ marginTop: "2px" }}>
+                  <h3 style={{ fontSize: "14px", marginBottom: "8px" }}>
+                    {relatedTitle}
+                  </h3>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px"
+                    }}
+                  >
+                    {relatedList.map((item) => {
+                      const vidId = normalizeId(item);
+                      if (!vidId) return null;
+
+                      const thumb =
+                        item.snippet?.thumbnails?.medium?.url;
+                      const title = item.snippet?.title;
+
+                      return (
+                        <div
+                          key={vidId}
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            cursor: "pointer"
+                          }}
+                          onClick={() => {
+                            loadVideo(vidId);
+
+                            setPlayerMeta({
+                              title: item.snippet?.title ?? "",
+                              thumbnail:
+                                item.snippet?.thumbnails?.medium?.url ??
+                                "",
+                              channel: item.snippet?.channelTitle ?? ""
+                            });
+
+                            expandPlayer();
+                          }}
+                        >
+                          <img
+                            src={thumb}
+                            alt={title}
+                            style={{
+                              width: "160px",
+                              height: "90px",
+                              objectFit: "cover",
+                              borderRadius: "8px"
+                            }}
+                          />
+
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              justifyContent: "center"
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: "13px",
+                                fontWeight: 500
+                              }}
+                            >
+                              {title}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "11px",
+                                opacity: 0.7
+                              }}
+                            >
+                              {item.snippet?.channelTitle}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
