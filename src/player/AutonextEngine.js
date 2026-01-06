@@ -1,77 +1,77 @@
 /**
  * File: src/player/AutonextEngine.js
  * Description:
- *   Central autonext dispatcher.
- *   Watch.jsx registers:
- *     - playlist callback
- *     - related/trending callback
- *
- *   When the YouTube player ends, GlobalPlayer calls:
- *       AutonextEngine.handleEnded()
- *
- *   This engine then calls whichever callback is active.
+ *   Autonext engine for the new Home-as-Master architecture.
+ *   - No Watch.jsx required
+ *   - No callback registration required
+ *   - Uses a dynamic "source list" + "currentId" + "loadVideo"
  */
 
 import { debugBus } from "../debug/debugBus.js";
 
-let playlistCallback = null;
-let relatedCallback = null;
+let getState = null;   // function returning { source, items, currentId, loadVideo }
 
 /**
- * Register playlist autonext handler
+ * Register a state getter from Home.jsx or PlayerContext
  */
-function registerPlaylistCallback(fn) {
-  playlistCallback = typeof fn === "function" ? fn : null;
-  debugBus.player(
-    fn ? "Playlist callback registered" : "Playlist callback cleared"
-  );
+function registerStateGetter(fn) {
+  getState = typeof fn === "function" ? fn : null;
+  debugBus.player(getState ? "AutonextEngine state getter registered" : "AutonextEngine state getter cleared");
 }
 
 /**
- * Register related/trending autonext handler
- */
-function registerRelatedCallback(fn) {
-  relatedCallback = typeof fn === "function" ? fn : null;
-  debugBus.player(
-    fn ? "Related callback registered" : "Related callback cleared"
-  );
-}
-
-/**
- * Called by GlobalPlayer when the video ends.
- * Dispatches to whichever callback is active.
+ * Called by GlobalPlayerFix when the video ends.
  */
 function handleEnded() {
   debugBus.player("AutonextEngine → handleEnded()");
 
-  // Playlist takes priority if registered
-  if (playlistCallback) {
-    try {
-      playlistCallback();
-    } catch (err) {
-      debugBus.error("AutonextEngine playlist callback error", err);
-    }
+  if (!getState) {
+    debugBus.error("AutonextEngine → No state getter registered");
     return;
   }
 
-  // Otherwise use related/trending
-  if (relatedCallback) {
-    try {
-      relatedCallback();
-    } catch (err) {
-      debugBus.error("AutonextEngine related callback error", err);
-    }
+  const { source, items, currentId, loadVideo } = getState();
+
+  if (!items || !items.length) {
+    debugBus.player("AutonextEngine → No items for source:", source);
     return;
   }
 
-  debugBus.player("AutonextEngine → no callback registered");
+  // Find current index
+  const index = items.findIndex((v) => {
+    const id = v.id || v.videoId;
+    return id === currentId;
+  });
+
+  if (index === -1) {
+    debugBus.player("AutonextEngine → Current video not found in list");
+    return;
+  }
+
+  // Next index
+  const nextIndex = index + 1;
+
+  if (nextIndex >= items.length) {
+    debugBus.player("AutonextEngine → End of list reached");
+    return;
+  }
+
+  const next = items[nextIndex];
+  const nextId = next.id || next.videoId;
+
+  if (!nextId) {
+    debugBus.error("AutonextEngine → Invalid next video", next);
+    return;
+  }
+
+  debugBus.player(`AutonextEngine → Playing next video (${source}): ${nextId}`);
+  loadVideo(nextId);
 }
 
 /**
  * Export API
  */
 export const AutonextEngine = {
-  registerPlaylistCallback,
-  registerRelatedCallback,
+  registerStateGetter,
   handleEnded
 };
