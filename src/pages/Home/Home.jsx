@@ -20,7 +20,8 @@ import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { fetchTrending } from "../../api/trending.js";
 import { fetchRelatedVideos } from "../../api/related.js";
 
-import DebugOverlay from "../../debug/DebugOverlay.jsx"; // ⭐ NEW
+import AddToPlaylistButton from "../../components/AddToPlaylistButton.jsx";
+import DebugOverlay from "../../debug/DebugOverlay.jsx";
 
 export default function Home() {
   const { currentId, loadVideo } = useContext(PlayerContext);
@@ -127,52 +128,30 @@ export default function Home() {
           justifyContent: "center"
         }}
       >
-        <button
-          onClick={() => setSource("trending")}
-          style={{
-            padding: "6px 12px",
-            borderRadius: "6px",
-            border: "none",
-            background: source === "trending" ? "#ff0000" : "#333",
-            color: "#fff",
-            cursor: "pointer"
-          }}
-        >
-          Trending
-        </button>
-
-        <button
-          onClick={() => setSource("related")}
-          style={{
-            padding: "6px 12px",
-            borderRadius: "6px",
-            border: "none",
-            background: source === "related" ? "#ff0000" : "#333",
-            color: "#fff",
-            cursor: "pointer"
-          }}
-        >
-          Related
-        </button>
-
-        <button
-          onClick={() => {
-            setSource("playlist");
-            if (!activePlaylistId && playlists.length > 0) {
-              setActivePlaylistId(playlists[0].id);
-            }
-          }}
-          style={{
-            padding: "6px 12px",
-            borderRadius: "6px",
-            border: "none",
-            background: source === "playlist" ? "#ff0000" : "#333",
-            color: "#fff",
-            cursor: "pointer"
-          }}
-        >
-          Playlist
-        </button>
+        {["trending", "related", "playlist"].map((mode) => (
+          <button
+            key={mode}
+            onClick={() => {
+              setSource(mode);
+              if (mode === "playlist" && !activePlaylistId && playlists.length > 0) {
+                setActivePlaylistId(playlists[0].id);
+              }
+            }}
+            style={{
+              padding: "6px 12px",
+              borderRadius: "6px",
+              border: "none",
+              background:
+                source === mode
+                  ? "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)"
+                  : "#333",
+              color: "#fff",
+              cursor: "pointer"
+            }}
+          >
+            {mode.charAt(0).toUpperCase() + mode.slice(1)}
+          </button>
+        ))}
       </div>
 
       {/* ⭐ Playlist selector */}
@@ -193,7 +172,10 @@ export default function Home() {
                 padding: "6px 12px",
                 borderRadius: "6px",
                 border: "none",
-                background: activePlaylistId === pl.id ? "#3ea6ff" : "#333",
+                background:
+                  activePlaylistId === pl.id
+                    ? "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)"
+                    : "#333",
                 color: "#fff",
                 cursor: "pointer",
                 whiteSpace: "nowrap"
@@ -244,6 +226,9 @@ export default function Home() {
               <div style={{ fontSize: "13px", opacity: 0.7 }}>
                 {item.channelTitle || item.snippet?.channelTitle}
               </div>
+
+              {/* ⭐ Add to Playlist */}
+              <AddToPlaylistButton video={item} />
             </div>
           );
         })}
