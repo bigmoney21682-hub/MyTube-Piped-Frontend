@@ -11,12 +11,12 @@
  *     - Clicking a trending video loads it into the global player
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 
 import { fetchTrending } from "../../api/trending.js";
 import normalizeId from "../../utils/normalizeId.js";
 
-import { usePlayer } from "../../player/PlayerContext.jsx";
+import { PlayerContext } from "../../player/PlayerContext.jsx";
 import VideoActions from "../../components/VideoActions.jsx";
 
 import NowPlaying from "./NowPlaying.jsx";
@@ -54,8 +54,8 @@ export default function Home() {
   const [videos, setVideos] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
 
-  // ⭐ Player controls
-  const { loadVideo, setPlayerMeta, expandPlayer } = usePlayer();
+  // ⭐ New PlayerContext API
+  const { loadVideo } = useContext(PlayerContext);
 
   useEffect(() => {
     loadTrending();
@@ -66,7 +66,7 @@ export default function Home() {
       const list = await fetchTrending("US");
 
       if (!Array.isArray(list)) {
-        window.bootDebug?.player("Home.jsx → fetchTrending returned invalid list");
+        console.log("Home.jsx → fetchTrending returned invalid list");
         setVideos([]);
         return;
       }
@@ -75,7 +75,7 @@ export default function Home() {
         .map((item) => {
           const vid = normalizeId(item);
           if (!vid) {
-            window.bootDebug?.warn("Home.jsx → Skipped trending item with invalid ID", item);
+            console.log("Home.jsx → Skipped trending item with invalid ID", item);
             return null;
           }
 
@@ -93,13 +93,11 @@ export default function Home() {
         })
         .filter(Boolean);
 
-      window.bootDebug?.player(
-        `Home.jsx → Trending loaded (${normalized.length} items)`
-      );
+      console.log(`Home.jsx → Trending loaded (${normalized.length} items)`);
 
       setVideos(normalized);
     } catch (err) {
-      window.bootDebug?.player("Home.jsx → loadTrending error: " + err?.message);
+      console.log("Home.jsx → loadTrending error:", err?.message);
       setVideos([]);
     }
   }
@@ -109,26 +107,17 @@ export default function Home() {
   ------------------------------------------------------------ */
   function handlePlay(item) {
     const vid = item?.id;
-    const sn = item?.snippet ?? {};
     if (!vid) return;
 
     loadVideo(vid);
-
-    setPlayerMeta({
-      title: sn.title ?? "",
-      thumbnail: sn?.thumbnails?.medium?.url ?? "",
-      channel: sn.channelTitle ?? ""
-    });
-
-    expandPlayer();
   }
 
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      {/* ⭐ Now Playing section (title, channel, autonext, related/playlist) */}
+      {/* ⭐ Now Playing section */}
       <NowPlaying />
 
-      {/* ⭐ Trending section (unchanged UI) */}
+      {/* ⭐ Trending section */}
       <h2 style={{ marginBottom: "12px", marginTop: "12px" }}>Trending</h2>
 
       {videos.map((item, i) => {
@@ -184,7 +173,7 @@ export default function Home() {
               {isExpanded ? "Show less" : "Show more"}
             </button>
 
-            {/* ⭐ Add to Queue + Playlist */}
+            {/* ⭐ Playlist actions */}
             <VideoActions videoId={vid} videoSnippet={sn} />
           </div>
         );
