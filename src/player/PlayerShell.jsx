@@ -2,16 +2,13 @@
  * File: PlayerShell.jsx
  * Path: src/player/PlayerShell.jsx
  * Description:
- *   Wraps the YouTube iframe container.
- *   Now includes full debugging for Mac Web Inspector.
+ *   Hosts the YouTube iframe player and wires
+ *   GlobalPlayer → PlayerContext (onVideoEnd).
  */
 
-import React, { useEffect, useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { PlayerContext } from "./PlayerContext.jsx";
 
-// ------------------------------------------------------------
-// Debug helper
-// ------------------------------------------------------------
 function dbg(label, data = {}) {
   console.group(`[PlayerShell] ${label}`);
   for (const k in data) console.log(k + ":", data[k]);
@@ -21,57 +18,75 @@ function dbg(label, data = {}) {
 export default function PlayerShell() {
   const { currentId, onVideoEnd } = useContext(PlayerContext);
 
-  // ------------------------------------------------------------
-  // Component mount/unmount
-  // ------------------------------------------------------------
+  // Mount/unmount logging
   useEffect(() => {
     dbg("MOUNT");
-
-    return () => {
-      dbg("UNMOUNT");
-    };
+    return () => dbg("UNMOUNT");
   }, []);
 
-  // ------------------------------------------------------------
-  // Log ID changes
-  // ------------------------------------------------------------
+  // Bind GlobalPlayer events → PlayerContext
   useEffect(() => {
-    dbg("currentId changed", { currentId });
-  }, [currentId]);
+    dbg("Binding GlobalPlayer events");
 
-  // ------------------------------------------------------------
-  // Hook into GlobalPlayer events
-  // ------------------------------------------------------------
-  useEffect(() => {
-    if (!window.GlobalPlayer) {
-      dbg("GlobalPlayer missing");
+    if (!window.GlobalPlayer || !window.GlobalPlayer.player) {
+      dbg("GlobalPlayer.player not ready yet, skipping bind");
       return;
     }
 
-    dbg("Binding GlobalPlayer events");
+    const gp = window.GlobalPlayer;
+    const originalOnStateChange = gp.player.onStateChange;
+    const originalOnError = gp.player.onError;
 
-    const original = window.GlobalPlayer.player?.onStateChange;
-
-    window.GlobalPlayer.player.onStateChange = (e) => {
+    gp.player.onStateChange = (e) => {
       dbg("onStateChange", { state: e.data });
-
-      // YouTube state 0 = ended
+      // 0 = ended
       if (e.data === 0) {
         dbg("Video ended → calling onVideoEnd()");
         onVideoEnd();
       }
+      if (typeof originalOnStateChange === "function") {
+        originalOnStateChange(e);
+      }
+    };
 
-      if (original) original(e);
+    gp.player.onError = (e) => {
+      dbg("onError", { error: e.data });
+      if (typeof originalOnError === "function") {
+        originalOnError(e);
+      }
+    };
+
+    return () => {
+      dbg("Unbinding GlobalPlayer events");
+      if (!gp.player) return;
+      gp.player.onStateChange = originalOnStateChange;
+      gp.player.onError = originalOnError;
     };
   }, [onVideoEnd]);
+
+  // Load video when currentId changes
+  useEffect(() => {
+    dbg("currentId changed", { currentId });
+
+    if (!currentId) return;
+    if (!window.GlobalPlayer || !window.GlobalPlayer.loadVideo) {
+      dbg("GlobalPlayer not ready, cannot load video yet");
+      return;
+    }
+
+    window.GlobalPlayer.loadVideo(currentId);
+  }, [currentId]);
 
   return (
     <div
       id="yt-player"
       style={{
         width: "100%",
-        height: "100%",
-        background: "black"
+        aspectRatio: "16 / 9",
+        background: "black",
+        borderRadius: "8px",
+        overflow: "hidden",
+        marginTop: "8px"
       }}
     />
   );
