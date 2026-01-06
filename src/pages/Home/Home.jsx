@@ -4,6 +4,7 @@
  * Description:
  *   Home page showing:
  *     - NowPlaying section (title, channel, autonext, related/playlist)
+ *     - PlayerShell (iframe container)
  *     - Trending videos (existing UI)
  *
  *   Notes:
@@ -17,6 +18,7 @@ import { fetchTrending } from "../../api/trending.js";
 import normalizeId from "../../utils/normalizeId.js";
 
 import { PlayerContext } from "../../player/PlayerContext.jsx";
+import PlayerShell from "../../player/PlayerShell.jsx";
 import VideoActions from "../../components/VideoActions.jsx";
 
 import NowPlaying from "./NowPlaying.jsx";
@@ -54,7 +56,6 @@ export default function Home() {
   const [videos, setVideos] = useState([]);
   const [expandedIndex, setExpandedIndex] = useState(null);
 
-  // ⭐ New PlayerContext API
   const { loadVideo } = useContext(PlayerContext);
 
   useEffect(() => {
@@ -102,22 +103,21 @@ export default function Home() {
     }
   }
 
-  /* ------------------------------------------------------------
-     NEW: Unified play handler for Trending
-  ------------------------------------------------------------ */
   function handlePlay(item) {
     const vid = item?.id;
     if (!vid) return;
-
     loadVideo(vid);
   }
 
   return (
     <div style={{ padding: "16px", color: "#fff" }}>
-      {/* ⭐ Now Playing section */}
+      {/* Now Playing metadata */}
       <NowPlaying />
 
-      {/* ⭐ Trending section */}
+      {/* 🔥 Actual iframe player container */}
+      <PlayerShell />
+
+      {/* Trending section */}
       <h2 style={{ marginBottom: "12px", marginTop: "12px" }}>Trending</h2>
 
       {videos.map((item, i) => {
@@ -131,7 +131,6 @@ export default function Home() {
 
         return (
           <div key={vid + "_" + i} style={{ marginBottom: "24px" }}>
-            {/* Thumbnail + Title clickable */}
             <div
               onClick={() => handlePlay(item)}
               style={{ textDecoration: "none", color: "#fff", cursor: "pointer" }}
@@ -146,7 +145,6 @@ export default function Home() {
               <div style={channelStyle}>{sn.channelTitle ?? "Unknown Channel"}</div>
             </div>
 
-            {/* Collapsible description */}
             <div
               style={{
                 ...descStyle,
@@ -173,7 +171,6 @@ export default function Home() {
               {isExpanded ? "Show less" : "Show more"}
             </button>
 
-            {/* ⭐ Playlist actions */}
             <VideoActions videoId={vid} videoSnippet={sn} />
           </div>
         );
