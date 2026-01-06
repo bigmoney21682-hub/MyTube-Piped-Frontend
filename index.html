@@ -35,5 +35,13 @@
     <div id="root"></div>
 
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- 🔥 Service Worker Registration (GitHub Pages compatible) -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("/MyTube-Piped-Frontend/sw.js")
+          .catch(err => console.log("SW registration failed:", err));
+      }
+    </script>
   </body>
 </html>
