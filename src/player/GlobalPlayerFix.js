@@ -1,28 +1,34 @@
-// ===============================
-// GlobalPlayer_v2.1 (iOS‑safe)
-// 5‑second DOM‑mount retry loop
-// ===============================
+/**
+ * File: GlobalPlayerFix.js
+ * Path: src/player/GlobalPlayerFix.js
+ * Description:
+ *   Safe wrapper around the YouTube Iframe API.
+ *   - Retries for up to 5 seconds until #yt-player exists
+ *   - Waits for Iframe API ready
+ *   - Only calls loadVideoById after onReady
+ *   - Survives early API load + late React render
+ *   - Fixes iOS Safari DOM‑mount timing issues
+ */
 
-window.GlobalPlayer = {
+console.log("[PLAYER] GlobalPlayerFix loaded");
+
+function dbg(label, data = {}) {
+  console.group(`[PLAYER] ${label}`);
+  for (const k in data) console.log(k + ":", data[k]);
+  console.groupEnd();
+}
+
+const GlobalPlayer = {
   player: null,
-  pendingVideoId: null,
+  apiReady: false,
+  pendingId: null,
   ready: false,
 
-  init() {
-    console.log("[GlobalPlayer] init()");
-
-    // Wait for DOM node #player to appear
-    this.waitForPlayerElement()
-      .then(() => this.createPlayer())
-      .catch((err) => {
-        console.error("[GlobalPlayer] FATAL: #player never appeared", err);
-      });
-  },
-
-  // ---------------------------------------
-  // Wait for #player to exist (retry 5 sec)
-  // ---------------------------------------
-  waitForPlayerElement() {
+  /**
+   * Wait up to 5 seconds for #yt-player to appear.
+   * iOS Safari sometimes delays DOM insertion.
+   */
+  waitForContainer() {
     return new Promise((resolve, reject) => {
       const start = performance.now();
 
@@ -30,18 +36,18 @@ window.GlobalPlayer = {
         const el = document.getElementById("yt-player");
 
         if (el) {
-          console.log("[GlobalPlayer] #player found");
+          dbg("waitForContainer → #yt-player found");
           resolve(el);
           return;
         }
 
         const elapsed = performance.now() - start;
         if (elapsed > 5000) {
-          reject(new Error("#player did not appear within 5 seconds"));
+          dbg("waitForContainer → TIMEOUT (5s) #yt-player never appeared");
+          reject(new Error("#yt-player did not appear within 5 seconds"));
           return;
         }
 
-        // Retry every 50ms
         setTimeout(check, 50);
       };
 
@@ -49,67 +55,101 @@ window.GlobalPlayer = {
     });
   },
 
-  // ---------------------------------------
-  // Create the YouTube iframe player
-  // ---------------------------------------
-  createPlayer() {
-    console.log("[GlobalPlayer] Creating player…");
+  /**
+   * Initialize the YouTube player once:
+   * - API is ready
+   * - Container exists
+   */
+  async init() {
+    dbg("init() called");
 
-    this.player = new YT.Player("yt-player", {
-      width: "100%",
-      height: "100%",
-      playerVars: {
-        autoplay: 1,
-        playsinline: 1,
-        rel: 0,
-        modestbranding: 1,
-      },
-      events: {
-        onReady: () => {
-          console.log("[GlobalPlayer] Player ready");
-          this.ready = true;
+    if (this.player) {
+      dbg("init() → player already exists");
+      return;
+    }
 
-          if (this.pendingVideoId) {
-            console.log(
-              "[GlobalPlayer] Running pending load:",
-              this.pendingVideoId
-            );
-            this.loadVideo(this.pendingVideoId);
-            this.pendingVideoId = null;
-          }
-        },
-        onStateChange: (e) => {
-          console.log("[GlobalPlayer] State:", e.data);
-        },
-        onError: (e) => {
-          console.error("[GlobalPlayer] ERROR:", e.data);
-        },
-      },
-    });
-  },
-
-  // ---------------------------------------
-  // Load a video (queue if not ready)
-  // ---------------------------------------
-  loadVideo(videoId) {
-    console.log("[GlobalPlayer] loadVideo()", videoId);
-
-    if (!this.player || !this.ready) {
-      console.log("[GlobalPlayer] Player not ready → queueing", videoId);
-      this.pendingVideoId = videoId;
+    if (!this.apiReady) {
+      dbg("init() → API not ready yet");
       return;
     }
 
     try {
-      this.player.loadVideoById(videoId);
+      const container = await this.waitForContainer();
+      dbg("init() → container ready, creating player");
+
+      this.player = new YT.Player("yt-player", {
+        height: "100%",
+        width: "100%",
+        playerVars: {
+          playsinline: 1,
+          autoplay: 1,
+          rel: 0,
+          modestbranding: 1
+        },
+        events: {
+          onReady: (e) => {
+            dbg("onReady");
+            this.ready = true;
+
+            if (this.pendingId) {
+              const id = this.pendingId;
+              this.pendingId = null;
+              dbg("onReady → loading pendingId", { id });
+
+              try {
+                e.target.loadVideoById(id);
+              } catch (err) {
+                dbg("onReady → loadVideoById exception", { err });
+              }
+            }
+          },
+
+          onStateChange: (e) => {
+            dbg("onStateChange", { state: e.data });
+          },
+
+          onError: (e) => {
+            dbg("onError", { error: e.data });
+          }
+        }
+      });
     } catch (err) {
-      console.error("[GlobalPlayer] loadVideoById failed", err);
+      dbg("init() → FAILED to create player", { err });
     }
   },
+
+  /**
+   * Load a video by ID.
+   * If player isn't ready, queue it.
+   */
+  loadVideo(id) {
+    dbg("loadVideo()", { id });
+
+    this.pendingId = id;
+
+    if (this.player && this.ready) {
+      try {
+        this.player.loadVideoById(id);
+      } catch (err) {
+        dbg("loadVideo() immediate load exception", { err });
+      }
+      return;
+    }
+
+    dbg("Player missing or not ready → calling init()");
+    this.init();
+  }
 };
 
-// Auto‑init when YT API is ready
+window.GlobalPlayer = GlobalPlayer;
+
+/**
+ * YouTube Iframe API callback.
+ * May fire BEFORE React renders PlayerShell.
+ * So we always retry until the container exists.
+ */
 window.onYouTubeIframeAPIReady = () => {
-  console.log("[GlobalPlayer] YT API ready → init()");
-  window.GlobalPlayer.init();
+  dbg("Iframe API Ready");
+  GlobalPlayer.apiReady = true;
+  GlobalPlayer.init();
 };
