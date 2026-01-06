@@ -8,7 +8,10 @@
  *   - Only calls loadVideoById after onReady
  *   - Survives early API load + late React render
  *   - FIX: Removed ALL resizing (setSize) to restore iOS playback stability
+ *   - ⭐ Now calls AutonextEngine.handleEnded() on video end
  */
+
+import { AutonextEngine } from "./AutonextEngine.js";
 
 console.log("[PLAYER] GlobalPlayerFix loaded");
 
@@ -106,6 +109,16 @@ const GlobalPlayer = {
 
           onStateChange: (e) => {
             dbg("onStateChange", { state: e.data });
+
+            // ⭐ YT.PlayerState.ENDED === 0
+            if (e.data === 0) {
+              dbg("onStateChange → ENDED → AutonextEngine.handleEnded()");
+              try {
+                AutonextEngine.handleEnded();
+              } catch (err) {
+                dbg("AutonextEngine.handleEnded() error", { err });
+              }
+            }
           },
 
           onError: (e) => {
