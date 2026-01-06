@@ -24,6 +24,10 @@ const GlobalPlayer = {
   pendingId: null,
   ready: false,
 
+  /**
+   * Wait up to 5 seconds for #yt-player to appear.
+   * iOS Safari sometimes delays DOM insertion.
+   */
   waitForContainer() {
     return new Promise((resolve, reject) => {
       const start = performance.now();
@@ -51,6 +55,11 @@ const GlobalPlayer = {
     });
   },
 
+  /**
+   * Initialize the YouTube player once:
+   * - API is ready
+   * - Container exists
+   */
   async init() {
     dbg("init() called");
 
@@ -109,6 +118,10 @@ const GlobalPlayer = {
     }
   },
 
+  /**
+   * Load a video by ID.
+   * If player isn't ready, queue it.
+   */
   loadVideo(id) {
     dbg("loadVideo()", { id });
 
@@ -128,13 +141,19 @@ const GlobalPlayer = {
   }
 };
 
+/* Bind globally for iOS background audio + MiniPlayer */
 window.GlobalPlayer = GlobalPlayer;
 
+/**
+ * YouTube Iframe API callback.
+ * May fire BEFORE React renders PlayerShell.
+ * So we always retry until the container exists.
+ */
 window.onYouTubeIframeAPIReady = () => {
   dbg("Iframe API Ready");
   GlobalPlayer.apiReady = true;
   GlobalPlayer.init();
 };
 
-/* ⭐ NEW: Export for module imports */
-export const GlobalPlayer = window.GlobalPlayer;
+/* ⭐ Correct export — no duplicate declaration */
+export { GlobalPlayer };
