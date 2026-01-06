@@ -23,7 +23,7 @@ export default function MiniPlayer({ meta, onExpand }) {
         background: "#000",
         cursor: "pointer",
         userSelect: "none",
-        position: "relative"   // ⭐ required for iframe layering
+        position: "relative" // ⭐ required for iframe layering
       }}
     >
       {/* ⭐ GlobalPlayerFix iframe mount point (must exist in BOTH Mini + Full) */}
