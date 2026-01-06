@@ -2,18 +2,19 @@
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
  * Description:
- *   The master page of the app.
+ *   Master page of the app.
  *   - Player stays mounted at all times
- *   - Autonext source selector (Playlist / Related / Trending)
- *   - Dynamic content area based on source
- *   - loadVideo() never unmounts the iframe
- *   - Continuous play from any source
+ *   - Autonext source selector
+ *   - Dynamic content area
+ *   - Supplies MiniPlayer meta
+ *   - Registers state with AutonextEngine
  */
 
 import React, { useState, useEffect, useContext } from "react";
 
 import { PlayerContext } from "../../player/PlayerContext.jsx";
 import { usePlaylists } from "../../contexts/PlaylistContext.jsx";
+import { AutonextEngine } from "../../player/AutonextEngine.js";
 
 import { fetchTrending } from "../../api/trending.js";
 import { fetchRelated } from "../../api/related.js";
@@ -22,7 +23,7 @@ export default function Home() {
   const { currentId, loadVideo } = useContext(PlayerContext);
   const { playlists } = usePlaylists();
 
-  // ⭐ autonext source: "trending" | "related" | "playlist"
+  // ⭐ autonext source
   const [source, setSource] = useState("trending");
 
   // ⭐ dynamic content list
@@ -30,6 +31,9 @@ export default function Home() {
 
   // ⭐ selected playlist (if source === "playlist")
   const [activePlaylistId, setActivePlaylistId] = useState(null);
+
+  // ⭐ metadata for MiniPlayer
+  const [meta, setMeta] = useState(null);
 
   /* ------------------------------------------------------------
      Load content based on source
@@ -56,6 +60,40 @@ export default function Home() {
   }, [source, currentId, activePlaylistId, playlists]);
 
   /* ------------------------------------------------------------
+     Update MiniPlayer meta when currentId changes
+  ------------------------------------------------------------ */
+  useEffect(() => {
+    if (!currentId) return;
+
+    const item = items.find(
+      (v) => (v.id || v.videoId) === currentId
+    );
+
+    if (item) {
+      setMeta({
+        title: item.title || item.snippet?.title || "",
+        thumbnail:
+          item.thumbnail ||
+          item.snippet?.thumbnails?.medium?.url ||
+          item.snippet?.thumbnails?.default?.url ||
+          ""
+      });
+    }
+  }, [currentId, items]);
+
+  /* ------------------------------------------------------------
+     Register autonext state with AutonextEngine
+  ------------------------------------------------------------ */
+  useEffect(() => {
+    AutonextEngine.registerStateGetter(() => ({
+      source,
+      items,
+      currentId,
+      loadVideo
+    }));
+  }, [source, items, currentId, loadVideo]);
+
+  /* ------------------------------------------------------------
      Handle clicking a video in the content area
   ------------------------------------------------------------ */
   function handleSelect(item) {
@@ -64,13 +102,9 @@ export default function Home() {
 
     loadVideo(id);
 
-    // If user clicked a playlist item → lock source to playlist
+    // Lock source based on where the user clicked
     if (source === "playlist") return;
-
-    // If user clicked trending → lock source to trending
     if (source === "trending") return;
-
-    // If user clicked related → lock source to related
     if (source === "related") return;
   }
 
@@ -136,7 +170,7 @@ export default function Home() {
         </button>
       </div>
 
-      {/* ⭐ Playlist selector (only when source === playlist) */}
+      {/* ⭐ Playlist selector */}
       {source === "playlist" && playlists.length > 0 && (
         <div
           style={{
