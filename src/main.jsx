@@ -7,15 +7,14 @@
  *     - HashRouter (GitHub Pages compatible)
  *     - PlaylistProvider
  *     - PlayerProvider
- *     - DebugOverlay (global debug UI)
  *
  *   Notes:
- *     - React.StrictMode intentionally removed because it breaks
- *       the YouTube iframe by double‑mounting PlayerShell.
+ *     - React.StrictMode removed (breaks YouTube iframe)
+ *     - DebugOverlay removed (causes DOM mutation + iframe removal)
  */
 
 // ------------------------------------------------------------
-// 🔥 Global Debug Listeners (Step A)
+// 🔥 Global Debug Listeners
 // ------------------------------------------------------------
 window.addEventListener("error", (e) => {
   console.group("[GLOBAL ERROR]");
@@ -35,7 +34,7 @@ window.addEventListener("unhandledrejection", (e) => {
 });
 
 // ------------------------------------------------------------
-// ⭐ Critical: ensures GlobalPlayerFix.js actually executes
+// ⭐ Critical: ensures GlobalPlayerFix.js executes BEFORE React
 // ------------------------------------------------------------
 import "./player/GlobalPlayerFix.js";
 
@@ -46,12 +45,11 @@ import { HashRouter } from "react-router-dom";
 import App from "./app/App.jsx";
 import { PlaylistProvider } from "./contexts/PlaylistContext.jsx";
 import { PlayerProvider } from "./player/PlayerContext.jsx";
-import DebugOverlay from "./debug/DebugOverlay.jsx";
 
 import "./index.css";
 
 // ------------------------------------------------------------
-// 🚀 Create root + render (NO StrictMode)
+// 🚀 Create root + render (NO StrictMode, NO DebugOverlay)
 // ------------------------------------------------------------
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
@@ -62,7 +60,5 @@ root.render(
         <App />
       </PlayerProvider>
     </PlaylistProvider>
-
-    <DebugOverlay />
   </HashRouter>
 );
