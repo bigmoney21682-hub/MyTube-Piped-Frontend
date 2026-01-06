@@ -8,6 +8,7 @@
  *   - Dynamic content area
  *   - Supplies MiniPlayer meta
  *   - Registers state with AutonextEngine
+ *   - ⭐ DebugOverlay mounted for full visibility
  */
 
 import React, { useState, useEffect, useContext } from "react";
@@ -19,20 +20,15 @@ import { AutonextEngine } from "../../player/AutonextEngine.js";
 import { fetchTrending } from "../../api/trending.js";
 import { fetchRelatedVideos } from "../../api/related.js";
 
+import DebugOverlay from "../../debug/DebugOverlay.jsx"; // ⭐ NEW
+
 export default function Home() {
   const { currentId, loadVideo } = useContext(PlayerContext);
   const { playlists } = usePlaylists();
 
-  // ⭐ autonext source
   const [source, setSource] = useState("trending");
-
-  // ⭐ dynamic content list
   const [items, setItems] = useState([]);
-
-  // ⭐ selected playlist (if source === "playlist")
   const [activePlaylistId, setActivePlaylistId] = useState(null);
-
-  // ⭐ metadata for MiniPlayer
   const [meta, setMeta] = useState(null);
 
   /* ------------------------------------------------------------
@@ -101,11 +97,6 @@ export default function Home() {
     if (!id) return;
 
     loadVideo(id);
-
-    // Lock source based on where the user clicked
-    if (source === "playlist") return;
-    if (source === "trending") return;
-    if (source === "related") return;
   }
 
   /* ------------------------------------------------------------
@@ -257,6 +248,9 @@ export default function Home() {
           );
         })}
       </div>
+
+      {/* ⭐ Debug overlay */}
+      <DebugOverlay />
     </div>
   );
 }
