@@ -2,8 +2,10 @@
  * File: PlayerContext.jsx
  * Path: src/player/PlayerContext.jsx
  * Description:
- *   Provides global player state + autonext logic.
- *   Now includes full debugging for Mac Web Inspector.
+ *   Global player state for the new architecture.
+ *   - Tracks current video ID
+ *   - Exposes loadVideo()
+ *   - No autonext logic here (handled by AutonextEngine + Home.jsx)
  */
 
 import React, {
@@ -12,67 +14,42 @@ import React, {
   useCallback,
   useMemo
 } from "react";
-import { fetchRelated } from "../api/YouTubeAPI.js";
 
-// ------------------------------------------------------------
-// Debug helper
-// ------------------------------------------------------------
 function dbg(label, data = {}) {
-  console.group(`[AUTONEXT] ${label}`);
+  console.group(`[PLAYERCTX] ${label}`);
   for (const k in data) console.log(k + ":", data[k]);
   console.groupEnd();
 }
 
-export const PlayerContext = createContext();
+export const PlayerContext = createContext(null);
 
 export function PlayerProvider({ children }) {
   const [currentId, setCurrentId] = useState(null);
-  const [related, setRelated] = useState([]);
 
-  // ------------------------------------------------------------
-  // Load a video
-  // ------------------------------------------------------------
-  const loadVideo = useCallback(async (id) => {
+  /**
+   * Load a video globally.
+   * - Updates currentId
+   * - Tells GlobalPlayerFix to load the video
+   * - Does NOT fetch related (Home.jsx handles that)
+   */
+  const loadVideo = useCallback((id) => {
     dbg("loadVideo()", { id });
 
     setCurrentId(id);
 
-    const rel = await fetchRelated(id);
-    dbg("related fetched", { count: rel.length });
-
-    setRelated(rel);
-
+    // Global unified player
     window.GlobalPlayer?.loadVideo(id);
   }, []);
 
-  // ------------------------------------------------------------
-  // Handle video end → autonext
-  // ------------------------------------------------------------
-  const onVideoEnd = useCallback(() => {
-    dbg("onVideoEnd()", { currentId });
-
-    if (!related.length) {
-      dbg("No related videos available");
-      return;
-    }
-
-    const next = related[0]?.id;
-    dbg("nextVideo()", { next });
-
-    if (next) loadVideo(next);
-  }, [currentId, related, loadVideo]);
-
-  // ------------------------------------------------------------
-  // ⭐ Critical: stabilize context value to prevent re-renders
-  // ------------------------------------------------------------
+  /**
+   * Stable context value
+   */
   const value = useMemo(() => {
     return {
       currentId,
-      related,
-      loadVideo,
-      onVideoEnd
+      loadVideo
     };
-  }, [currentId, related, loadVideo, onVideoEnd]);
+  }, [currentId, loadVideo]);
 
   return (
     <PlayerContext.Provider value={value}>
