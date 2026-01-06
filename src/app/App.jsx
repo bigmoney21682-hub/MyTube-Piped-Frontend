@@ -3,14 +3,14 @@
  * Path: src/app/App.jsx
  * Description:
  *   Root router + pages.
- *   Now includes full route debugging for Mac Web Inspector.
+ *   Watch page removed — /watch/:id now routes to Home.
+ *   Includes full route debugging for Mac Web Inspector.
  */
 
 import React, { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
-import Home from "../pages/Home.jsx";
-import Watch from "../pages/Watch.jsx";
+import Home from "../pages/Home/Home.jsx";
 import Search from "../pages/Search.jsx";
 
 // ------------------------------------------------------------
@@ -38,8 +38,13 @@ export default function App() {
 
   return (
     <Routes>
+      {/* Home is now the Now Playing page */}
       <Route path="/" element={<Home />} />
-      <Route path="/watch/:id" element={<Watch />} />
+
+      {/* Watch route now points to Home */}
+      <Route path="/watch/:id" element={<Home />} />
+
+      {/* Search page unchanged */}
       <Route path="/search/:query" element={<Search />} />
     </Routes>
   );
