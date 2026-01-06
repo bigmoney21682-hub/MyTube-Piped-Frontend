@@ -10,7 +10,29 @@
  *     - DebugOverlay (global debug UI)
  */
 
-// ⭐ Critical: ensures GlobalPlayerFix.js actually executes in production
+// ------------------------------------------------------------
+// 🔥 Global Debug Listeners (Step A)
+// ------------------------------------------------------------
+window.addEventListener("error", (e) => {
+  console.group("[GLOBAL ERROR]");
+  console.log("Message:", e.message);
+  console.log("File:", e.filename);
+  console.log("Line:", e.lineno);
+  console.log("Column:", e.colno);
+  console.log("Error object:", e.error);
+  console.groupEnd();
+});
+
+window.addEventListener("unhandledrejection", (e) => {
+  console.group("[UNHANDLED PROMISE]");
+  console.log("Reason:", e.reason);
+  console.log("Stack:", e.reason?.stack);
+  console.groupEnd();
+});
+
+// ------------------------------------------------------------
+// ⭐ Critical: ensures GlobalPlayerFix.js actually executes
+// ------------------------------------------------------------
 import "./player/GlobalPlayerFix.js";
 
 import React from "react";
