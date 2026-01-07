@@ -2,11 +2,11 @@
  * File: Home.jsx
  * Path: src/pages/Home/Home.jsx
  * Description:
- *   Master page of the app.
- *   - Player stays mounted at all times
+ *   Content page of the app.
+ *   - NO PLAYER HERE (player lives in App.jsx)
  *   - Autonext source selector
  *   - Dynamic content area
- *   - Supplies MiniPlayer meta
+ *   - Supplies metadata to PlayerContext
  *   - Registers state with AutonextEngine
  *   - ⭐ DebugOverlay mounted for full visibility
  */
@@ -24,13 +24,12 @@ import AddToPlaylistButton from "../../components/AddToPlaylistButton.jsx";
 import DebugOverlay from "../../debug/DebugOverlay.jsx";
 
 export default function Home() {
-  const { currentId, loadVideo } = useContext(PlayerContext);
+  const { currentId, loadVideo, setCurrentMeta } = useContext(PlayerContext);
   const { playlists } = usePlaylists();
 
   const [source, setSource] = useState("trending");
   const [items, setItems] = useState([]);
   const [activePlaylistId, setActivePlaylistId] = useState(null);
-  const [meta, setMeta] = useState(null);
 
   /* ------------------------------------------------------------
      Load content based on source
@@ -67,7 +66,7 @@ export default function Home() {
     );
 
     if (item) {
-      setMeta({
+      setCurrentMeta({
         title: item.title || item.snippet?.title || "",
         thumbnail:
           item.thumbnail ||
@@ -76,7 +75,7 @@ export default function Home() {
           ""
       });
     }
-  }, [currentId, items]);
+  }, [currentId, items, setCurrentMeta]);
 
   /* ------------------------------------------------------------
      Register autonext state with AutonextEngine
@@ -97,7 +96,14 @@ export default function Home() {
     const id = item.id || item.videoId;
     if (!id) return;
 
-    loadVideo(id);
+    const title = item.title || item.snippet?.title || "";
+    const thumbnail =
+      item.thumbnail ||
+      item.snippet?.thumbnails?.medium?.url ||
+      item.snippet?.thumbnails?.default?.url ||
+      "";
+
+    loadVideo(id, { title, thumbnail });
   }
 
   /* ------------------------------------------------------------
@@ -105,18 +111,6 @@ export default function Home() {
   ------------------------------------------------------------ */
   return (
     <div style={{ padding: "12px", color: "#fff" }}>
-
-      {/* ⭐ GlobalPlayerFix iframe mount point */}
-      <div
-        id="yt-player"
-        style={{
-          width: "100%",
-          height: "220px",
-          background: "#000",
-          position: "relative",
-          zIndex: 5
-        }}
-      ></div>
 
       {/* ⭐ Autonext Source Selector */}
       <div
