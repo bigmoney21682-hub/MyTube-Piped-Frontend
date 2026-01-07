@@ -12,15 +12,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Nuke stale workspace
+      # 🔥 Nuke ONLY the workspace GitHub created — no custom paths
+      - name: Clean workspace
         run: |
-          rm -rf /home/runner/work/MyTube-Piped-Frontend
-          mkdir -p /home/runner/work/MyTube-Piped-Frontend/MyTube-Piped-Frontend
+          rm -rf ./*
 
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          path: /home/runner/work/MyTube-Piped-Frontend/MyTube-Piped-Frontend
 
       - name: Clean caches
         run: rm -rf node_modules dist .vite
