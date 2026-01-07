@@ -1,9 +1,16 @@
 /**
  * File: MiniPlayer.jsx
+ * Path: src/player/MiniPlayer.jsx
+ * Description:
+ *   Compact bar under the header when player is collapsed.
+ *   - Shows current title + thumbnail
+ *   - Play/Pause controls real YouTube iframe via GlobalPlayer
+ *   - Expand button shows FullPlayer
  */
 
 import React, { useContext } from "react";
 import { PlayerContext } from "./PlayerContext.jsx";
+import { GlobalPlayer } from "./GlobalPlayerFix.js";
 
 export default function MiniPlayer({ onExpand }) {
   const { currentId, currentMeta, isPlaying, setIsPlaying } =
@@ -13,6 +20,20 @@ export default function MiniPlayer({ onExpand }) {
 
   const title = currentMeta?.title || "Now playing";
   const thumbnail = currentMeta?.thumbnail || "";
+
+  function handleTogglePlay(e) {
+    e.stopPropagation();
+
+    if (!GlobalPlayer.player) return;
+
+    if (isPlaying) {
+      GlobalPlayer.player.pauseVideo();
+    } else {
+      GlobalPlayer.player.playVideo();
+    }
+
+    setIsPlaying(!isPlaying);
+  }
 
   return (
     <div
@@ -26,16 +47,31 @@ export default function MiniPlayer({ onExpand }) {
         gap: "12px"
       }}
     >
-      <img
-        src={thumbnail}
+      {/* Thumbnail */}
+      <div
         style={{
           width: 48,
           height: 48,
           borderRadius: 6,
-          objectFit: "cover"
+          overflow: "hidden",
+          flexShrink: 0,
+          background: "#000"
         }}
-      />
+      >
+        {thumbnail && (
+          <img
+            src={thumbnail}
+            alt=""
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover"
+            }}
+          />
+        )}
+      </div>
 
+      {/* Title */}
       <div
         style={{
           flex: 1,
@@ -51,18 +87,18 @@ export default function MiniPlayer({ onExpand }) {
 
       {/* Play/Pause */}
       <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setIsPlaying(!isPlaying);
-        }}
+        onClick={handleTogglePlay}
         style={{
           padding: "6px 10px",
           borderRadius: 6,
           border: "none",
-          background: "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
+          background:
+            "linear-gradient(90deg, #ff8c00, #ff4500, #ff0000)",
           color: "#fff",
           fontSize: 12,
-          fontWeight: 600
+          fontWeight: 600,
+          flexShrink: 0,
+          cursor: "pointer"
         }}
       >
         {isPlaying ? "Pause" : "Play"}
@@ -81,7 +117,9 @@ export default function MiniPlayer({ onExpand }) {
           background: "#333",
           color: "#fff",
           fontSize: 12,
-          fontWeight: 600
+          fontWeight: 600,
+          flexShrink: 0,
+          cursor: "pointer"
         }}
       >
         Expand
