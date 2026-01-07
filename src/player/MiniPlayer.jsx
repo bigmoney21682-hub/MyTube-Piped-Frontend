@@ -1,16 +1,11 @@
 /**
  * File: MiniPlayer.jsx
- * Description:
- *   Compact bar under the player.
- *   - Expand/Collapse button
- *   - Play/Pause button
- *   - Title + thumbnail
  */
 
 import React, { useContext } from "react";
 import { PlayerContext } from "./PlayerContext.jsx";
 
-export default function MiniPlayer({ onExpand, onCollapse }) {
+export default function MiniPlayer({ onExpand }) {
   const { currentId, currentMeta, isPlaying, setIsPlaying } =
     useContext(PlayerContext);
 
@@ -30,14 +25,12 @@ export default function MiniPlayer({ onExpand, onCollapse }) {
         alignItems: "center",
         gap: "12px",
         position: "sticky",
-        top: 220, // ⭐ sits right under the player
-        zIndex: 5000
+        top: 220,
+        zIndex: 9
       }}
     >
-      {/* Thumbnail */}
       <img
         src={thumbnail}
-        alt=""
         style={{
           width: 48,
           height: 48,
@@ -46,7 +39,6 @@ export default function MiniPlayer({ onExpand, onCollapse }) {
         }}
       />
 
-      {/* Title */}
       <div
         style={{
           flex: 1,
@@ -79,7 +71,7 @@ export default function MiniPlayer({ onExpand, onCollapse }) {
         {isPlaying ? "Pause" : "Play"}
       </button>
 
-      {/* Expand/Collapse */}
+      {/* Expand */}
       <button
         onClick={(e) => {
           e.stopPropagation();
