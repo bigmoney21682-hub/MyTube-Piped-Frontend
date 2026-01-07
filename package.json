@@ -1,7 +1,7 @@
 {
   "//": "File: package.json | Path: /package.json | Description: Clean manifest with ReactPlayer removed.",
 
-  "name": "mytube-piped-frontend",
+  "name": "MyTubes",
   "version": "1.0.0",
   "private": true,
   "type": "module",
