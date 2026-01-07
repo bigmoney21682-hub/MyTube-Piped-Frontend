@@ -1,7 +1,7 @@
 /**
  * File: FullPlayer.jsx
  * Path: src/player/FullPlayer.jsx
- * Description:
+ * Description: stale build
  *   Expanded player UI that overlays the 220px iframe area.
  *   - NOT fullscreen
  *   - Uses PlayerContext for meta + isPlaying
