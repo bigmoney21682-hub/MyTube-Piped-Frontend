@@ -49,32 +49,32 @@ export default function App() {
     >
       <Header />
 
-      {/* Player area pinned under header */}
+      {/* ⭐ PLAYER AREA (pinned under header) */}
       <div
         style={{
           width: "100%",
           height: 220,
           position: "sticky",
-          top: 60, // header height
+          top: 60,
           zIndex: 1000,
           background: "#000",
           overflow: "hidden"
         }}
       >
-        {/* Iframe mount ALWAYS present */}
+        {/* ⭐ IFRAME ALWAYS MOUNTED */}
         <div
           id="yt-player"
           style={{
             width: "100%",
             height: "100%",
-            background: "#000",
             position: "absolute",
             inset: 0,
+            background: "#000",
             zIndex: 1
           }}
         />
 
-        {/* FullPlayer overlays iframe when expanded */}
+        {/* ⭐ FULLPLAYER OVERLAY */}
         {expanded && (
           <div
             style={{
@@ -88,24 +88,23 @@ export default function App() {
         )}
       </div>
 
-      {/* MiniPlayer only when collapsed AND a video is loaded, pinned under header */}
+      {/* ⭐ MINIPLAYER (only when collapsed AND video loaded) */}
       {currentId && !expanded && (
         <div
           style={{
             position: "sticky",
-            top: 60,          // directly under header
-            zIndex: 999,
-            height: "auto",
-            display: "flex",
-            alignItems: "center",
-            background: "#000"
+            top: 60,              // directly under header
+            zIndex: 1500,         // above player
+            height: "auto",       // ⭐ prevents inheriting 220px
+            display: "inline-block", // ⭐ prevents sticky height inheritance
+            background: "#000"    // ⭐ fixes Safari sticky stacking bug
           }}
         >
           <MiniPlayer onExpand={() => setExpanded(true)} />
         </div>
       )}
 
-      {/* Content area */}
+      {/* ⭐ CONTENT AREA */}
       <div style={{ paddingTop: 12, paddingBottom: 56 }}>
         <Routes>
           <Route path="/" element={<Home />} />
