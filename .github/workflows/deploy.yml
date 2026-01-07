@@ -12,13 +12,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Nuke stale workspace
+        run: |
+          rm -rf $GITHUB_WORKSPACE
+          mkdir $GITHUB_WORKSPACE
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          clean: true
-          sparse-checkout: ''
 
-      - run: rm -rf node_modules dist .vite
+      - name: Clean caches
+        run: rm -rf node_modules dist .vite
 
       - uses: actions/setup-node@v4
         with:
