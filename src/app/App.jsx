@@ -2,7 +2,7 @@
  * File: App.jsx
  * Path: src/app/App.jsx
  * Description:
- *   Layout controller.
+ *   Layout controller. stale build
  *   - Header at top
  *   - Player area pinned under header
  *   - FullPlayer overlays iframe when expanded
