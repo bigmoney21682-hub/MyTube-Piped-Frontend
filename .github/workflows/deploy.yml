@@ -13,6 +13,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+          sparse-checkout: ''
+
+      - run: rm -rf node_modules dist .vite
 
       - uses: actions/setup-node@v4
         with:
@@ -21,7 +27,6 @@ jobs:
       - run: npm install
       - run: npm run build
 
-      # IMPORTANT: 1GitHub Pages REQUIRES this artifact name
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
