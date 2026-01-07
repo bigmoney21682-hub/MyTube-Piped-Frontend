@@ -1,9 +1,12 @@
 /**
  * File: App.jsx
+ * Path: src/app/App.jsx
  * Description:
- *   True layout controller.
- *   - PlayerArea pinned under header
- *   - MiniPlayer OR FullPlayer visible (never both)
+ *   Layout controller.
+ *   - Header at top
+ *   - Player area pinned under header
+ *   - FullPlayer overlays iframe when expanded
+ *   - MiniPlayer only visible when collapsed, pinned under header
  *   - Content scrolls underneath
  */
 
@@ -26,27 +29,38 @@ export default function App() {
   const [expanded, setExpanded] = useState(false);
   const { currentId } = useContext(PlayerContext);
 
-  // ⭐ Auto-expand when a video starts
+  // Auto-expand when a video starts
   useEffect(() => {
-    if (currentId) setExpanded(true);
+    if (currentId) {
+      setExpanded(true);
+    }
   }, [currentId]);
 
   return (
-    <div style={{ width: "100%", height: "100%", background: "#000", color: "#fff" }}>
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        background: "#000",
+        color: "#fff",
+        overflowX: "hidden"
+      }}
+    >
       <Header />
 
-      {/* ⭐ PLAYER AREA (pinned under header) */}
+      {/* Player area pinned under header */}
       <div
         style={{
           width: "100%",
           height: 220,
           position: "sticky",
-          top: 60,
+          top: 60, // header height
           zIndex: 1000,
-          background: "#000"
+          background: "#000",
+          overflow: "hidden"
         }}
       >
-        {/* ⭐ IFRAME ALWAYS MOUNTED */}
+        {/* Iframe mount ALWAYS present */}
         <div
           id="yt-player"
           style={{
@@ -59,20 +73,26 @@ export default function App() {
           }}
         />
 
-        {/* ⭐ FULLPLAYER OVERLAYS IFRAME */}
+        {/* FullPlayer overlays iframe when expanded */}
         {expanded && (
-          <div style={{ position: "absolute", inset: 0, zIndex: 2 }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 2
+            }}
+          >
             <FullPlayer onClose={() => setExpanded(false)} />
           </div>
         )}
       </div>
 
-      {/* ⭐ MINI PLAYER (only when collapsed) */}
+      {/* MiniPlayer only when collapsed, pinned under header */}
       {!expanded && (
         <div
           style={{
             position: "sticky",
-            top: 280,
+            top: 60, // directly under header
             zIndex: 999
           }}
         >
@@ -80,7 +100,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ⭐ CONTENT AREA */}
+      {/* Content area */}
       <div style={{ paddingTop: 12, paddingBottom: 56 }}>
         <Routes>
           <Route path="/" element={<Home />} />
