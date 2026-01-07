@@ -1,7 +1,12 @@
 /**
  * File: Header.jsx
  * Path: src/components/Header.jsx
- * Description: Global app header with MyTube title and search bar + history.
+ * Description:
+ *   Global fixed header for MyTube.
+ *   - Fixed at top (60px)
+ *   - High z-index so sticky player scrolls under it
+ *   - No layout collisions with sticky player or MiniPlayer
+ *   - Search bar + history dropdown
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -16,7 +21,9 @@ export default function Header() {
 
   const inputRef = useRef(null);
 
-  // Load history on mount
+  /* ------------------------------------------------------------
+     Load search history on mount
+  ------------------------------------------------------------ */
   useEffect(() => {
     setHistory(loadHistory());
   }, []);
@@ -26,7 +33,6 @@ export default function Header() {
     const q = query.trim();
     if (!q) return;
 
-    // Save to history
     const updated = saveHistory(q);
     setHistory(updated);
 
@@ -47,13 +53,17 @@ export default function Header() {
         top: 0,
         left: 0,
         right: 0,
+
         height: "60px",
         background: "#111",
         borderBottom: "1px solid #222",
+
         display: "flex",
         alignItems: "center",
         padding: "0 12px",
-        zIndex: 1000
+
+        /* ⭐ MUST be above sticky player (zIndex 1000) */
+        zIndex: 2000
       }}
     >
       {/* Title */}
@@ -125,7 +135,9 @@ export default function Header() {
               border: "1px solid #333",
               borderRadius: 6,
               padding: "6px 0",
-              zIndex: 2000
+
+              /* ⭐ Must be above header and player */
+              zIndex: 3000
             }}
           >
             {history.map((item, i) => (
