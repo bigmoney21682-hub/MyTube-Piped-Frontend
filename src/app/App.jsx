@@ -2,11 +2,13 @@
  * File: App.jsx
  * Path: src/app/App.jsx
  * Description:
- *   True layout controller for the entire app.
- *   - PlayerArea pinned under header
- *   - MiniPlayer only visible when collapsed
- *   - FullPlayer replaces the player area (not fullscreen)
- *   - Content scrolls underneath
+ *   Layout controller.
+ *   - Header at top
+ *   - Player area (iframe or FullPlayer)
+ *   - MiniPlayer only when collapsed
+ *   - Content below
+ *   - Footer at bottom
+ *   - No sticky/pinning for now (all scroll together)
  */
 
 import React, { useState, useEffect, useContext } from "react";
@@ -26,10 +28,9 @@ import Search from "../pages/Search.jsx";
 
 export default function App() {
   const [expanded, setExpanded] = useState(false);
-
-  // ⭐ When a video loads → expand the player automatically
   const { currentId } = useContext(PlayerContext);
 
+  // Auto-expand when a video starts
   useEffect(() => {
     if (currentId) {
       setExpanded(true);
@@ -40,7 +41,7 @@ export default function App() {
     <div
       style={{
         width: "100%",
-        height: "100%",
+        minHeight: "100%",
         background: "#000",
         color: "#fff",
         overflowX: "hidden"
@@ -48,14 +49,11 @@ export default function App() {
     >
       <Header />
 
-      {/* ⭐ PLAYER AREA (pinned under header) */}
+      {/* Player area (no sticky for now) */}
       <div
         style={{
           width: "100%",
           height: 220,
-          position: "sticky",
-          top: 60, // header height
-          zIndex: 1000,
           background: "#000"
         }}
       >
@@ -75,21 +73,13 @@ export default function App() {
         )}
       </div>
 
-      {/* ⭐ MINI PLAYER (only when collapsed, pinned under header) */}
+      {/* MiniPlayer only when collapsed */}
       {!expanded && (
-        <div
-          style={{
-            position: "sticky",
-            top: 280, // 60 header + 220 player
-            zIndex: 999
-          }}
-        >
-          <MiniPlayer onExpand={() => setExpanded(true)} />
-        </div>
+        <MiniPlayer onExpand={() => setExpanded(true)} />
       )}
 
-      {/* ⭐ CONTENT AREA */}
-      <div style={{ paddingTop: 12, paddingBottom: 56 }}>
+      {/* Content area */}
+      <div style={{ padding: "12px 12px 56px" }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/search" element={<Search />} />
