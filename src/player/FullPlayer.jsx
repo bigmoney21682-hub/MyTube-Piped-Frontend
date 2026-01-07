@@ -69,6 +69,27 @@ export default function FullPlayer({ onClose }) {
         }}
       />
 
+      {/* Collapse button */}
+      <button
+        onClick={onClose}
+        style={{
+          padding: "4px 10px",
+          borderRadius: 6,
+          border: "none",
+          background: "#333",
+          color: "#fff",
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: "pointer",
+          position: "absolute",
+          top: 10,
+          right: 10,
+          zIndex: 10
+        }}
+      >
+        Collapse
+      </button>
+
       {/* Content */}
       <div
         style={{
@@ -76,37 +97,18 @@ export default function FullPlayer({ onClose }) {
           inset: 0,
           display: "flex",
           flexDirection: "column",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           padding: "10px 12px",
           color: "#fff"
         }}
       >
-        {/* Top row: collapse */}
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: "4px 10px",
-              borderRadius: 6,
-              border: "none",
-              background: "#333",
-              color: "#fff",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer"
-            }}
-          >
-            Collapse
-          </button>
-        </div>
-
         {/* Title */}
         <div
           style={{
             fontSize: 15,
             fontWeight: 700,
             textShadow: "0 0 4px rgba(0,0,0,0.8)",
-            marginBottom: 6
+            marginBottom: 8
           }}
         >
           {title}
