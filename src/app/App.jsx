@@ -6,7 +6,8 @@
  *   - Header at top
  *   - Player area pinned under header
  *   - FullPlayer overlays iframe when expanded
- *   - MiniPlayer only visible when collapsed, pinned under header
+ *   - MiniPlayer only visible when collapsed AND a video is loaded
+ *   - MiniPlayer pinned under header
  *   - Content scrolls underneath
  */
 
@@ -87,13 +88,17 @@ export default function App() {
         )}
       </div>
 
-      {/* MiniPlayer only when collapsed, pinned under header */}
-      {!expanded && (
+      {/* MiniPlayer only when collapsed AND a video is loaded, pinned under header */}
+      {currentId && !expanded && (
         <div
           style={{
             position: "sticky",
-            top: 60, // directly under header
-            zIndex: 999
+            top: 60,          // directly under header
+            zIndex: 999,
+            height: "auto",
+            display: "flex",
+            alignItems: "center",
+            background: "#000"
           }}
         >
           <MiniPlayer onExpand={() => setExpanded(true)} />
