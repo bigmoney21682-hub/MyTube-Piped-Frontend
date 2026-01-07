@@ -2,13 +2,19 @@
  * File: App.jsx
  * Path: src/app/App.jsx
  * Description:
- *   Layout controller. stale build
- *   - Header at top
- *   - Player area pinned under header
+ *   Master layout controller for MyTubes.
+ *
+ *   FIXED:
+ *   - MiniPlayer no longer overlays header on boot
+ *   - MiniPlayer no longer scrolls over header
+ *   - Sticky stacking context collision resolved
+ *
+ *   Layout:
+ *   - Header at top (60px)
+ *   - Player area pinned under header (220px)
+ *   - MiniPlayer pinned UNDER player area (top: 280px)
  *   - FullPlayer overlays iframe when expanded
- *   - MiniPlayer only visible when collapsed AND a video is loaded
- *   - MiniPlayer pinned under header
- *   - Content scrolls underneath
+ *   - Content scrolls underneath everything
  */
 
 import React, { useState, useEffect, useContext } from "react";
@@ -47,21 +53,22 @@ export default function App() {
         overflowX: "hidden"
       }}
     >
+      {/* HEADER */}
       <Header />
 
-      {/* ⭐ PLAYER AREA (pinned under header) */}
+      {/* PLAYER AREA (sticky under header) */}
       <div
         style={{
           width: "100%",
           height: 220,
           position: "sticky",
-          top: 60,
+          top: 60,           // header height
           zIndex: 1000,
           background: "#000",
           overflow: "hidden"
         }}
       >
-        {/* ⭐ IFRAME ALWAYS MOUNTED */}
+        {/* IFRAME ALWAYS MOUNTED */}
         <div
           id="yt-player"
           style={{
@@ -74,7 +81,7 @@ export default function App() {
           }}
         />
 
-        {/* ⭐ FULLPLAYER OVERLAY */}
+        {/* FULLPLAYER OVERLAY */}
         {expanded && (
           <div
             style={{
@@ -88,23 +95,23 @@ export default function App() {
         )}
       </div>
 
-      {/* ⭐ MINIPLAYER (only when collapsed AND video loaded) */}
+      {/* MINIPLAYER — now in its own sticky lane */}
       {currentId && !expanded && (
         <div
           style={{
             position: "sticky",
-            top: 60,              // directly under header
-            zIndex: 1500,         // above player
-            height: "auto",       // ⭐ prevents inheriting 220px
-            display: "inline-block", // ⭐ prevents sticky height inheritance
-            background: "#000"    // ⭐ fixes Safari sticky stacking bug
+            top: 280,          // 60 header + 220 player area
+            zIndex: 1500,
+            background: "#000",
+            height: "auto",
+            display: "block"
           }}
         >
           <MiniPlayer onExpand={() => setExpanded(true)} />
         </div>
       )}
 
-      {/* ⭐ CONTENT AREA */}
+      {/* CONTENT AREA */}
       <div style={{ paddingTop: 12, paddingBottom: 56 }}>
         <Routes>
           <Route path="/" element={<Home />} />
