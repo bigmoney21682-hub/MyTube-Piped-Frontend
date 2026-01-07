@@ -12,10 +12,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Nuke stale workspace
+      - name: Nuke EVERYTHING including stale case folders
         run: |
-          rm -rf $GITHUB_WORKSPACE
-          mkdir $GITHUB_WORKSPACE
+          cd /home/runner/work
+          rm -rf MyTube-Piped-Frontend
+          mkdir -p MyTube-Piped-Frontend
 
       - uses: actions/checkout@v4
         with:
