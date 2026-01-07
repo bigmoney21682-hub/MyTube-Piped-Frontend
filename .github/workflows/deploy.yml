@@ -21,7 +21,7 @@ jobs:
       - run: npm install
       - run: npm run build
 
-      # IMPORTANT: GitHub Pages REQUIRES this artifact name
+      # IMPORTANT: 1GitHub Pages REQUIRES this artifact name
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
